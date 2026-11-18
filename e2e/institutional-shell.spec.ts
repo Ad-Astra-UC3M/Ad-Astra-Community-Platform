@@ -4,11 +4,13 @@ test("la navegación y el pie institucional acompañan al visitante y al estudia
   await page.goto("/");
   const header = page.getByRole("banner");
   const footer = page.getByRole("contentinfo");
-  await expect(header.getByRole("img", {name: /Ad Astra/i}).first()).toBeVisible();
-  await expect(footer.getByRole("link", {name: "SIGMA", exact: true})).toHaveAttribute("href", /^https:\/\/adastrauc3m\.es\//);
-  await expect(footer.getByRole("link", {name: "Equipo", exact: true})).toHaveAttribute("href", /^https:\/\/adastrauc3m\.es\//);
+  const logo = header.getByRole("img", {name: /Ad Astra/i}).first();
+  await expect(logo).toBeVisible();
+  await expect.poll(() => logo.evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  await expect(footer.getByRole("link", {name: "SIGMA", exact: true})).toHaveAttribute("href", /^https:\/\/www\.adastrauc3m\.es\//);
+  await expect(footer.getByRole("link", {name: "Equipo", exact: true})).toHaveAttribute("href", /^https:\/\/www\.adastrauc3m\.es\//);
   const skip = page.getByRole("link", {name: "Saltar al contenido"});
-  await expect(header.getByRole("link", {name: "Únete a IT / Eventos"}).first()).toHaveAttribute("href", "https://adastrauc3m.es/join");
+  await expect(header.getByRole("link", {name: "Únete a IT / Eventos"}).first()).toHaveAttribute("href", "https://www.adastrauc3m.es/join");
   await page.getByRole("button", {name: "Entrar como estudiante"}).click();
   await expect(page).toHaveURL(/\/home$/);
   await expect(footer).toBeVisible();

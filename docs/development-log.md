@@ -46,3 +46,9 @@ La revisión de Sol 6.2 con razonamiento `xhigh` señaló dos ajustes que se inc
 - La [PR #2](https://github.com/Ad-Astra-UC3M/Ad-Astra-Community-Platform/pull/2) de `codex/community-navigation` a `main` queda abierta. `bcb3a36` incorpora Hugeicons, `676cbee` unifica los enlaces de vuelta y las flechas, y `a37c4ee` adapta la barra de navegación y el pie institucional a Comunidad.
 - La revisión independiente de Sol 6.2 (`xhigh`) señaló problemas de contraste en la llamada a la acción, visibilidad del foco y orden de tabulación en móvil. `ca825d1` y `ef6723e` incorporan los ajustes.
 - Coordinación comprobó 14 pruebas unitarias, `npm run typecheck`, `npm run build` y seis pruebas de extremo a extremo. La verificación cubrió contraste, foco, destinos de vuelta, distintos tamaños de pantalla e impresión.
+
+### Copia literal de la barra y el pie
+
+- Jorge pidió incorporar a Comunidad copias literales de `Navbar.jsx` y `Footer.jsx` de la landing. Para este ajuste pidió omitir la verificación visual. Coordinación comprobará la coincidencia mediante hashes y ejecutará el build.
+
+- Se comprobó la coincidencia SHA-256 y de los blobs Git de ambos JSX. La compatibilidad con enlaces y recursos reside fuera de los originales. La compilación y el chequeo de tipos pasaron.
