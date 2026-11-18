@@ -39,4 +39,10 @@ La revisión de Sol 6.2 con razonamiento `xhigh` señaló dos ajustes que se inc
 
 - La PR #1 se fusionó en `main` en `ec1a7e4`, base de `codex/community-navigation`.
 - Jorge validó el prototipo y pidió dos ajustes. El primero es adaptar la barra de navegación y el pie de la landing. El segundo es unificar el comportamiento de «Atrás» y la iconografía en Comunidad.
-- Los dos frentes avanzan en paralelo. Quedan pendientes su integración y las comprobaciones del incremento. La prueba con una cámara física sigue sin confirmar.
+- Los dos frentes se trabajaron en paralelo. La prueba con una cámara física sigue sin confirmar.
+
+### Cierre técnico de navegación
+
+- La [PR #2](https://github.com/Ad-Astra-UC3M/Ad-Astra-Community-Platform/pull/2) de `codex/community-navigation` a `main` queda abierta. `bcb3a36` incorpora Hugeicons, `676cbee` unifica los enlaces de vuelta y las flechas, y `a37c4ee` adapta la barra de navegación y el pie institucional a Comunidad.
+- La revisión independiente de Sol 6.2 (`xhigh`) señaló problemas de contraste en la llamada a la acción, visibilidad del foco y orden de tabulación en móvil. `ca825d1` y `ef6723e` incorporan los ajustes.
+- Coordinación comprobó 14 pruebas unitarias, `npm run typecheck`, `npm run build` y seis pruebas de extremo a extremo. La verificación cubrió contraste, foco, destinos de vuelta, distintos tamaños de pantalla e impresión.
