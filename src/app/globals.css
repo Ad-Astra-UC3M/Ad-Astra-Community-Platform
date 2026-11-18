@@ -531,10 +531,6 @@ input:is([type="checkbox"], [type="radio"]) {
   border-radius: 4px;
 }
 
-.scanner [role="status"]:empty {
-  display: none;
-}
-
 .scanner [role="status"]:not(:empty) {
   border-radius: 4px;
   background: var(--tint);
