@@ -86,3 +86,75 @@ test("las sesiones solo sirven en su espacio y se revocan al salir", () => {
   store.closeSession("workspace-a", token);
   assert.equal(store.sessionUser("workspace-a", token, now), null);
 });
+
+test("volver a estudiante recupera la última cuenta usada, aunque se verificase antes", () => {
+  using database = new DatabaseSync(":memory:");
+  const store = new SessionStore(database);
+  const input = registration();
+  const now = Date.now();
+
+  store.createAccount("workspace-a", input, "verification-a", now);
+  const firstStudent = store.verifyAccount("workspace-a", "verification-a", now);
+  assert.ok(firstStudent);
+  const firstToken = store.openSession(firstStudent, now);
+
+  store.createAccount("workspace-a", { ...input, email: "segunda@uc3m.es" }, "verification-b", now + 1);
+  const secondStudent = store.verifyAccount("workspace-a", "verification-b", now + 1);
+  assert.ok(secondStudent);
+  const secondToken = store.openSession(secondStudent, now + 1);
+  store.closeSession("workspace-a", firstToken);
+  assert.deepEqual(store.demoUser("workspace-a", "student"), secondStudent);
+
+  const student = store.signIn("workspace-a", input.email, input.password);
+  assert.deepEqual(student, firstStudent);
+  assert.ok(student);
+  const lastStudentToken = store.openSession(student, now + 2);
+  store.closeSession("workspace-a", secondToken);
+
+  const organizer = store.demoUser("workspace-a", "organizer");
+  store.openSession(organizer, now + 3);
+  store.closeSession("workspace-a", lastStudentToken);
+
+  assert.deepEqual(store.demoUser("workspace-a", "student"), firstStudent);
+  assert.notEqual(store.demoUser("workspace-b", "student").id, firstStudent.id);
+});
+
+test("un registro caducado se puede reiniciar con el mismo correo y conserva una sola cuenta", () => {
+  using database = new DatabaseSync(":memory:");
+  const store = new SessionStore(database);
+  const input = registration();
+  const now = Date.now();
+  const expired = now + 15 * 60_000;
+  const revised = { ...input, firstName: "Nora", password: "SegundaClaveDemo2026!" };
+
+  assert.equal(store.createAccount("workspace-a", input, "verification-original", now), true);
+  assert.equal(store.createAccount("workspace-a", revised, "verification-new", expired - 1), false);
+  assert.equal(store.hasPendingVerification("workspace-a", "verification-original", expired), false);
+  assert.equal(store.createAccount("workspace-a", revised, "verification-new", expired), true);
+  assert.equal(store.verifyAccount("workspace-a", "verification-original", expired), null);
+  const user = store.verifyAccount("workspace-a", "verification-new", expired);
+  assert.equal(user?.name, "Nora Ejemplo");
+  assert.equal(store.signIn("workspace-a", input.email, input.password), null);
+  assert.deepEqual(store.signIn("workspace-a", input.email, revised.password), user);
+  assert.equal(store.createAccount("workspace-a", input, "verification-again", expired * 2), false);
+  assert.equal(database.prepare("SELECT count(*) AS count FROM demo_accounts").get()?.count, 1);
+});
+
+test("la actualización conserva la cuenta de una sesión estudiante existente", () => {
+  using database = new DatabaseSync(":memory:");
+  const legacyStore = new SessionStore(database);
+  database.exec("DROP TRIGGER demo_sessions_remember_student; DROP TABLE demo_student_selection;");
+  const input = registration();
+  const now = Date.now();
+
+  legacyStore.createAccount("workspace-a", input, "verification-first", now);
+  const firstStudent = legacyStore.verifyAccount("workspace-a", "verification-first", now);
+  assert.ok(firstStudent);
+  legacyStore.createAccount("workspace-a", { ...input, email: "segunda@uc3m.es" }, "verification-second", now + 1);
+  assert.ok(legacyStore.verifyAccount("workspace-a", "verification-second", now + 1));
+  const legacyToken = legacyStore.openSession(firstStudent, now + 2);
+
+  const updatedStore = new SessionStore(database);
+  updatedStore.closeSession("workspace-a", legacyToken);
+  assert.deepEqual(updatedStore.demoUser("workspace-a", "student"), firstStudent);
+});

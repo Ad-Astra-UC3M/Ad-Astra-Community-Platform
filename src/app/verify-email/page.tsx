@@ -21,6 +21,7 @@ export default async function VerifyEmailPage() {
         ) : (
           <>
             <p>No hay ninguna verificación pendiente en este navegador.</p>
+            <p>Si la verificación ha caducado, puedes volver a registrarte con el mismo correo de prueba.</p>
             <Link href="/sign-up">Volver al registro</Link>
             <Link href="/sign-in">Acceder a la comunidad</Link>
           </>

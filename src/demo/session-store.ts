@@ -125,7 +125,33 @@ export class SessionStore {
         expires_at INTEGER NOT NULL,
         FOREIGN KEY (workspace_id, account_id) REFERENCES demo_accounts (workspace_id, id)
       ) STRICT;
+
+      CREATE TABLE IF NOT EXISTS demo_student_selection (
+        workspace_id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL,
+        FOREIGN KEY (workspace_id, account_id) REFERENCES demo_accounts (workspace_id, id)
+      ) STRICT;
+
+      CREATE TRIGGER IF NOT EXISTS demo_sessions_remember_student
+      AFTER INSERT ON demo_sessions
+      BEGIN
+        INSERT INTO demo_student_selection (workspace_id, account_id)
+        SELECT workspace_id, id FROM demo_accounts
+        WHERE workspace_id = NEW.workspace_id AND id = NEW.account_id
+          AND role = 'student' AND verified_at IS NOT NULL
+        ON CONFLICT (workspace_id) DO UPDATE SET account_id = excluded.account_id;
+      END;
     `);
+
+    // Existing sessions may predate the student selection table.
+    db.prepare(`
+      INSERT INTO demo_student_selection (workspace_id, account_id)
+      SELECT s.workspace_id, s.account_id FROM demo_sessions s
+      JOIN demo_accounts a ON a.workspace_id = s.workspace_id AND a.id = s.account_id
+      WHERE a.role = 'student' AND a.verified_at IS NOT NULL AND s.expires_at > ?
+      ORDER BY s.rowid DESC
+      ON CONFLICT (workspace_id) DO NOTHING
+    `).run(Date.now());
   }
 
   createAccount(workspaceId: string, input: SignUp, verificationToken: string, now = Date.now()) {
@@ -189,8 +215,9 @@ export class SessionStore {
 
     const result = this.db.prepare(`
       SELECT ${userColumns} FROM demo_accounts a
+      LEFT JOIN demo_student_selection selected ON selected.workspace_id = a.workspace_id
       WHERE a.workspace_id = ? AND a.role = ? AND a.verified_at IS NOT NULL
-      ORDER BY a.email IS NULL, a.verified_at DESC, a.rowid DESC LIMIT 1
+      ORDER BY (a.id = selected.account_id) DESC, a.email IS NULL, a.verified_at DESC, a.rowid DESC LIMIT 1
     `).get(workspaceId, role);
     if (!result) throw new Error("No se pudo obtener la cuenta de prueba.");
     return { ...result } as DemoUser;
