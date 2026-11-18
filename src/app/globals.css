@@ -18,6 +18,8 @@ main {
 }
 
 h1 {
+  color: #4c52b3;
+  text-transform: uppercase;
   font-family: "Wild World", sans-serif;
   font-size: clamp(1.5rem, 5vw, 3rem);
   line-height: 1.1;
