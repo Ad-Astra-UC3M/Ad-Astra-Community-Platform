@@ -20,3 +20,5 @@ Abre [la aplicación local](http://localhost:3000). Para verificar cambios ejecu
 - [AGENTS.md](AGENTS.md) recoge las convenciones de implementación y revisión.
 
 La arquitectura prevé PostgreSQL en Neon y Neon Auth. Esta base arranca sin configurar servicios externos.
+
+La [bitácora de desarrollo](docs/development-log.md) recoge el progreso y las verificaciones de cada incremento.
