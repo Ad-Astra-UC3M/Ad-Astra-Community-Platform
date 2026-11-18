@@ -37,4 +37,4 @@
 }
 .institutional-footer a:focus-visible { outline-color: var(--accent); }
 
-body:has(#main-content:focus) .site-header { position: relative; top: auto; }
+body:has(#main-content:focus-within) .site-header { position: relative; top: auto; }

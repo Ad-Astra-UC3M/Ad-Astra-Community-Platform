@@ -30,6 +30,16 @@ test("la navegación y el pie institucional acompañan al visitante y al estudia
     const box = heading.getBoundingClientRect();
     return heading.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2));
   })).toBeTruthy();
+  await page.goto("/activities/cubesat-lab");
+  await skip.focus();
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Tab");
+  const back = page.getByRole("link", {name: "Volver a actividades"});
+  await expect(back).toBeFocused();
+  expect(await back.evaluate(link => {
+    const box = link.getBoundingClientRect();
+    return link.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2));
+  })).toBeTruthy();
   await page.goto("/qr-card");
   await page.emulateMedia({media: "print"});
   await expect(page.getByRole("img", {name: "Código QR personal de asistencia"})).toBeVisible();
