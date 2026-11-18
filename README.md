@@ -1,8 +1,8 @@
 # Comunidad Ad Astra UC3M
 
-Monolito Next.js de la comunidad universitaria de Ad Astra. Esta primera versión sirve la portada en español y permite ejecutar las pruebas en local.
+Prototipo navegable en español para ensayar el alta de estudiante, la reserva de un turno y el registro de asistencia. Usa datos ficticios. La base SQLite y la verificación simulada permiten recorrer la demo desde un único navegador. La arquitectura del MVP prevé Neon y Neon Auth.
 
-## Desarrollo local
+## Ejecutar en local
 
 Con Node.js 24 y npm, ejecuta desde la raíz:
 
@@ -11,14 +11,35 @@ npm ci
 npm run dev
 ```
 
-Abre [la aplicación local](http://localhost:3000). Para verificar cambios ejecuta `npm test`, `npm run typecheck` y `npm run build`. Usa `npm start` para servir la compilación de producción.
+Abre [Comunidad en local](http://127.0.0.1:3000). Usa la misma dirección y el mismo perfil de navegador durante todo el recorrido. Una ventana privada nueva permite ensayar con un espacio de datos independiente.
 
-## Dónde trabajar
+## Probar los dos roles
 
-- `src/app/` contiene las rutas del App Router. En la raíz están el layout, los estilos globales y la página de entrada con su prueba.
-- `public/fonts/` contiene la tipografía institucional utilizada por la portada.
-- [AGENTS.md](AGENTS.md) recoge las convenciones de implementación y revisión.
+1. Abre **Crear cuenta de prueba**, utiliza los datos de ejemplo y acepta el aviso. Pulsa **Simular verificación** para entrar. La demo realiza la verificación en pantalla.
+2. En **Actividades**, abre los turnos del taller de CubeSat. Reserva el turno de mañana. El turno de tarde está completo. En **Mis actividades** puedes comprobar la reserva y cancelarla antes de la asistencia.
+3. Abre **Mi tarjeta QR**. Puedes imprimirla. Para probar en un solo equipo, despliega **Usar el código sin cámara** y copia el código.
+4. Pulsa **Probar como organizador** y selecciona el turno de mañana. Usa la cámara para leer la tarjeta impresa o pega el código y pulsa **Validar tarjeta**. Repite la validación para ver «Ya registrado». El turno de tarde rechaza esa misma tarjeta por falta de reserva.
+5. Pulsa **Volver a estudiante**. En **Mis actividades** aparece la asistencia. Los atajos de rol pertenecen al prototipo y comparten el espacio de demostración de ese navegador.
 
-La arquitectura prevé PostgreSQL en Neon y Neon Auth. Esta base arranca sin configurar servicios externos.
+La demo admite ensayar la asistencia antes de la fecha ficticia del taller. La cámara necesita permiso del navegador. Los datos se guardan en `.community-demo/community.sqlite`, que Git ignora. Puedes escoger otro archivo con `AD_ASTRA_DEMO_DB`.
 
-La [bitácora de desarrollo](docs/development-log.md) recoge el progreso y las verificaciones de cada incremento.
+## Verificar
+
+```sh
+npm test
+npm run typecheck
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
+
+La suite de navegador arranca la compilación de producción en el puerto 3941 con una base de prueba propia. Ejecuta el recorrido en dos tamaños de pantalla y alimenta el lector con la imagen QR emitida por la aplicación. Puedes seleccionar un Chrome instalado con la variable `PLAYWRIGHT_CHANNEL=chrome`. Para servir la compilación localmente utiliza `npm start`.
+
+## Estructura
+
+- `src/app/` contiene las rutas, las acciones de servidor y la interfaz de cada flujo.
+- `src/components/` reúne la navegación y las vistas compartidas. Los recursos de marca están en `public/`.
+- `src/demo/` contiene la identidad simulada, las reservas, las tarjetas firmadas y sus pruebas.
+- `e2e/` contiene los recorridos de navegador.
+
+El [modo de trabajo con agentes](AGENTS.md) y la [bitácora de desarrollo](docs/development-log.md) permiten retomar el proyecto.
