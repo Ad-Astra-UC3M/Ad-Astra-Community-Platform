@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Navbar } from "../components/navbar";
-import { Footer } from "../components/footer";
+import { Navbar, Footer } from "../components/original-layout";
+import { CommunityBar } from "../components/community-bar";
 import { currentUser } from "../demo/session";
 import "./globals.css";
 import "../components/navigation-links.css";
+import "../institutional/institutional.css";
 import "../components/institutional-shell.css";
 
 export const metadata: Metadata = {
@@ -19,9 +20,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="es">
       <body>
         <a className="skip-link" href="#main-content">Saltar al contenido</a>
-        <Navbar role={user?.role} />
+        <div className="institutional"><Navbar /></div>
+        {user && <CommunityBar role={user.role} />}
         <div id="main-content" tabIndex={-1}>{children}</div>
-        <Footer />
+        <div className="institutional"><Footer /></div>
       </body>
     </html>
   );

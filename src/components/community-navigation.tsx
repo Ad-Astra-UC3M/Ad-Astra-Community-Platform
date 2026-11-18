@@ -20,23 +20,17 @@ const organizerLinks = [
   { href: "/admin", label: "Gestión" },
 ];
 
-const publicLinks = [
-  { href: "https://adastrauc3m.es/#projects", label: "Proyectos" },
-  { href: "https://adastrauc3m.es/#sponsors", label: "Sponsors" },
-  { href: "https://adastrauc3m.es/team", label: "Equipo" },
-];
-
-export function CommunityNavigation({ role }: { role?: "student" | "organizer" }) {
+export function CommunityNavigation({ role }: { role: "student" | "organizer" }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const links = role ? [...startLinks, ...(role === "organizer" ? organizerLinks : studentLinks)] : publicLinks;
+  const links = [...startLinks, ...(role === "organizer" ? organizerLinks : studentLinks)];
 
   return (
     <>
       <button
         className="menu-toggle"
         type="button"
-        aria-label={open ? "Cerrar menú" : "Abrir menú"}
+        aria-label={open ? "Cerrar menú de Comunidad" : "Abrir menú de Comunidad"}
         aria-controls="community-navigation"
         aria-expanded={open}
         onClick={() => setOpen(!open)}
