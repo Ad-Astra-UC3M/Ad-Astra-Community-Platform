@@ -1,6 +1,6 @@
 "use client";
 
-export function CardTools({ token }: { token: string }) {
+export function CardTools({ token }) {
   return <div className="stack card-tools">
     <button className="button secondary" onClick={() => window.print()}>Imprimir tarjeta</button>
     <details>

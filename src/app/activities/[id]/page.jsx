@@ -14,12 +14,7 @@ const messages = new Map([
   ["missing", "El turno ya no está disponible."],
 ]);
 
-type ActivityPageProps = {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ status?: string | string[] }>;
-};
-
-export default async function ActivityPage({ params, searchParams }: ActivityPageProps) {
+export default async function ActivityPage({ params, searchParams }) {
   const user = await requireUser();
   const [{ id }, { status }] = await Promise.all([params, searchParams]);
   const activity = getActivity(user.workspaceId, id, user.id);

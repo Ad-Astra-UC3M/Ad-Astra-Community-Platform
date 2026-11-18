@@ -20,7 +20,7 @@ const organizerLinks = [
   { href: "/admin", label: "Gestión" },
 ];
 
-export function CommunityNavigation({ role }: { role: "student" | "organizer" }) {
+export function CommunityNavigation({ role }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const links = [...startLinks, ...(role === "organizer" ? organizerLinks : studentLinks)];

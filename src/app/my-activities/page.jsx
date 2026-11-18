@@ -13,8 +13,6 @@ const messages = new Map([
 
 export default async function MyActivitiesPage({
   searchParams,
-}: {
-  searchParams: Promise<{ status?: string | string[] }>;
 }) {
   const user = await requireUser();
   const reservations = listReservations(user.workspaceId, user.id);

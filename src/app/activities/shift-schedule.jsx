@@ -13,7 +13,7 @@ const timeFormat = new Intl.DateTimeFormat("es-ES", {
   timeZone: "Europe/Madrid",
 });
 
-export function ShiftSchedule({ startsAt, endsAt }: { startsAt: number; endsAt: number }) {
+export function ShiftSchedule({ startsAt, endsAt }) {
   const start = new Date(startsAt);
   const end = new Date(endsAt);
 

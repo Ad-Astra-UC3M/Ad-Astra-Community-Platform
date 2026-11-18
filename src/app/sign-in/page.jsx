@@ -3,11 +3,7 @@ import { demoOrganizer, demoStudent, signIn } from "../../demo/session";
 
 export const metadata = { title: "Acceder a la comunidad" };
 
-type Props = {
-  searchParams: Promise<{ error?: string | string[] }>;
-};
-
-export default async function SignInPage({ searchParams }: Props) {
+export default async function SignInPage({ searchParams }) {
   const { error } = await searchParams;
 
   return (

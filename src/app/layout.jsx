@@ -1,5 +1,3 @@
-import type { Metadata } from "next";
-import type { ReactNode } from "react";
 import { Navbar, Footer } from "../components/original-layout";
 import { CommunityBar } from "../components/community-bar";
 import { currentUser } from "../demo/session";
@@ -8,12 +6,12 @@ import "../components/navigation-links.css";
 import "../institutional/institutional.css";
 import "../components/institutional-shell.css";
 
-export const metadata: Metadata = {
+export const metadata = {
   title: { default: "Comunidad Ad Astra UC3M", template: "%s · Ad Astra UC3M" },
   description: "Actividades, reservas y tarjeta de asistencia de Comunidad Ad Astra UC3M.",
 };
 
-export default async function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }) {
   const user = await currentUser();
 
   return (

@@ -1,9 +1,7 @@
 import { demoOrganizer, demoStudent, signOut } from "../demo/session";
 import { CommunityNavigation } from "./community-navigation";
 
-type Role = "student" | "organizer";
-
-export function CommunityBar({ role }: { role: Role }) {
+export function CommunityBar({ role }) {
   const organizer = role === "organizer";
 
   return (

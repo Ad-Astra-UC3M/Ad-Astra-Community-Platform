@@ -5,7 +5,7 @@ import { listShifts, listAttendees } from "../../../../demo/activities";
 import { Scanner } from "./scanner";
 import { validateCard } from "./actions";
 
-export default async function AttendancePage({params}: {params: Promise<{shiftId: string}>}) {
+export default async function AttendancePage({params}) {
   const organizer = await requireOrganizer();
   const {shiftId} = await params;
   const shift = listShifts(organizer.workspaceId).find(item => item.id === shiftId);

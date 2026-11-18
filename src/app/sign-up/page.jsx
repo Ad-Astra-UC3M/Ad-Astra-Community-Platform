@@ -12,14 +12,10 @@ const errors = {
   duplicate: "Ya existe un alta con ese correo en este navegador.",
 };
 
-type Props = {
-  searchParams: Promise<{ error?: string | string[] }>;
-};
-
-export default async function SignUpPage({ searchParams }: Props) {
+export default async function SignUpPage({ searchParams }) {
   const { error } = await searchParams;
   const message = typeof error === "string" && Object.hasOwn(errors, error)
-    ? errors[error as keyof typeof errors]
+    ? errors[error]
     : null;
 
   return (
