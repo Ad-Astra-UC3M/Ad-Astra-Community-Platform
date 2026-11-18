@@ -1,9 +1,9 @@
-import Link from "next/link";
+import { BackLink } from "../components/back-link";
 
 export default function NotFound() {
   return <main className="shell stack">
     <p className="eyebrow">404</p>
     <h1>Página no encontrada</h1>
-    <Link href="/">Volver al inicio</Link>
+    <BackLink href="/">Volver al inicio</BackLink>
   </main>;
 }

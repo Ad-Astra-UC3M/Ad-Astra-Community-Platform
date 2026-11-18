@@ -10,6 +10,13 @@ test("alta, reserva, tarjeta digital y control de asistencia", async ({ page }, 
   await expect(page).toHaveURL(/\/home$/);
   await page.getByRole("link", {name: /actividades/i}).filter({hasNotText: /mis actividades/i}).first().click();
   await page.getByRole("link", {name: "Ver turnos"}).click();
+  const backToActivities = page.getByRole("link", {name: "Volver a actividades", exact: true});
+  await expect(backToActivities).toHaveAttribute("href", "/activities");
+  await expect(backToActivities).toHaveCSS("min-height", "44px");
+  await expect(page.locator("main > :first-child")).toHaveAccessibleName("Volver a actividades");
+  await backToActivities.click();
+  await expect(page).toHaveURL(/\/activities$/);
+  await page.getByRole("link", {name: "Ver turnos"}).click();
   await expect(page.getByText("Completo", {exact: true})).toBeVisible();
   await page.getByRole("button", {name: /Reservar plaza/}).click();
   await expect(page.getByText("Tu plaza está reservada.")).toBeVisible();
@@ -33,7 +40,11 @@ test("alta, reserva, tarjeta digital y control de asistencia", async ({ page }, 
   await page.getByLabel("Código de la tarjeta").fill(token);
   await page.getByRole("button", {name: "Validar tarjeta"}).click();
   await expect(page.getByRole("status")).toContainText("no tiene reserva");
-  await page.getByRole("link", {name: /Volver a turnos/}).click();
+  const backToShifts = page.getByRole("link", {name: "Volver a turnos", exact: true});
+  await expect(backToShifts).toHaveAttribute("href", "/admin");
+  await expect(page.locator("main > :first-child")).toHaveAccessibleName("Volver a turnos");
+  await backToShifts.click();
+  await expect(page).toHaveURL(/\/admin$/);
   await page.getByRole("link", {name: /Validar.*mañana/i}).click();
 
   // Supply the issued PNG as camera frames. Decoding and submission use the real reader.

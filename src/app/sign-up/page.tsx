@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BackLink } from "../../components/back-link";
 import { signUp } from "../../demo/session";
 
 export const metadata = { title: "Crear cuenta de prueba" };
@@ -31,7 +32,7 @@ export default async function SignUpPage({ searchParams }: Props) {
         </p>
         {message && <p className="notice" role="alert">{message}</p>}
         {error === "duplicate" && (
-          <Link href="/verify-email">Volver a la verificación</Link>
+          <BackLink href="/verify-email">Volver a la verificación</BackLink>
         )}
         <form action={signUp} className="stack" autoComplete="off">
           <label className="field">

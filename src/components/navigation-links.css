@@ -1,0 +1,16 @@
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 0.5rem;
+  min-height: 44px;
+}
+
+.back-link > svg,
+.home-link-arrow {
+  flex-shrink: 0;
+}
+
+.home-link-arrow {
+  color: var(--primary);
+}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BackLink } from "../../../components/back-link";
 import { getActivity } from "../../../demo/activities";
 import { requireUser } from "../../../demo/session";
 import { ShiftSchedule } from "../shift-schedule";
@@ -30,9 +31,7 @@ export default async function ActivityPage({ params, searchParams }: ActivityPag
 
   return (
     <main className="shell stack">
-      <div>
-        <Link href="/activities">Volver a actividades</Link>
-      </div>
+      <BackLink href="/activities">Volver a actividades</BackLink>
       <header>
         <h1>{activity.title}</h1>
         <p>{activity.location}</p>
