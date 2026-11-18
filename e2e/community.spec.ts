@@ -22,9 +22,9 @@ test("alta, reserva, tarjeta digital y control de asistencia", async ({ page }, 
   await expect(page.getByText("Tu plaza está reservada.")).toBeVisible();
   await page.getByRole("link", {name: "Ver mis actividades"}).click();
   await expect(page.getByText("Reserva confirmada")).toBeVisible();
-  const menu = page.getByRole("button", {name: "Abrir menú de Comunidad"});
+  const menu = page.getByRole("button", {name: "Abrir menú"});
   if (await menu.isVisible()) await menu.click();
-  await page.getByRole("link", {name: /tarjeta QR/i}).first().click();
+  await page.getByRole("link", {name: "Tarjeta QR", exact: true}).click();
   await page.screenshot({path: info.outputPath("card.png"), fullPage: true});
   await page.getByText("Usar el código sin cámara").click();
   const token = await page.getByLabel("Código de la tarjeta").inputValue();

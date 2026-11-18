@@ -1,8 +1,6 @@
 body { padding-top: 6rem; }
 html { scroll-padding-top: 6rem; }
 .skip-link { z-index: 1000; }
-.community-bar { padding-inline: var(--gutter); }
-.community-bar .community-nav ul { margin: 0; }
 @media print {
   body { padding-top: 0; }
   .institutional, .community-bar { display: none; }

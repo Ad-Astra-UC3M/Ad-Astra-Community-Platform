@@ -1,18 +1,16 @@
-import { Link } from "react-router";
+import Link from "next/link";
 
 import HamburgerMenu from "../ui/HamburgerMenu";
-import navItems from "../../data/navItems";
+import navItems, { getCommunityNav } from "../../data/navItems";
 import LogoMark from "../../assets/navbar-logo.svg";
 import NavDropdown from "./NavDropdown";
 import { useEffect, useState, useRef } from "react";
-import { sectionLinks } from "../../data/siteLinks";
-
-
 
 const navLinkClassName =
-	"inline-flex items-center px-3 py-2 font-normal underline-offset-6 transition duration-200 hover:text-brand-accent hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent";
+	"inline-flex items-center whitespace-nowrap px-3 py-2 font-normal underline-offset-6 transition duration-200 hover:text-brand-accent hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent";
 
-export default function Navbar() {
+export default function Navbar({ role }) {
+	const { homeHref, links, cta } = getCommunityNav(role);
 	const [hidden, setHidden] = useState(false);
 	const preventHide = useRef(false);
 	const unlockTimer = useRef(null);
@@ -67,7 +65,7 @@ export default function Navbar() {
 		>
 			<div className="flex h-full min-w-0 flex-1 items-center justify-start">
 				<Link
-					to={sectionLinks.home}
+					href={homeHref}
 					className="flex h-full min-w-0 flex-1 items-center justify-start"
 				>
 					<img
@@ -80,32 +78,32 @@ export default function Navbar() {
 				</Link>
 			</div>
 			<div className="hidden flex-1 justify-center min-[890px]:flex">
-				<DesktopNavbar />
+				<DesktopNavbar links={links} />
 			</div>
 			<div className="flex flex-1 justify-end">
 				<div className="hidden min-[890px]:block">
-					<JoinButton />
+					<JoinButton cta={cta} />
 				</div>
 				<div className="min-[890px]:hidden">
-					<MobileNavbar />
+					<MobileNavbar links={links} cta={cta} />
 				</div>
 			</div>
 		</header>
 	);
 }
 
-export function DesktopNavbar() {
+export function DesktopNavbar({ links = navItems }) {
 	return (
-		<nav>
+		<nav aria-label="Navegación principal">
 			<ul className="flex flex-row items-center gap-4">
-				{navItems.map((item) => {
+				{links.map((item) => {
 					if (item.children) {
 						return <NavDropdown key={item.label} item={item} />;
 					}
 
 					return (
-						<li key={item.to}>
-							<Link className={navLinkClassName} to={item.to}>
+						<li key={item.href}>
+							<Link className={navLinkClassName} href={item.href}>
 								{item.label}
 							</Link>
 						</li>
@@ -116,25 +114,25 @@ export function DesktopNavbar() {
 	);
 }
 
-export function MobileNavbar() {
+export function MobileNavbar({ links = navItems, cta = getCommunityNav().cta }) {
 	return (
 		<div className="flex items-center gap-1.5 sm:gap-4">
-			<JoinButton />
-			<HamburgerMenu links={navItems} />
+			<JoinButton cta={cta} />
+			<HamburgerMenu links={links} />
 		</div>
 	);
 }
 
-function JoinButton() {
+function JoinButton({ cta }) {
 	return (
 		<Link
-			to={sectionLinks.join}
+			href={cta.href}
 			className={[
 				navLinkClassName,
 				"min-h-11 shrink-0 whitespace-nowrap rounded-lg bg-brand-ink px-3 py-2 text-sm text-brand-surface sm:px-4 sm:text-base min-[890px]:min-h-0",
 			].join(" ")}
 		>
-			Únete a IT / Eventos
+			{cta.label}
 		</Link>
 	);
 }

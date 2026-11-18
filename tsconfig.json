@@ -8,9 +8,6 @@
     ],
     "module": "esnext",
     "moduleResolution": "bundler",
-    "paths": {
-      "react-router": ["./src/institutional/next-link.jsx"]
-    },
     "jsx": "react-jsx",
     "strict": true,
     "noEmit": true,

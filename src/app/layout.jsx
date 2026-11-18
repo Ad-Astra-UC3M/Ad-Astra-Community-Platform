@@ -18,7 +18,7 @@ export default async function RootLayout({ children }) {
     <html lang="es">
       <body>
         <a className="skip-link" href="#main-content">Saltar al contenido</a>
-        <div className="institutional"><Navbar /></div>
+        <div className="institutional"><Navbar role={user?.role} /></div>
         {user && <CommunityBar role={user.role} />}
         <div id="main-content" tabIndex={-1}>{children}</div>
         <div className="institutional"><Footer /></div>

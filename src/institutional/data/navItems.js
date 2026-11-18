@@ -1,32 +1,36 @@
-import { projectLinks, sectionLinks, socialLinks } from "./siteLinks";
-
-const navItems = [
-	{ label: "Inicio", to: sectionLinks.home },
-	{
-		label: "Proyectos",
-		children: [
-			{ 
-				label: "SIGMA", 
-				to: projectLinks["sigma"] 
-			},
-			{
-				label: "Ascend A4",
-				to: projectLinks["ascend-a4"],
-			},
-			{
-				label: "Jet Engine",
-				to: projectLinks["jet-engine"],
-			},
-			{
-				label: "Todos los proyectos",
-				to: sectionLinks.projects,
-				hasDividerBefore: true,
-			},
+const navigationByRole = {
+	visitor: {
+		homeHref: "/",
+		links: [
+			{ label: "Inicio", href: "/" },
+			{ label: "Actividades", href: "/activities" },
+			{ label: "Iniciar sesión", href: "/sign-in" },
 		],
+		cta: { label: "Crear cuenta", href: "/sign-up" },
 	},
-	{ label: "Sponsors", to: sectionLinks.sponsors },
-	{ label: "Equipo", to: sectionLinks.team },
-	{ label: "Redes sociales", children: socialLinks },
-];
+	student: {
+		homeHref: "/home",
+		links: [
+			{ label: "Inicio", href: "/home" },
+			{ label: "Actividades", href: "/activities" },
+			{ label: "Mis actividades", href: "/my-activities" },
+			{ label: "Tarjeta QR", href: "/qr-card" },
+		],
+		cta: { label: "Mi tarjeta QR", href: "/qr-card" },
+	},
+	organizer: {
+		homeHref: "/home",
+		links: [
+			{ label: "Inicio", href: "/home" },
+			{ label: "Actividades", href: "/activities" },
+			{ label: "Gestión", href: "/admin" },
+		],
+		cta: { label: "Gestión", href: "/admin" },
+	},
+};
 
-export default navItems;
+export function getCommunityNav(role) {
+	return navigationByRole[role] ?? navigationByRole.visitor;
+}
+
+export default navigationByRole.visitor.links;

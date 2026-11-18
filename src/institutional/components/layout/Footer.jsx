@@ -1,6 +1,5 @@
-import { Link } from "react-router";
-import { Heart } from 'pixelarticons/react'
-
+import Link from "next/link";
+import { Heart } from "pixelarticons/react";
 
 import circleLogo from "../../assets/circle_logo.png";
 import recliningDoodle from "../../assets/footer/reclining-doodle.png";
@@ -12,31 +11,31 @@ const footerSections = [
 	{
 		title: "Proyectos",
 		links: [
-			{ label: "SIGMA", to: projectLinks["sigma"] },
-			{ label: "Ascend A4", to: projectLinks["ascend-a4"] },
-			{ label: "Jet Engine", to: projectLinks["jet-engine"] },
+			{ label: "SIGMA", href: projectLinks["sigma"] },
+			{ label: "Ascend A4", href: projectLinks["ascend-a4"] },
+			{ label: "Jet Engine", href: projectLinks["jet-engine"] },
 		],
 	},
 	{
 		title: "Asociación",
 		links: [
-			{ label: "Equipo", to: sectionLinks.team },
+			{ label: "Equipo", href: sectionLinks.team },
 			{ label: "Únete a IT / Eventos", href: sectionLinks.join },
 		],
 	},
 	{
 		title: "Más",
 		links: [
-			{ label: "Sponsors", to: sectionLinks.sponsors },
+			{ label: "Sponsors", href: sectionLinks.sponsors },
 			...socialLinks,
 		],
 	},
 ];
 
 const footerLinkClass =
-    "text-brand-surface/85 underline-offset-6 transition duration-200 hover:text-brand-accent hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent";
+	"text-brand-surface/85 underline-offset-6 transition duration-200 hover:text-brand-accent hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent";
 
-function FooterLink({ href, label, platform, to }) {
+function FooterLink({ href, label, platform }) {
 	const content = (
 		<>
 			<SocialIcon className="size-4 shrink-0" platform={platform} />
@@ -44,7 +43,7 @@ function FooterLink({ href, label, platform, to }) {
 		</>
 	);
 
-	if (href) {
+	if (platform) {
 		return (
 			<a className={`${footerLinkClass} inline-flex items-center gap-2`} href={href}>
 				{content}
@@ -53,7 +52,7 @@ function FooterLink({ href, label, platform, to }) {
 	}
 
 	return (
-		<Link className={footerLinkClass} to={to}>
+		<Link className={footerLinkClass} href={href}>
 			{content}
 		</Link>
 	);
