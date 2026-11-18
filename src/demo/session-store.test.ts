@@ -24,6 +24,7 @@ function registration() {
 test("el alta exige el aviso y un correo del dominio UC3M o de un subdominio", () => {
   assert.equal(registration().email, "demo@alumnos.uc3m.es");
   assert.equal(readSignUp(signUpForm("demo@uc3m.es")).ok, true);
+  assert.equal(readSignUp(signUpForm("o'neill.prueba+1@demo.alumnos.uc3m.es")).ok, true);
   assert.deepEqual(readSignUp(signUpForm("demo@fakeuc3m.es")), { ok: false, error: "email" });
   assert.deepEqual(readSignUp(signUpForm("demo@uc3m.es.example")), { ok: false, error: "email" });
   assert.deepEqual(readSignUp(signUpForm("demo@.uc3m.es")), { ok: false, error: "email" });

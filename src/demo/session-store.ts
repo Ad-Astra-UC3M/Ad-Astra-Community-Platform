@@ -36,7 +36,8 @@ function emailFrom(form: FormData) {
   if (!email) return null;
   const [local, domain, ...extra] = email.split("@");
   if (!domain || extra.length || local.length > 64) return null;
-  if (!/^[a-z0-9_+%-]+(?:\.[a-z0-9_+%-]+)*$/.test(local)) return null;
+  if (!/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(local)) return null;
+  if (local.startsWith(".") || local.endsWith(".") || local.includes("..")) return null;
   if (!/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*uc3m\.es$/.test(domain)) return null;
   return email;
 }
