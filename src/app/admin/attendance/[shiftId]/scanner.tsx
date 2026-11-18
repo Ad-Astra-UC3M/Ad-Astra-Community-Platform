@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 
-type Controls = { stop(): void };
+
 
 export function Scanner({action}: {action: (previous: string, form: FormData) => Promise<string>}) {
   const [result, submit, pending] = useActionState(action, "");
@@ -15,24 +15,45 @@ export function Scanner({action}: {action: (previous: string, form: FormData) =>
   useEffect(() => {
     if (!active) return;
     let closed = false;
-    let controls: Controls | undefined;
+    let stream: MediaStream | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const preview = video.current;
+    function stop() {
+      stream?.getTracks().forEach(track => track.stop());
+      if (timer) clearTimeout(timer);
+      if (preview) preview.srcObject = null;
+    }
     async function scan() {
       try {
-        const { BrowserQRCodeReader } = await import("@zxing/browser");
-        if (closed || !video.current) return;
-        controls = await new BrowserQRCodeReader().decodeFromConstraints(
-          {video: {facingMode: {ideal: "environment"}}, audio: false},
-          video.current,
-          (code, _error, scanner) => {
-            if (closed || !code || !input.current) return;
-            closed = true;
-            scanner.stop();
-            input.current.value = code.getText();
-            setActive(false);
-            form.current?.requestSubmit();
+        const { default: decode } = await import("jsqr");
+        if (closed || !preview) return;
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } }, audio: false
+        });
+        if (closed) { stop(); return; }
+        preview.srcObject = stream;
+        await preview.play();
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d", { willReadFrequently: true })!;
+        function readFrame() {
+          if (closed || !preview) return;
+          if (preview.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+            const scale = Math.min(1, 960 / Math.max(preview.videoWidth, preview.videoHeight));
+            canvas.width = Math.round(preview.videoWidth * scale);
+            canvas.height = Math.round(preview.videoHeight * scale);
+            context.drawImage(preview, 0, 0, canvas.width, canvas.height);
+            const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+            const code = decode(pixels.data, pixels.width, pixels.height, { inversionAttempts: "dontInvert" });
+            if (code && input.current) {
+              input.current.value = code.data;
+              setActive(false);
+              form.current?.requestSubmit();
+              return;
+            }
           }
-        );
-        if (closed) controls.stop();
+          timer = setTimeout(readFrame, 180);
+        }
+        readFrame();
       } catch {
         if (!closed) {
           setCameraError("No se pudo abrir la cámara. Puedes pegar el código de la tarjeta.");
@@ -41,7 +62,7 @@ export function Scanner({action}: {action: (previous: string, form: FormData) =>
       }
     }
     void scan();
-    return () => { closed = true; controls?.stop(); };
+    return () => { closed = true; stop(); };
   }, [active]);
 
   return <section className="panel stack scanner">
