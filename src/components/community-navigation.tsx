@@ -20,10 +20,16 @@ const organizerLinks = [
   { href: "/admin", label: "Gestión" },
 ];
 
-export function CommunityNavigation({ organizer }: { organizer: boolean }) {
+const publicLinks = [
+  { href: "https://adastrauc3m.es/#projects", label: "Proyectos" },
+  { href: "https://adastrauc3m.es/#sponsors", label: "Sponsors" },
+  { href: "https://adastrauc3m.es/team", label: "Equipo" },
+];
+
+export function CommunityNavigation({ role }: { role?: "student" | "organizer" }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const links = [...startLinks, ...(organizer ? organizerLinks : studentLinks)];
+  const links = role ? [...startLinks, ...(role === "organizer" ? organizerLinks : studentLinks)] : publicLinks;
 
   return (
     <>

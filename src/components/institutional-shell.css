@@ -30,3 +30,11 @@
 .footer-base svg { vertical-align: middle; color: var(--accent); }
 @media (max-width: 48rem) { .site-header { position: relative; top: auto; } }
 @media print { .site-header, .institutional-footer { display: none; } }
+
+.navbar-action:hover, .navbar-action:focus-visible { color: var(--cream); text-decoration: underline; }
+@media (max-width: 47.99rem) {
+  .header-row .brand-link { margin-right: auto; }
+  .header-row .navbar-action { order: 1; }
+  .header-row .menu-toggle { order: 2; }
+  .header-row .community-nav { order: 3; }
+}

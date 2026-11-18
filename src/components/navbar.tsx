@@ -15,7 +15,8 @@ export function Navbar({ role }: { role?: Role }) {
           <Image src="/brand/ad-astra.svg" alt="Ad Astra UC3M" width={144} height={50} unoptimized />
           <span>Comunidad</span>
         </Link>
-        {role ? <CommunityNavigation organizer={organizer} /> : <nav aria-label="Acceso a Comunidad"><Link className="navbar-action" href="/sign-in">Acceder</Link></nav>}
+        <CommunityNavigation role={role} />
+        {!role && <Link className="navbar-action" href="/sign-in">Acceder</Link>}
       </div>
       {role && (
         <div className="session-bar">
