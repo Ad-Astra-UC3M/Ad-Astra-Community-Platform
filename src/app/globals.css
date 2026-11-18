@@ -1,0 +1,25 @@
+@font-face {
+  font-family: "Wild World";
+  src: url("/fonts/wild-world-es.woff2") format("woff2");
+  font-display: swap;
+}
+
+body {
+  margin: 0;
+  background: #feffee;
+  color: #2f3367;
+  font-family: "Bodoni 72", Georgia, serif;
+}
+
+main {
+  max-width: 64rem;
+  margin-inline: auto;
+  padding: clamp(2rem, 8vw, 6rem) 1.5rem;
+}
+
+h1 {
+  font-family: "Wild World", sans-serif;
+  font-size: clamp(1.5rem, 5vw, 3rem);
+  line-height: 1.1;
+  font-weight: 400;
+}
