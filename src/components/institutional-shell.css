@@ -36,3 +36,5 @@
   .header-row .brand-link { margin-right: auto; }
 }
 .institutional-footer a:focus-visible { outline-color: var(--accent); }
+
+body:has(#main-content:focus) .site-header { position: relative; top: auto; }

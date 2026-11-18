@@ -23,6 +23,13 @@ test("la navegación y el pie institucional acompañan al visitante y al estudia
   await page.getByRole("button", {name: "Entrar como estudiante"}).click();
   await expect(page).toHaveURL(/\/home$/);
   await expect(footer).toBeVisible();
+  await skip.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#main-content")).toBeFocused();
+  expect(await page.getByRole("heading", {level: 1}).evaluate(heading => {
+    const box = heading.getBoundingClientRect();
+    return heading.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2));
+  })).toBeTruthy();
   await page.goto("/qr-card");
   await page.emulateMedia({media: "print"});
   await expect(page.getByRole("img", {name: "Código QR personal de asistencia"})).toBeVisible();
