@@ -65,6 +65,8 @@ test("alta, reserva, tarjeta digital y control de asistencia", async ({ page }, 
 
 test("un visitante recibe 404 en el panel y sus subrutas", async ({ request }) => {
   for (const url of ["/admin", "/admin/attendance/cubesat-lab-early"]) {
-    expect((await request.get(url)).status()).toBe(404);
+    const response = await request.get(url);
+    expect(response.status()).toBe(404);
+    expect(await response.text()).toContain("Página no encontrada");
   }
 });

@@ -16,7 +16,7 @@ Abre [Comunidad en local](http://127.0.0.1:3000). Usa la misma dirección y el m
 ## Probar los dos roles
 
 1. Abre **Crear cuenta de prueba**, utiliza los datos de ejemplo y acepta el aviso. Pulsa **Simular verificación** para entrar. La demo realiza la verificación en pantalla.
-2. En **Actividades**, abre los turnos del taller de CubeSat. Reserva el turno de mañana. El turno de tarde está completo. En **Mis actividades** puedes comprobar la reserva y cancelarla antes de la asistencia.
+2. En **Actividades**, abre los turnos del taller de CubeSat. Reserva el turno de mañana. El turno de tarde está completo. En **Mis actividades** puedes comprobar la reserva y cancelarla mientras el turno no haya empezado y la asistencia siga pendiente.
 3. Abre **Mi tarjeta QR**. Puedes imprimirla. Para probar en un solo equipo, despliega **Usar el código sin cámara** y copia el código.
 4. Pulsa **Probar como organizador** y selecciona el turno de mañana. Usa la cámara para leer la tarjeta impresa o pega el código y pulsa **Validar tarjeta**. Repite la validación para ver «Ya registrado». El turno de tarde rechaza esa misma tarjeta por falta de reserva.
 5. Pulsa **Volver a estudiante**. En **Mis actividades** aparece la asistencia. Los atajos de rol pertenecen al prototipo y comparten el espacio de demostración de ese navegador.
