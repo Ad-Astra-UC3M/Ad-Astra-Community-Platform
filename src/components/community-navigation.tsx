@@ -1,5 +1,7 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Menu01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -33,7 +35,7 @@ export function CommunityNavigation({ organizer }: { organizer: boolean }) {
         aria-expanded={open}
         onClick={() => setOpen(!open)}
       >
-        <span className="menu-icon" aria-hidden="true" />
+        <HugeiconsIcon icon={open ? Cancel01Icon : Menu01Icon} size={22} aria-hidden="true" />
       </button>
       <nav
         aria-label="Navegación de la comunidad"

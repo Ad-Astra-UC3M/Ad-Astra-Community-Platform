@@ -344,19 +344,6 @@ input:is([type="checkbox"], [type="radio"]) {
   color: var(--ink);
 }
 
-.menu-icon {
-  width: 1.15rem;
-  height: 0.8rem;
-  border-block: 2px solid currentColor;
-  display: grid;
-  align-items: center;
-}
-
-.menu-icon::after {
-  content: "";
-  border-top: 2px solid currentColor;
-}
-
 .menu-toggle[aria-expanded="true"] {
   background: var(--tint);
 }
@@ -492,25 +479,6 @@ input:is([type="checkbox"], [type="radio"]) {
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 0.22em;
-}
-
-.link-arrow {
-  position: relative;
-  flex: 0 0 1.2rem;
-  height: 0;
-  border-top: 2px solid var(--primary);
-}
-
-.link-arrow::after {
-  position: absolute;
-  content: "";
-  right: 0;
-  top: -0.3rem;
-  width: 0.55rem;
-  height: 0.55rem;
-  border-top: 2px solid var(--primary);
-  border-right: 2px solid var(--primary);
-  transform: rotate(45deg);
 }
 
 .ticket {
