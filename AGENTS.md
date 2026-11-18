@@ -13,6 +13,8 @@ Lee el [README](README.md) y la última entrada de la [bitácora](docs/developme
 
 ## Criterios de implementación
 
+- Escribe los componentes React propios en JavaScript con extensión `.jsx`, incluidas páginas, layouts, adaptadores y pruebas que rendericen JSX. Los componentes de terceros pueden conservar `.tsx`.
+
 - Prioriza calidad, legibilidad y sencillez. Usa modelos y contratos explícitos. Valida datos externos y permisos en las fronteras y conserva los invariantes en la operación que escribe.
 - Mantén rutas, subrutas, componentes y modelos en inglés, y la interfaz en español. Organiza el código por recorrido y acerca sus pruebas. Extrae componentes cuando varias pantallas compartan un comportamiento concreto.
 - Para el diseño, consulta el manual de identidad y las guías de diseño, producto y componentes del repositorio `Ad-Astra-Landing-page`. Reutiliza activos institucionales apropiados y verifica los estados de interacción en móvil y escritorio.

@@ -9,7 +9,7 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "paths": {
-      "react-router": ["./src/institutional/next-link.tsx"]
+      "react-router": ["./src/institutional/next-link.jsx"]
     },
     "jsx": "react-jsx",
     "strict": true,
@@ -30,6 +30,7 @@
     "next-env.d.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
+    "src/**/*.jsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],

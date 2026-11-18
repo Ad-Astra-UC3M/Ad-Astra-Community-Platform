@@ -9,7 +9,7 @@
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
     "start": "next start --hostname 127.0.0.1",
-    "test": "tsx --test \"src/**/*.test.{ts,tsx}\"",
+    "test": "tsx --test \"src/**/*.test.{js,jsx,ts,tsx}\"",
     "typecheck": "next typegen && tsc --noEmit -p tsconfig.typecheck.json",
     "test:e2e": "playwright test"
   },
