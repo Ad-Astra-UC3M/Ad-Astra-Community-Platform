@@ -1,3 +1,5 @@
+import { ArrowRight02Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
 import { requireUser } from "../../demo/session";
 
@@ -56,7 +58,14 @@ export default async function HomePage() {
                   <span className="home-link-title">{label}</span>
                   <span>{description}</span>
                 </span>
-                <span className="link-arrow" aria-hidden="true" />
+                <HugeiconsIcon
+                  className="home-link-arrow"
+                  icon={ArrowRight02Icon}
+                  size={20}
+                  strokeWidth={2}
+                  aria-hidden="true"
+                  focusable="false"
+                />
               </Link>
             </li>
           ))}

@@ -1,20 +1,22 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
+import { BackLink } from "../../../../components/back-link";
 import { requireOrganizer } from "../../access";
 import { listShifts, listAttendees } from "../../../../demo/activities";
 import { Scanner } from "./scanner";
 import { validateCard } from "./actions";
 
-export default async function AttendancePage({params}: {params: Promise<{shiftId: string}>}) {
+export default async function AttendancePage({params}) {
   const organizer = await requireOrganizer();
   const {shiftId} = await params;
   const shift = listShifts(organizer.workspaceId).find(item => item.id === shiftId);
   if (!shift) notFound();
   const attendees = listAttendees(organizer.workspaceId, shiftId);
   return <main className="shell stack">
-    <Link href="/admin">← Volver a turnos</Link>
-    <p className="eyebrow">Control de asistencia · {shift.name}</p>
-    <h1>{shift.activityTitle}</h1>
+    <BackLink href="/admin">Volver a turnos</BackLink>
+    <header>
+      <p className="eyebrow">Control de asistencia · {shift.name}</p>
+      <h1>{shift.activityTitle}</h1>
+    </header>
     <Scanner action={validateCard.bind(null, shiftId)} />
     <section className="panel stack">
       <h2>Personas inscritas</h2>

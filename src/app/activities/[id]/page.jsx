@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BackLink } from "../../../components/back-link";
 import { getActivity } from "../../../demo/activities";
 import { requireUser } from "../../../demo/session";
 import { ShiftSchedule } from "../shift-schedule";
@@ -13,12 +14,7 @@ const messages = new Map([
   ["missing", "El turno ya no está disponible."],
 ]);
 
-type ActivityPageProps = {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ status?: string | string[] }>;
-};
-
-export default async function ActivityPage({ params, searchParams }: ActivityPageProps) {
+export default async function ActivityPage({ params, searchParams }) {
   const user = await requireUser();
   const [{ id }, { status }] = await Promise.all([params, searchParams]);
   const activity = getActivity(user.workspaceId, id, user.id);
@@ -30,9 +26,7 @@ export default async function ActivityPage({ params, searchParams }: ActivityPag
 
   return (
     <main className="shell stack">
-      <div>
-        <Link href="/activities">Volver a actividades</Link>
-      </div>
+      <BackLink href="/activities">Volver a actividades</BackLink>
       <header>
         <h1>{activity.title}</h1>
         <p>{activity.location}</p>

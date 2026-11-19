@@ -1,0 +1,69 @@
+@import "tailwindcss/theme.css";
+@source "./components";
+
+@font-face {
+  font-family: "Wild World Institutional";
+  src:
+    url("./assets/fonts/wild-world-es.woff2") format("woff2"),
+    url("./assets/fonts/wild-world-es.otf") format("opentype");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400;
+}
+
+@theme {
+  --color-astra-blue: #4c52b3;
+  --color-astra-blue-medium: #8288e9;
+  --color-astra-blue-light: #b9beff;
+  --color-astra-cream: #feffee;
+  --color-astra-navy: #2f3367;
+  --color-astra-yellow: #ffdb5a;
+
+  --color-brand-primary: var(--color-astra-blue);
+  --color-brand-secondary: var(--color-astra-blue-medium);
+  --color-brand-soft: var(--color-astra-blue-light);
+  --color-brand-surface: var(--color-astra-cream);
+  --color-brand-ink: var(--color-astra-navy);
+  --color-brand-accent: var(--color-astra-yellow);
+}
+
+.institutional {
+  --font-astra-display: "Wild World Institutional", "Arial Black", Impact, system-ui, sans-serif;
+  --font-astra-serif: "Bodoni 72", "Bodoni 72 Smallcaps", "Bodoni MT", Didot, "Bodoni Moda", Georgia, serif;
+  color: var(--color-brand-ink);
+  font-family: var(--font-astra-serif);
+  font-synthesis-weight: none;
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
+
+  @import "tailwindcss/preflight.css";
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: var(--color-brand-primary);
+    font-family: var(--font-astra-display);
+    line-height: inherit;
+    text-transform: uppercase;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-brand-accent) 72%, transparent);
+    color: var(--color-brand-ink);
+  }
+
+  @import "tailwindcss/utilities.css" source(none);
+}
+
+@keyframes astra-footer-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes astra-footer-orbit-reverse {
+  to {
+    transform: rotate(-360deg);
+  }
+}

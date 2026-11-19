@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BackLink } from "../../components/back-link";
 import { hasPendingVerification, verifyEmail } from "../../demo/session";
 
 export const metadata = { title: "Verificar correo" };
@@ -22,7 +23,7 @@ export default async function VerifyEmailPage() {
           <>
             <p>No hay ninguna verificación pendiente en este navegador.</p>
             <p>Si la verificación ha caducado, puedes volver a registrarte con el mismo correo de prueba.</p>
-            <Link href="/sign-up">Volver al registro</Link>
+            <BackLink href="/sign-up">Volver al registro</BackLink>
             <Link href="/sign-in">Acceder a la comunidad</Link>
           </>
         )}

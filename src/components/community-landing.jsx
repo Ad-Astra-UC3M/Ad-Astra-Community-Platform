@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-export function CommunityLanding({ enterDemo }: { enterDemo: () => Promise<void> }) {
+export function CommunityLanding({ enterDemo }) {
   return (
     <main className="shell landing">
       <div className="landing-hero">

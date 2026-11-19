@@ -4,19 +4,19 @@ import { useActionState, useEffect, useRef, useState } from "react";
 
 
 
-export function Scanner({action}: {action: (previous: string, form: FormData) => Promise<string>}) {
+export function Scanner({action}) {
   const [result, submit, pending] = useActionState(action, "");
   const [active, setActive] = useState(false);
   const [cameraError, setCameraError] = useState("");
-  const video = useRef<HTMLVideoElement>(null);
-  const input = useRef<HTMLTextAreaElement>(null);
-  const form = useRef<HTMLFormElement>(null);
+  const video = useRef(null);
+  const input = useRef(null);
+  const form = useRef(null);
 
   useEffect(() => {
     if (!active) return;
     let closed = false;
-    let stream: MediaStream | undefined;
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    let stream;
+    let timer;
     const preview = video.current;
     function stop() {
       stream?.getTracks().forEach(track => track.stop());
@@ -34,7 +34,7 @@ export function Scanner({action}: {action: (previous: string, form: FormData) =>
         preview.srcObject = stream;
         await preview.play();
         const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d", { willReadFrequently: true })!;
+        const context = canvas.getContext("2d", { willReadFrequently: true });
         function readFrame() {
           if (closed || !preview) return;
           if (preview.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BackLink } from "../../components/back-link";
 import { signUp } from "../../demo/session";
 
 export const metadata = { title: "Crear cuenta de prueba" };
@@ -11,14 +12,10 @@ const errors = {
   duplicate: "Ya existe un alta con ese correo en este navegador.",
 };
 
-type Props = {
-  searchParams: Promise<{ error?: string | string[] }>;
-};
-
-export default async function SignUpPage({ searchParams }: Props) {
+export default async function SignUpPage({ searchParams }) {
   const { error } = await searchParams;
   const message = typeof error === "string" && Object.hasOwn(errors, error)
-    ? errors[error as keyof typeof errors]
+    ? errors[error]
     : null;
 
   return (
@@ -31,7 +28,7 @@ export default async function SignUpPage({ searchParams }: Props) {
         </p>
         {message && <p className="notice" role="alert">{message}</p>}
         {error === "duplicate" && (
-          <Link href="/verify-email">Volver a la verificación</Link>
+          <BackLink href="/verify-email">Volver a la verificación</BackLink>
         )}
         <form action={signUp} className="stack" autoComplete="off">
           <label className="field">

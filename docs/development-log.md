@@ -28,9 +28,43 @@ La revisión de Sol 6.2 con razonamiento `xhigh` señaló dos ajustes que se inc
 
 ### Cierre técnico y relevo
 
-- La [PR #1](https://github.com/Ad-Astra-UC3M/Ad-Astra-Community-Platform/pull/1) de `codex/community-prototype` a `main` está abierta. La base es `48e288e`, la revisión inicial se hizo sobre el diff hasta `64573df` y el último commit de código verificado fue `e343591`.
+- La [PR #1](https://github.com/Ad-Astra-UC3M/Ad-Astra-Community-Platform/pull/1) de `codex/community-prototype` a `main` estaba abierta al cerrar la revisión. La base es `48e288e`, la revisión inicial se hizo sobre el diff hasta `64573df` y el último commit de código verificado fue `e343591`.
 - El revisor independiente Sol 6.2 (`xhigh`) confirmó el cierre de todos los hallazgos de código. `0753908` añade el 404 en español y aclara el plazo de cancelación. `7627b7d` aísla las pruebas unitarias de la base de la demo. `e343591` restaura el mismo estudiante al cambiar de rol si hay varias cuentas y comprueba que se puede repetir el alta después de caducar la verificación.
 - Coordinación confirmó 13 pruebas unitarias, `npm run typecheck`, `npm run build` y 12 ejecuciones de extremo a extremo (dos casos, dos tamaños de pantalla y tres repeticiones).
 - El lector anterior fallaba con algunos patrones. Coordinación comprobó que `jsQR` decodificó 100 de 100 QR sintéticos y verificó la cámara con vídeo simulado. Queda pendiente probar la lectura con una cámara física.
 - El agente de interfaz verificó la demo en Edge a 320, 390 y 1280 píxeles y comprobó que la versión impresa oculta los controles.
-- La demo conserva SQLite local y la verificación simulada del alta. La integración con Neon corresponde a una fase posterior. El siguiente paso de producto con la PR abierta es revisar la demo con Gregorio.
+- La demo conserva SQLite local y la verificación simulada del alta. La integración con Neon corresponde a una fase posterior. En ese momento se propuso revisar la demo con Gregorio.
+
+## 2026-11-18 · Validación del prototipo y ajustes de navegación
+
+- La PR #1 se fusionó en `main` en `ec1a7e4`, base de `codex/community-navigation`.
+- Jorge validó el prototipo y pidió dos ajustes. El primero es adaptar la barra de navegación y el pie de la landing. El segundo es unificar el comportamiento de «Atrás» y la iconografía en Comunidad.
+- Los dos frentes se trabajaron en paralelo. La prueba con una cámara física sigue sin confirmar.
+
+### Cierre técnico de navegación
+
+- La [PR #2](https://github.com/Ad-Astra-UC3M/Ad-Astra-Community-Platform/pull/2) de `codex/community-navigation` a `main` queda abierta. `bcb3a36` incorpora Hugeicons, `676cbee` unifica los enlaces de vuelta y las flechas, y `a37c4ee` adapta la barra de navegación y el pie institucional a Comunidad.
+- La revisión independiente de Sol 6.2 (`xhigh`) señaló problemas de contraste en la llamada a la acción, visibilidad del foco y orden de tabulación en móvil. `ca825d1` y `ef6723e` incorporan los ajustes.
+- Coordinación comprobó 14 pruebas unitarias, `npm run typecheck`, `npm run build` y seis pruebas de extremo a extremo. La verificación cubrió contraste, foco, destinos de vuelta, distintos tamaños de pantalla e impresión.
+
+### Copia literal de la barra y el pie
+
+- Jorge pidió incorporar a Comunidad copias literales de `Navbar.jsx` y `Footer.jsx` de la landing. Para este ajuste pidió omitir la verificación visual. Coordinación comprobará la coincidencia mediante hashes y ejecutará el build.
+
+- Se comprobó la coincidencia SHA-256 y de los blobs Git de ambos JSX. La compatibilidad con enlaces y recursos reside fuera de los originales. La compilación y el chequeo de tipos pasaron.
+
+### Convención JSX
+
+- Jorge pidió usar JSX para los componentes internos de Comunidad. Los componentes de terceros pueden conservar TSX.
+- La migración se incorporó en `codex/community-navigation` con `a2f08ba` (componentes internos, adaptador `src/institutional/next-link.jsx` y descubrimiento de pruebas JSX) y `3312051` (vistas de Comunidad y pruebas de interfaz en `.jsx`). `25074fc` actualizó `AGENTS.md` con el reparto de agentes en Antigravity (`Gemini 4 Argon`, `Gemini Neon` y `Opus 5.5`) y los criterios de calidad, legibilidad, sencillez y ausencia de ruido defensivo innecesario.
+- El revisor independiente Opus 5.5 (`high`) en modo de solo lectura examinó `9fa42a3..3312051` y el diff completo de la PR #2 (`ec1a7e4..3312051`) y comunicó `No findings.`, confirmando que no quedan archivos `.tsx` internos y que `Navbar.jsx` y `Footer.jsx` permanecen intactos respecto a `9fa42a3`.
+- Integración comunicó sobre `25074fc` la batería completa en verde: `npm test` (14/14 pruebas unitarias), `npm run typecheck`, `npm run build` (Next.js 16.4.6 Turbopack, 11/11 rutas) y `npm run test:e2e` con Chrome (6/6 pruebas en escritorio y móvil sobre `e2e/institutional-shell.spec.ts` y `e2e/community.spec.ts`).
+- Los commits se publicaron en `origin/codex/community-navigation`, actualizando la [PR #2](https://github.com/Ad-Astra-UC3M/Ad-Astra-Community-Platform/pull/2) (que sigue abierta pendiente de fusión). La prueba con una cámara física sigue pendiente.
+
+### Navegación nativa de Comunidad en la barra institucional
+
+- Jorge aclaró que la reutilización de `Navbar.jsx` consiste en conservar su componente de interfaz (estructura JSX, clases Tailwind, `DesktopNavbar`, `MobileNavbar`, `HamburgerMenu` y `NavDropdown`), pero utilizando `next/link` de forma nativa y mostrando los enlaces y CTA propios de Comunidad según la sesión, en lugar de mantener `react-router` o los enlaces de la landing.
+- `95ef1ae` (`Use native next/link and community navigation in Navbar`, sobre `2735b37`) sustituye `react-router` (`to`) por `next/link` (`href`) en `Navbar.jsx`, `NavDropdown.jsx`, `Footer.jsx` y `HamburgerMenu.jsx`, elimina el adaptador `src/institutional/next-link.jsx` y el alias `"react-router"` en `tsconfig.json`, configura `getCommunityNav(role)` en `src/institutional/data/navItems.js` conectado desde `src/app/layout.jsx` (`visitor`, `student` y `organizer`), y retira la barra duplicada `src/components/community-navigation.jsx` dejando en `CommunityBar` únicamente la franja de sesión demo.
+- El revisor independiente Opus 5.5 (`high`) en modo de solo lectura revisó `2735b37..95ef1ae` y el diff completo `ec1a7e4..95ef1ae` de la PR #2 y devolvió `No findings.`.
+- Integración comunicó sobre `95ef1ae` todas las comprobaciones en verde: `npm test` (17/17 pruebas unitarias, incluidas 3 nuevas en `src/institutional/data/navItems.test.js`), `npm run typecheck`, `npm run build` (Next.js 16.4.6 Turbopack, 11/11 rutas) y `npm run test:e2e` en Chrome (6/6 pruebas en escritorio y móvil sobre `e2e/institutional-shell.spec.ts` y `e2e/community.spec.ts`).
+- `2735b37` y `95ef1ae` se publicaron en `origin/codex/community-navigation`, actualizando la [PR #2](https://github.com/Ad-Astra-UC3M/Ad-Astra-Community-Platform/pull/2) (abierta, pendiente de fusión). La prueba con una cámara física sigue pendiente.
