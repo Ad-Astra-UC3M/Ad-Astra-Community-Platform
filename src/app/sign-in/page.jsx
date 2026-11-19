@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { demoOrganizer, demoStudent, signIn } from "../../demo/session";
+import { demoOrganizer, demoStudent, sanitizeNextPath, signIn } from "../../demo/session";
 
 export const metadata = { title: "Acceder a la comunidad" };
 
 export default async function SignInPage({ searchParams }) {
-  const { error } = await searchParams;
+  const { error, next, reset } = await searchParams;
+  const rawNext = typeof next === "string" ? next.trim() : "";
+  const safeNext = rawNext && sanitizeNextPath(rawNext, "/home") === rawNext ? rawNext : "";
 
   return (
     <main className="shell">
@@ -12,10 +14,16 @@ export default async function SignInPage({ searchParams }) {
       <h1>Acceder a la comunidad</h1>
       <div className="panel stack">
         <p className="notice">Usa una cuenta de prueba creada y verificada en este navegador.</p>
+        {reset === "ok" && (
+          <p className="notice" role="status">
+            Contraseña actualizada. Inicia sesión con tu nueva contraseña.
+          </p>
+        )}
         {error === "credentials" && (
           <p className="notice" role="alert">Comprueba el correo y la contraseña de prueba y verifica tu cuenta.</p>
         )}
         <form action={signIn} className="stack" autoComplete="off">
+          <input type="hidden" name="next" value={safeNext} />
           <label className="field">
             Correo UC3M de prueba
             <input name="email" type="email" defaultValue="demo@alumnos.uc3m.es" maxLength={254} required />
@@ -33,7 +41,10 @@ export default async function SignInPage({ searchParams }) {
           </label>
           <button type="submit" className="button">Acceder</button>
         </form>
-        <Link href="/sign-up">Crear cuenta de prueba</Link>
+        <div className="action-row">
+          <Link href="/forgot-password">¿Has olvidado tu contraseña?</Link>
+          <Link href="/sign-up">Crear cuenta de prueba</Link>
+        </div>
       </div>
       <div className="panel stack">
         <h2>Acceso directo a la demo</h2>

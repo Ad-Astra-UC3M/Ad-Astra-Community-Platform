@@ -1,7 +1,24 @@
-import { demoOrganizer, demoStudent, signOut } from "../demo/session";
+import {
+  currentUser,
+  demoOrganizer,
+  demoStudent,
+  signOut,
+  toggleCurrentCapability,
+} from "../demo/session";
 
-export function CommunityBar({ role }) {
-  const organizer = role === "organizer";
+const CAPABILITY_LABELS = [
+  { id: "general_admin", label: "Admin general" },
+  { id: "content_editing", label: "Edición de contenido" },
+  { id: "attendance_validation", label: "Validación de asistencia" },
+  { id: "talent_consultation", label: "Consulta de talento" },
+];
+
+export async function CommunityBar({ role }) {
+  const user = await currentUser();
+  const effectiveRole = user?.role ?? role;
+  const organizer = effectiveRole === "organizer";
+  const capabilities = user?.capabilities ?? [];
+  const showCapabilities = organizer || capabilities.length > 0;
 
   return (
     <aside className="community-bar session-bar" aria-label="Sesión de demostración">
@@ -18,6 +35,30 @@ export function CommunityBar({ role }) {
           </form>
         </div>
       </div>
+      {showCapabilities && (
+        <div className="frame session-row">
+          <p><strong>Capacidades</strong></p>
+          <div className="session-actions" role="group" aria-label="Capacidades de administración">
+            {CAPABILITY_LABELS.map(({ id, label }) => {
+              const active = capabilities.includes(id);
+              return (
+                <form key={id} action={toggleCurrentCapability}>
+                  <input type="hidden" name="capability" value={id} />
+                  <input type="hidden" name="enabled" value={active ? "false" : "true"} />
+                  <button
+                    type="submit"
+                    className="text-button"
+                    aria-pressed={active}
+                    data-capability={id}
+                  >
+                    {active ? "✓" : "○"} {label}
+                  </button>
+                </form>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
