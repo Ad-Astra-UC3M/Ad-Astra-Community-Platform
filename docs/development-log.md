@@ -68,3 +68,16 @@ La revisión de Sol 6.2 con razonamiento `xhigh` señaló dos ajustes que se inc
 - El revisor independiente Opus 5.5 (`high`) en modo de solo lectura revisó `2735b37..95ef1ae` y el diff completo `ec1a7e4..95ef1ae` de la PR #2 y devolvió `No findings.`.
 - Integración comunicó sobre `95ef1ae` todas las comprobaciones en verde: `npm test` (17/17 pruebas unitarias, incluidas 3 nuevas en `src/institutional/data/navItems.test.js`), `npm run typecheck`, `npm run build` (Next.js 16.4.6 Turbopack, 11/11 rutas) y `npm run test:e2e` en Chrome (6/6 pruebas en escritorio y móvil sobre `e2e/institutional-shell.spec.ts` y `e2e/community.spec.ts`).
 - `2735b37` y `95ef1ae` se publicaron en `origin/codex/community-navigation`, actualizando la [PR #2](https://github.com/Ad-Astra-UC3M/Ad-Astra-Community-Platform/pull/2) (abierta, pendiente de fusión). La prueba con una cámara física sigue pendiente.
+
+## 2026-11-19 · Hito 1 · Oportunidades, perfil, cambios de turno y reemisión QR
+
+- La [PR #2](https://github.com/Ad-Astra-UC3M/Ad-Astra-Community-Platform/pull/2) se fusionó en `main` en `b7057a8` (contenido idéntico a `f0589c5`), base de `codex/community-opportunities-and-profile`.
+- El trabajo del Hito 1 se repartió en paralelo entre oportunidades/marcadores, perfil/talento/privacidad e integración (`b7057a8..2bd8706`):
+  - `c4572ee` añade cambio atómico de turno, imágenes ordenadas de actividad y selección automática cuando hay un único turno.
+  - `27fd3dc` incorpora reemisión versionada de tarjeta QR y enlaza el aviso de privacidad en `/sign-up`.
+  - `8326f8f` y `940a23f` implementan el modelo SQLite de oportunidades y marcadores con sus invariantes y las vistas `/opportunities`, `/opportunities/[id]` y `/bookmarks`.
+  - `e98afbc` y `79514e5` implementan el modelo SQLite y las vistas de perfil básico (`/profile`), talento (`/profile/talent`), preferencias de difusión y solicitud de supresión (`/profile/privacy`) y aviso de privacidad (`/privacy`).
+  - `2bd8706` integra la navegación de oportunidades y perfil y añade cobertura E2E (`e2e/opportunities-and-profile.spec.ts`).
+- El revisor independiente Opus 5.5 (`high`, modo solo lectura con `review-agent`) examinó `b7057a8..2bd8706` y comunicó `No findings.`, confirmando el cumplimiento de contratos e invariantes de cambios de turno, reemisión QR, oportunidades/marcadores y perfil/privacidad.
+- Integración comunicó sobre `2bd8706` todas las comprobaciones en verde: `npm test` (28/28 pruebas unitarias), `npm run typecheck`, `npm run build` (Next.js 16.4.6 Turbopack, 17/17 rutas), `npm run test:e2e` en Chrome (12/12 pruebas en móvil y escritorio sobre `institutional-shell.spec.ts`, `community.spec.ts` y `opportunities-and-profile.spec.ts`) y `git ls-files "*.tsx"` vacío.
+- La rama `codex/community-opportunities-and-profile` está publicada en `origin`. Quedan pendientes la apertura de la PR #3 (el comando `gh pr create` expiró esperando aprobación manual) y la prueba con cámara física.
