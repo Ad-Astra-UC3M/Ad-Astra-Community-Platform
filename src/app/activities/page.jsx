@@ -9,18 +9,34 @@ export default async function ActivitiesPage() {
   return (
     <main className="shell stack">
       <h1>Actividades</h1>
-      {activities.map((activity) => (
-        <article className="panel stack" key={activity.id}>
-          <header>
-            <h2>{activity.title}</h2>
-            <p>{activity.location}</p>
-          </header>
-          <p>{activity.description}</p>
-          <div>
-            <Link className="button" href={`/activities/${activity.id}`}>Ver turnos</Link>
-          </div>
-        </article>
-      ))}
+      {activities.map((activity) => {
+        const singleShift = activity.shifts.length === 1;
+        return (
+          <article className="panel stack" key={activity.id}>
+            {activity.coverImage && (
+              <img
+                src={activity.coverImage.imageUrl}
+                alt={activity.coverImage.imageAlt}
+                loading="lazy"
+                style={{ width: "100%", maxHeight: "14rem", objectFit: "cover", borderRadius: "4px" }}
+              />
+            )}
+            <header>
+              <h2>{activity.title}</h2>
+              <p>
+                {activity.location}
+                {singleShift ? " · Sesión única" : ` · ${activity.shifts.length} turnos`}
+              </p>
+            </header>
+            <p>{activity.description}</p>
+            <div>
+              <Link className="button" href={`/activities/${activity.id}`}>
+                {singleShift ? "Ver actividad" : "Ver turnos"}
+              </Link>
+            </div>
+          </article>
+        );
+      })}
     </main>
   );
 }
