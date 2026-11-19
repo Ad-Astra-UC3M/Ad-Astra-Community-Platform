@@ -47,8 +47,8 @@ function ShiftCard({ shift, reserve, singleShift, now }) {
 }
 
 export default async function ActivityPage({ params, searchParams }) {
-  const user = await requireUser();
   const [{ id }, { status }] = await Promise.all([params, searchParams]);
+  const user = await requireUser(`/activities/${encodeURIComponent(id)}`);
   const activity = getActivity(user.workspaceId, id, user.id);
   if (!activity) notFound();
 

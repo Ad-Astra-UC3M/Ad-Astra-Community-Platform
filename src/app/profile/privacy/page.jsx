@@ -40,7 +40,7 @@ function formatDateTime(timestamp) {
 }
 
 export default async function ProfilePrivacyPage({ searchParams }) {
-  const user = await requireUser();
+  const user = await requireUser("/profile/privacy");
   const dissemination = getDisseminationStatus(user.workspaceId, user.id);
   const deletionRequest = getMyDeletionRequest(user.workspaceId, user.id);
   const { status, error } = await searchParams;

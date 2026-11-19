@@ -246,3 +246,25 @@ test("el inicio del turno cierra nuevas reservas y cancelaciones", (context) => 
   assert.equal(cancelReservation(workspaceId, person.id, first.id), "closed");
   assert.equal(listReservations(workspaceId, person.id)[0]?.canCancel, false);
 });
+
+test("una actividad archivada conserva reservas previas pero impide nuevas reservas y cambios", () => {
+  const workspaceId = "archived-activity";
+  const { activity, first, second } = workshop(workspaceId);
+  assert.equal(reserveShift(workspaceId, activity.id, first.id, person), "reserved");
+
+  db.prepare(
+    "UPDATE demo_activities SET status = 'archived' WHERE workspace_id = ? AND id = ?",
+  ).run(workspaceId, activity.id);
+
+  assert.equal(getActivity(workspaceId, activity.id, person.id), undefined);
+  assert.equal(listActivities(workspaceId, person.id).some((item) => item.id === activity.id), false);
+  assert.equal(
+    reserveShift(workspaceId, activity.id, first.id, { id: "other-person", name: "Otra persona" }),
+    "closed",
+  );
+
+  const [seedAttendee] = listAttendees(workspaceId, second.id);
+  assert.equal(cancelReservation(workspaceId, seedAttendee.personId, second.id), "cancelled");
+  assert.equal(changeReservation(workspaceId, person.id, first.id, second.id), "closed");
+  assert.equal(listReservations(workspaceId, person.id).length, 1);
+});

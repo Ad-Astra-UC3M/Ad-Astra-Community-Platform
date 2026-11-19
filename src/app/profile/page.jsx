@@ -35,7 +35,7 @@ const profileLinks = [
 ];
 
 export default async function ProfilePage({ searchParams }) {
-  const user = await requireUser();
+  const user = await requireUser("/profile");
   const profile = getBasicProfile(user.workspaceId, user.id);
   const { status, error } = await searchParams;
   const errorMessage = typeof error === "string" ? errorMessages.get(error) : undefined;

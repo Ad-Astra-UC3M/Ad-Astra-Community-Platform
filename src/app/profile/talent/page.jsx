@@ -18,7 +18,7 @@ function firstLinkByKind(links, kind) {
 }
 
 export default async function TalentProfilePage({ searchParams }) {
-  const user = await requireUser();
+  const user = await requireUser("/profile/talent");
   const profile = getTalentProfile(user.workspaceId, user.id, user.id);
   const { status, error } = await searchParams;
   const errorMessage = typeof error === "string" ? errorMessages.get(error) : undefined;

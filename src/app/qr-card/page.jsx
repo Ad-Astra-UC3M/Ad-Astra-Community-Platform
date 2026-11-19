@@ -5,7 +5,7 @@ import { reissueMyCard } from "./actions";
 import { CardTools } from "./tools";
 
 export default async function CardPage({ searchParams }) {
-  const user = await requireUser();
+  const user = await requireUser("/qr-card");
   const { status } = await searchParams;
   const token = await issueCard(user.workspaceId, user.id);
   const version = getCardVersion(user.workspaceId, user.id);

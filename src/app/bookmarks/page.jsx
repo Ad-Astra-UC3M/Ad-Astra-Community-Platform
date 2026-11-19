@@ -24,7 +24,7 @@ const dateFormat = new Intl.DateTimeFormat("es-ES", {
 });
 
 export default async function BookmarksPage({ searchParams }) {
-  const user = await requireUser();
+  const user = await requireUser("/bookmarks");
   const { status } = await searchParams;
   const bookmarks = listBookmarks(user.workspaceId, user.id);
   const message = typeof status === "string" ? statusMessages.get(status) : undefined;

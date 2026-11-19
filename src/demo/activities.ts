@@ -82,6 +82,7 @@ db.exec(`
     title TEXT NOT NULL,
     description TEXT NOT NULL,
     location TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'published' CHECK (status IN ('draft', 'published', 'archived')),
     PRIMARY KEY (workspace_id, id)
   ) STRICT;
 
@@ -131,6 +132,15 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS demo_activity_reservation_owner
     ON demo_activity_reservations (workspace_id, person_id);
 `);
+
+{
+  const columns = db.prepare("PRAGMA table_info(demo_activities)").all() as { name: string }[];
+  if (!columns.some((col) => col.name === "status")) {
+    db.exec(
+      "ALTER TABLE demo_activities ADD COLUMN status TEXT NOT NULL DEFAULT 'published' CHECK (status IN ('draft', 'published', 'archived'))",
+    );
+  }
+}
 
 function writeTransaction<Result>(operation: () => Result): Result {
   db.exec("BEGIN IMMEDIATE");
@@ -304,7 +314,7 @@ export function listActivities(workspaceId: string, personId: string): Activity[
   seedWorkspace(workspaceId);
   const activities = db.prepare(`
     SELECT id, title, description, location
-    FROM demo_activities WHERE workspace_id = ? ORDER BY title, id
+    FROM demo_activities WHERE workspace_id = ? AND status = 'published' ORDER BY title, id
   `).all(workspaceId) as ActivitySummary[];
 
   return activities.map((activity) => {
@@ -322,7 +332,7 @@ export function getActivity(workspaceId: string, activityId: string, personId: s
   seedWorkspace(workspaceId);
   const activity = db.prepare(`
     SELECT id, title, description, location
-    FROM demo_activities WHERE workspace_id = ? AND id = ?
+    FROM demo_activities WHERE workspace_id = ? AND id = ? AND status = 'published'
   `).get(workspaceId, activityId) as ActivitySummary | undefined;
 
   if (activity) {
@@ -354,6 +364,7 @@ export function listReservations(workspaceId: string, personId: string): Reserva
   const rows = db.prepare(`
     SELECT shift.id AS shiftId, shift.name AS shiftName,
       activity.id AS activityId, activity.title AS activityTitle, activity.location,
+      activity.status AS activityStatus,
       shift.starts_at AS startsAt, shift.ends_at AS endsAt,
       CASE WHEN reservation.attended_at IS NULL THEN 'booked' ELSE 'attended' END AS status
     FROM demo_activity_reservations AS reservation
@@ -363,11 +374,11 @@ export function listReservations(workspaceId: string, personId: string): Reserva
       ON activity.workspace_id = shift.workspace_id AND activity.id = shift.activity_id
     WHERE reservation.workspace_id = ? AND reservation.person_id = ?
     ORDER BY shift.starts_at, shift.id
-  `).all(workspaceId, personId) as unknown as Omit<Reservation, "canCancel" | "alternativeShifts">[];
+  `).all(workspaceId, personId) as unknown as (Omit<Reservation, "canCancel" | "alternativeShifts"> & { activityStatus: string })[];
 
-  return rows.map((row) => {
+  return rows.map(({ activityStatus, ...row }) => {
     const canModify = row.status === "booked" && row.startsAt > now;
-    const alternativeShifts = canModify
+    const alternativeShifts = canModify && activityStatus === "published"
       ? readShifts(workspaceId, row.activityId, personId)
           .filter((shift) => shift.id !== row.shiftId && !shift.booking && shift.startsAt > now && shift.available > 0)
           .map(({ id, name, startsAt, endsAt, available }) => ({ id, name, startsAt, endsAt, available }))
@@ -390,6 +401,12 @@ export function reserveShift(
   seedWorkspace(workspaceId);
 
   return writeTransaction(() => {
+    const activity = db.prepare(
+      "SELECT status FROM demo_activities WHERE workspace_id = ? AND id = ?",
+    ).get(workspaceId, activityId) as { status: string } | undefined;
+    if (!activity) return "missing";
+    if (activity.status !== "published") return "closed";
+
     const shift = readShifts(workspaceId, activityId, participant.id).find((row) => row.id === shiftId);
     if (!shift) return "missing";
     if (shift.booking) return "duplicate";
@@ -417,20 +434,25 @@ export function changeReservation(
   return writeTransaction(() => {
     const source = db.prepare(`
       SELECT shift.activity_id AS activityId, shift.starts_at AS startsAt,
+        activity.status AS activityStatus,
         reservation.person_name AS personName, reservation.attended_at AS attendedAt
       FROM demo_activity_reservations AS reservation
       JOIN demo_activity_shifts AS shift
         ON shift.workspace_id = reservation.workspace_id AND shift.id = reservation.shift_id
+      JOIN demo_activities AS activity
+        ON activity.workspace_id = shift.workspace_id AND activity.id = shift.activity_id
       WHERE reservation.workspace_id = ? AND reservation.shift_id = ? AND reservation.person_id = ?
     `).get(workspaceId, fromShiftId, personId) as {
       activityId: string;
       startsAt: number;
+      activityStatus: string;
       personName: string;
       attendedAt: number | null;
     } | undefined;
 
     if (!source) return "missing";
     if (source.attendedAt !== null) return "attended";
+    if (source.activityStatus !== "published") return "closed";
 
     const now = Date.now();
     if (source.startsAt <= now) return "closed";

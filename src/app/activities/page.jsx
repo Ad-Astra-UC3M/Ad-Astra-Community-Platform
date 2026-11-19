@@ -3,7 +3,7 @@ import { listActivities } from "../../demo/activities";
 import { requireUser } from "../../demo/session";
 
 export default async function ActivitiesPage() {
-  const user = await requireUser();
+  const user = await requireUser("/activities");
   const activities = listActivities(user.workspaceId, user.id);
 
   return (

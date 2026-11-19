@@ -53,7 +53,7 @@ const organizerLinks = [
 ];
 
 export default async function HomePage() {
-  const user = await requireUser();
+  const user = await requireUser("/home");
   const organizer = user.role === "organizer";
   const links = organizer ? organizerLinks : studentLinks;
 

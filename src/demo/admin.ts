@@ -10,6 +10,7 @@ import {
   seedOpportunities,
   updateOpportunityStatus,
 } from "./opportunities";
+import "./profile";
 import { type DeletionRequestStatus, type TalentLink } from "./profile";
 import { type AccountStatus, type AdminCapability, SessionStore } from "./session-store";
 

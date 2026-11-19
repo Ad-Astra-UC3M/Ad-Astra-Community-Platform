@@ -30,12 +30,12 @@ const filters = [
 ];
 
 export default async function OpportunitiesPage({ searchParams }) {
-  const user = await requireUser();
   const { type, status } = await searchParams;
   const activeType = type === "internship" || type === "research" ? type : undefined;
+  const returnTo = activeType ? `/opportunities?type=${activeType}` : "/opportunities";
+  const user = await requireUser(returnTo);
   const opportunities = listOpportunities(user.workspaceId, user.id, activeType);
   const message = typeof status === "string" ? statusMessages.get(status) : undefined;
-  const returnTo = activeType ? `/opportunities?type=${activeType}` : "/opportunities";
 
   return (
     <main className="shell stack">

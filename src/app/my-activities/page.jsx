@@ -17,7 +17,7 @@ const messages = new Map([
 ]);
 
 export default async function MyActivitiesPage({ searchParams }) {
-  const user = await requireUser();
+  const user = await requireUser("/my-activities");
   const reservations = listReservations(user.workspaceId, user.id);
   const { status } = await searchParams;
   const message = typeof status === "string" ? messages.get(status) : undefined;

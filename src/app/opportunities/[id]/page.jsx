@@ -26,8 +26,8 @@ const dateFormat = new Intl.DateTimeFormat("es-ES", {
 });
 
 export default async function OpportunityDetailPage({ params, searchParams }) {
-  const user = await requireUser();
   const [{ id }, { status }] = await Promise.all([params, searchParams]);
+  const user = await requireUser(`/opportunities/${encodeURIComponent(id)}`);
   const opportunity = getOpportunity(user.workspaceId, id, user.id);
   if (!opportunity || opportunity.status !== "published") notFound();
 
