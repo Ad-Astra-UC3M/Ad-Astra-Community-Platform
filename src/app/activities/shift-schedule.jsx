@@ -18,7 +18,7 @@ export function ShiftSchedule({ startsAt, endsAt }) {
   const end = new Date(endsAt);
 
   return (
-    <p>
+    <p className="text-brand-ink">
       <time dateTime={start.toISOString()}>{dateFormat.format(start)}, {timeFormat.format(start)}</time>
       {"–"}
       <time dateTime={end.toISOString()}>{timeFormat.format(end)}</time>

@@ -58,26 +58,33 @@ export default async function HomePage() {
   const links = organizer ? organizerLinks : studentLinks;
 
   return (
-    <main className="shell home">
-      <div className="home-banner">
-        <h1>Hola, {user.name}</h1>
-        <p className="lead">
+    <main className="mx-auto grid w-full max-w-[58rem] gap-7 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
+      <div className="grid gap-3 rounded-lg bg-brand-ink p-6 text-brand-surface md:p-8 [&_:focus-visible]:outline-brand-accent">
+        <h1 className="font-display text-[1.75rem] leading-[1.12] font-normal uppercase text-brand-surface md:text-[2.5rem]">
+          Hola, {user.name}
+        </h1>
+        <p className="max-w-[48ch] text-[1.2rem] leading-relaxed">
           {organizer
             ? "Desde aquí puedes registrar la asistencia a los turnos de la demo."
             : "Reserva tu próximo turno, explora oportunidades y gestiona tu perfil desde la comunidad."}
         </p>
       </div>
-      <nav className="home-links" aria-label="Accesos directos">
-        <ul>
+      <nav aria-label="Accesos directos">
+        <ul className="m-0 list-none border-t border-brand-primary/30 p-0">
           {links.map(({ href, label, description }) => (
-            <li key={href}>
-              <Link href={href}>
-                <span className="home-link-text">
-                  <span className="home-link-title">{label}</span>
+            <li key={href} className="border-b border-brand-primary/30">
+              <Link
+                href={href}
+                className="flex items-center justify-between gap-5 px-3 py-4 text-brand-ink no-underline transition-colors hover:bg-brand-soft/20"
+              >
+                <span className="grid gap-0.5">
+                  <span className="text-[1.18rem] font-bold text-brand-primary underline underline-offset-[0.22em]">
+                    {label}
+                  </span>
                   <span>{description}</span>
                 </span>
                 <HugeiconsIcon
-                  className="home-link-arrow"
+                  className="shrink-0 text-brand-primary"
                   icon={ArrowRight02Icon}
                   size={20}
                   strokeWidth={2}

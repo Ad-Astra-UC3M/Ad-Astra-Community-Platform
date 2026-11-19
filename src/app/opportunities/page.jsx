@@ -29,6 +29,18 @@ const filters = [
   { key: "research", label: "Investigación", href: "/opportunities?type=research" },
 ];
 
+const panelClass =
+  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
+
+const primaryButtonClass =
+  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
+
+const secondaryButtonClass =
+  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink";
+
+const inlineLinkClass =
+  "text-brand-primary underline underline-offset-[0.22em] transition-colors hover:text-brand-ink";
+
 export default async function OpportunitiesPage({ searchParams }) {
   const { type, status } = await searchParams;
   const activeType = type === "internship" || type === "research" ? type : undefined;
@@ -38,20 +50,22 @@ export default async function OpportunitiesPage({ searchParams }) {
   const message = typeof status === "string" ? statusMessages.get(status) : undefined;
 
   return (
-    <main className="shell stack">
-      <header className="stack">
-        <h1>Oportunidades</h1>
-        <p className="lead">
+    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
+      <header className="grid min-w-0 gap-4">
+        <h1 className="font-display text-[1.75rem] leading-[1.12] font-normal uppercase text-brand-primary md:text-[2.5rem]">
+          Oportunidades
+        </h1>
+        <p className="max-w-[48ch] text-[1.2rem] leading-relaxed">
           Prácticas aeroespaciales y líneas de investigación en la UC3M. Guardar un marcador no envía ninguna candidatura.
         </p>
-        <div className="action-row">
-          <nav className="action-row" aria-label="Filtrar oportunidades por tipo">
+        <div className="flex flex-wrap items-center gap-3">
+          <nav className="flex flex-wrap items-center gap-3" aria-label="Filtrar oportunidades por tipo">
             {filters.map((filter) => {
               const active = activeType === filter.key;
               return (
                 <Link
                   key={filter.label}
-                  className={active ? "button" : "button secondary"}
+                  className={active ? primaryButtonClass : secondaryButtonClass}
                   href={filter.href}
                   aria-current={active ? "page" : undefined}
                 >
@@ -60,26 +74,34 @@ export default async function OpportunitiesPage({ searchParams }) {
               );
             })}
           </nav>
-          <Link className="button secondary" href="/bookmarks">Mis marcadores</Link>
+          <Link className={secondaryButtonClass} href="/bookmarks">Mis marcadores</Link>
         </div>
       </header>
 
-      {message && <p className="notice" role="status">{message}</p>}
+      {message && (
+        <p className="rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink" role="status">
+          {message}
+        </p>
+      )}
 
       {opportunities.length === 0 ? (
-        <section className="panel stack">
+        <section className={panelClass}>
           <p>No hay oportunidades publicadas para este filtro en este momento.</p>
           {activeType && (
-            <div><Link className="button secondary" href="/opportunities">Ver todas las oportunidades</Link></div>
+            <div>
+              <Link className={secondaryButtonClass} href="/opportunities">Ver todas las oportunidades</Link>
+            </div>
           )}
         </section>
       ) : (
         opportunities.map((opportunity) => (
-          <article className="panel stack" key={opportunity.id}>
-            <header className="stack">
-              <p className="eyebrow">{typeLabels[opportunity.type]}</p>
-              <h2>
-                <Link href={`/opportunities/${opportunity.id}`}>{opportunity.title}</Link>
+          <article className={panelClass} key={opportunity.id}>
+            <header className="grid min-w-0 gap-2">
+              <p className="text-[0.9rem] font-bold text-brand-primary">{typeLabels[opportunity.type]}</p>
+              <h2 className="font-display text-[1.25rem] leading-[1.22] font-normal uppercase">
+                <Link href={`/opportunities/${opportunity.id}`} className={inlineLinkClass}>
+                  {opportunity.title}
+                </Link>
               </h2>
               <p>
                 {[opportunity.organization, opportunity.location, opportunity.modality]
@@ -96,13 +118,13 @@ export default async function OpportunitiesPage({ searchParams }) {
                 </time>
               </p>
             )}
-            <div className="action-row">
-              <Link className="button" href={`/opportunities/${opportunity.id}`}>Ver detalle</Link>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link className={primaryButtonClass} href={`/opportunities/${opportunity.id}`}>Ver detalle</Link>
               <form action={opportunity.bookmarked ? removeOpportunityBookmark : saveOpportunityBookmark}>
                 <input type="hidden" name="opportunityId" value={opportunity.id} />
                 <input type="hidden" name="returnTo" value={returnTo} />
                 <button
-                  className="button secondary"
+                  className={secondaryButtonClass}
                   type="submit"
                   aria-label={`${opportunity.bookmarked ? "Retirar marcador" : "Guardar marcador"} · ${opportunity.title}`}
                 >
