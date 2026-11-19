@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BackLink } from "../../components/back-link";
-import { listBookmarks } from "../../demo/opportunities";
-import { requireUser } from "../../demo/session";
+import { requireUser } from "../../lib/auth/session";
+import { listBookmarks } from "../../server/repositories/opportunities";
 import { removeOpportunityBookmark } from "../opportunities/actions";
 
 export const metadata = { title: "Mis marcadores" };
@@ -38,7 +38,7 @@ const inlineLinkClass =
 export default async function BookmarksPage({ searchParams }) {
   const user = await requireUser("/bookmarks");
   const { status } = await searchParams;
-  const bookmarks = listBookmarks(user.workspaceId, user.id);
+  const bookmarks = await listBookmarks(user.personId);
   const message = typeof status === "string" ? statusMessages.get(status) : undefined;
 
   return (
@@ -106,16 +106,16 @@ export default async function BookmarksPage({ searchParams }) {
                     </Link>
                   </h2>
                   <p>
-                    {[bookmark.organization, bookmark.location, bookmark.modality]
+                    {[bookmark.organization, bookmark.location, bookmark.workModality]
                       .filter(Boolean)
                       .join(" · ")}
                   </p>
                 </header>
-                {bookmark.deadline && (
+                {bookmark.deadlineAt && (
                   <p>
                     Fecha límite:{" "}
-                    <time dateTime={new Date(bookmark.deadline).toISOString()}>
-                      {dateFormat.format(new Date(bookmark.deadline))}
+                    <time dateTime={new Date(bookmark.deadlineAt).toISOString()}>
+                      {dateFormat.format(new Date(bookmark.deadlineAt))}
                     </time>
                   </p>
                 )}

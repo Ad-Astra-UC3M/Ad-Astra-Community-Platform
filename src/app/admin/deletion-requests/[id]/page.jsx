@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../../components/back-link";
-import { getDeletionRequest } from "../../../../demo/admin";
+import { getDeletionRequest } from "../../../../server/repositories/admin";
 import { requireCapability } from "../../access";
 import { resolveDeletionRequestAction } from "../actions";
 
@@ -28,6 +28,8 @@ const statusMessages = new Map([
 ]);
 
 const errorMessages = new Map([
+  ["invalid_status", "El estado seleccionado no es válido."],
+  ["invalid_date", "La fecha de resolución no es válida."],
   ["missing_resolution_note", "Para resolver una solicitud debes redactar un resultado motivado."],
   ["missing_actor", "No se pudo identificar al responsable de la resolución."],
   ["already_resolved", "Esta solicitud ya está resuelta y no admite cambios."],
@@ -45,13 +47,13 @@ const secondaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
 export default async function AdminDeletionRequestDetailPage({ params, searchParams }) {
-  const admin = await requireCapability("general_admin");
+  await requireCapability("general_admin");
   const { id } = await params;
   const resolvedSearch = await searchParams;
   const statusCode = typeof resolvedSearch?.status === "string" ? resolvedSearch.status : "";
   const errorCode = typeof resolvedSearch?.error === "string" ? resolvedSearch.error : "";
 
-  const request = getDeletionRequest(admin.workspaceId, id);
+  const request = await getDeletionRequest(id);
   if (!request) notFound();
 
   const statusMessage = statusMessages.get(statusCode);
@@ -64,13 +66,13 @@ export default async function AdminDeletionRequestDetailPage({ params, searchPar
         <p className="text-[0.9rem] font-bold text-brand-primary">
           Solicitud de supresión · {statusLabels[request.status]}
         </p>
-        <h1>{request.accountName}</h1>
+        <h1>{request.personName}</h1>
         <p>
-          {request.accountEmail} · Estado de la cuenta:{" "}
-          <strong>{request.accountStatus === "active" ? "Activa" : "Desactivada"}</strong>
+          {request.personEmail} · Estado de la cuenta:{" "}
+          <strong>{request.personStatus === "active" ? "Activa" : "Desactivada"}</strong>
         </p>
         <div>
-          <Link className={secondaryButtonClass} href={`/admin/accounts/${request.accountId}`}>
+          <Link className={secondaryButtonClass} href={`/admin/accounts/${request.personId}`}>
             Ver ficha de la cuenta
           </Link>
         </div>

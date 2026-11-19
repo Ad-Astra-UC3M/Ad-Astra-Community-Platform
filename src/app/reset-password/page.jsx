@@ -1,9 +1,6 @@
 import Link from "next/link";
 import { BackLink } from "../../components/back-link";
-import {
-  hasPendingBrowserPasswordReset,
-  submitPasswordReset,
-} from "../../demo/session";
+import { resetPasswordAction } from "../../lib/auth/session";
 
 export const metadata = { title: "Restablecer contraseña" };
 
@@ -20,11 +17,12 @@ const inputClass =
   "min-h-12 w-full min-w-0 rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
 
 export default async function ResetPasswordPage({ searchParams }) {
-  const { error } = await searchParams;
-  const pending = await hasPendingBrowserPasswordReset();
-  const message = typeof error === "string" && Object.hasOwn(errors, error)
-    ? errors[error]
-    : null;
+  const { token, error } = await searchParams;
+  const safeToken = typeof token === "string" ? token.trim() : "";
+  const message =
+    typeof error === "string" && Object.hasOwn(errors, error)
+      ? errors[error]
+      : null;
 
   return (
     <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
@@ -38,17 +36,30 @@ export default async function ResetPasswordPage({ searchParams }) {
             {message}
           </p>
         )}
-        {pending ? (
+        {safeToken ? (
           <>
             <p>
-              Define una nueva contraseña para tu cuenta. Al guardarla, este enlace quedará invalidado y se
-              cerrarán las sesiones previas.
+              Define una nueva contraseña para tu cuenta. Al guardarla, este enlace quedará
+              invalidado y se cerrarán las sesiones previas.
             </p>
-            <form action={submitPasswordReset} className="grid min-w-0 gap-4" autoComplete="off">
+            <form action={resetPasswordAction} className="grid min-w-0 gap-4" autoComplete="off">
+              <input type="hidden" name="token" value={safeToken} />
               <label className="grid min-w-0 gap-1.5 font-bold">
                 Nueva contraseña
                 <input
                   name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={8}
+                  maxLength={128}
+                  required
+                  className={inputClass}
+                />
+              </label>
+              <label className="grid min-w-0 gap-1.5 font-bold">
+                Confirmar nueva contraseña
+                <input
+                  name="confirmPassword"
                   type="password"
                   autoComplete="new-password"
                   minLength={8}
@@ -62,10 +73,12 @@ export default async function ResetPasswordPage({ searchParams }) {
           </>
         ) : (
           <>
-            <p>No hay ningún enlace de recuperación válido pendiente en este navegador.</p>
-            <p>Si ya lo has usado o ha caducado, puedes solicitar uno nuevo.</p>
-            <BackLink href="/forgot-password">Solicitar un nuevo enlace</BackLink>
-            <Link href="/sign-in">Acceder a la comunidad</Link>
+            <p>No se ha proporcionado un enlace de recuperación válido.</p>
+            <p>Si ya lo has usado o ha caducado, puedes solicitar uno nuevo desde tu correo UC3M.</p>
+            <div className="flex flex-wrap items-center gap-4">
+              <BackLink href="/forgot-password">Solicitar un nuevo enlace</BackLink>
+              <Link href="/sign-in">Acceder a la comunidad</Link>
+            </div>
           </>
         )}
       </div>

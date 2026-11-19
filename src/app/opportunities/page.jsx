@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { listOpportunities } from "../../demo/opportunities";
-import { requireUser } from "../../demo/session";
+import { requireUser } from "../../lib/auth/session";
+import { listOpportunities } from "../../server/repositories/opportunities";
 import { removeOpportunityBookmark, saveOpportunityBookmark } from "./actions";
 
 export const metadata = { title: "Oportunidades" };
@@ -46,7 +46,7 @@ export default async function OpportunitiesPage({ searchParams }) {
   const activeType = type === "internship" || type === "research" ? type : undefined;
   const returnTo = activeType ? `/opportunities?type=${activeType}` : "/opportunities";
   const user = await requireUser(returnTo);
-  const opportunities = listOpportunities(user.workspaceId, user.id, activeType);
+  const opportunities = await listOpportunities(user.personId, activeType);
   const message = typeof status === "string" ? statusMessages.get(status) : undefined;
 
   return (
@@ -104,17 +104,17 @@ export default async function OpportunitiesPage({ searchParams }) {
                 </Link>
               </h2>
               <p>
-                {[opportunity.organization, opportunity.location, opportunity.modality]
+                {[opportunity.organization, opportunity.location, opportunity.workModality]
                   .filter(Boolean)
                   .join(" · ")}
               </p>
             </header>
             <p>{opportunity.description}</p>
-            {opportunity.deadline && (
+            {opportunity.deadlineAt && (
               <p>
                 Fecha límite:{" "}
-                <time dateTime={new Date(opportunity.deadline).toISOString()}>
-                  {dateFormat.format(new Date(opportunity.deadline))}
+                <time dateTime={new Date(opportunity.deadlineAt).toISOString()}>
+                  {dateFormat.format(new Date(opportunity.deadlineAt))}
                 </time>
               </p>
             )}

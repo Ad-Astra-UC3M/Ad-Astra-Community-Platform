@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { listReservations } from "../../demo/activities";
-import { requireUser } from "../../demo/session";
+import { requireUser } from "../../lib/auth/session";
+import { listReservations } from "../../server/repositories/activities";
 import { ShiftSchedule } from "../activities/shift-schedule";
 import { cancelActivityReservation, changeActivityShift } from "./actions";
 
@@ -30,7 +30,7 @@ const selectClass =
 
 export default async function MyActivitiesPage({ searchParams }) {
   const user = await requireUser("/my-activities");
-  const reservations = listReservations(user.workspaceId, user.id);
+  const reservations = await listReservations(user.personId);
   const { status } = await searchParams;
   const message = typeof status === "string" ? messages.get(status) : undefined;
 
@@ -53,7 +53,7 @@ export default async function MyActivitiesPage({ searchParams }) {
         </section>
       ) : (
         reservations.map((reservation) => (
-          <article className={panelClass} key={reservation.shiftId}>
+          <article className={panelClass} key={reservation.participationId}>
             <header className="grid gap-1">
               <h2 className="font-display text-[1.25rem] leading-[1.22] font-normal uppercase">
                 <Link
@@ -67,19 +67,21 @@ export default async function MyActivitiesPage({ searchParams }) {
             </header>
             <ShiftSchedule startsAt={reservation.startsAt} endsAt={reservation.endsAt} />
             <p>{reservation.status === "attended" ? "Asistencia registrada" : "Reserva confirmada"}</p>
-            {reservation.alternativeShifts.length > 0 && (
+            {reservation.otherShifts.length > 0 && (
               <form action={changeActivityShift} className="grid min-w-0 gap-4">
                 <input type="hidden" name="fromShiftId" value={reservation.shiftId} />
                 <label className="grid min-w-0 gap-1.5 font-bold">
                   Cambiar a otro turno
                   <select
                     name="toShiftId"
-                    defaultValue={reservation.alternativeShifts[0].id}
+                    defaultValue={reservation.otherShifts[0].id}
                     className={selectClass}
                   >
-                    {reservation.alternativeShifts.map((shift) => (
+                    {reservation.otherShifts.map((shift) => (
                       <option key={shift.id} value={shift.id}>
-                        {shift.name} ({shift.available} plazas libres)
+                        {shift.available === null
+                          ? `${shift.name} (aforo ilimitado)`
+                          : `${shift.name} (${shift.available} plazas libres)`}
                       </option>
                     ))}
                   </select>

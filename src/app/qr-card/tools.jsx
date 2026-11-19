@@ -23,7 +23,7 @@ export function CardTools({ token }) {
             className="min-h-12 w-full min-w-0 resize-y rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink"
           />
         </label>
-        <p>Copia este código para probar la validación desde el panel de organización.</p>
+        <p>Si el lector de cámara no está disponible, puedes mostrar o copiar este código al equipo organizador para validar tu asistencia.</p>
       </details>
     </div>
   );

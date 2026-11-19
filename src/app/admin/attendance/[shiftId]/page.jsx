@@ -5,7 +5,7 @@ import {
   listActiveAccountsForDoor,
   listAttendanceAudit,
   listShiftAttendeesDetailed,
-} from "../../../../demo/admin";
+} from "../../../../server/repositories/admin";
 import { requireCapability } from "../../access";
 import {
   confirmManualAttendanceAction,
@@ -29,8 +29,10 @@ const dateTimeFormat = new Intl.DateTimeFormat("es-ES", {
 const doorFeedback = new Map([
   ["registered", { kind: "notice", text: "Inscripción en puerta registrada en estado «Apuntado». Confirma la asistencia en una acción separada." }],
   ["missing_reason", { kind: "alert", text: "Debes indicar un motivo para registrar la inscripción en puerta." }],
+  ["missing_actor", { kind: "alert", text: "No se pudo identificar a la persona organizadora." }],
   ["missing_account", { kind: "alert", text: "Selecciona una cuenta verificada válida." }],
   ["account_deactivated", { kind: "alert", text: "No se puede inscribir una cuenta desactivada." }],
+  ["missing_shift", { kind: "alert", text: "No se encontró el turno seleccionado." }],
   ["activity_not_published", { kind: "alert", text: "La actividad no está publicada y no admite nuevas inscripciones." }],
   ["shift_ended", { kind: "alert", text: "El turno ya ha terminado y no admite inscripciones en puerta." }],
   ["duplicate", { kind: "alert", text: "Esta cuenta ya tiene una reserva en este turno." }],
@@ -41,22 +43,40 @@ const manualFeedback = new Map([
   ["confirmed", { kind: "notice", text: "Asistencia confirmada manualmente y registrada en auditoría." }],
   ["reverted", { kind: "notice", text: "Asistencia rectificada a «Apuntado» conservando la plaza." }],
   ["missing_reason", { kind: "alert", text: "Debes indicar un motivo obligatorio para esta operación." }],
+  ["missing_actor", { kind: "alert", text: "No se pudo identificar a la persona organizadora." }],
+  ["invalid_status", { kind: "alert", text: "El estado de asistencia indicado no es válido." }],
   ["missing_reservation", { kind: "alert", text: "No se encontró la reserva indicada en este turno." }],
   ["account_deactivated", { kind: "alert", text: "La cuenta está desactivada y no se puede confirmar su asistencia." }],
   ["already_attended", { kind: "alert", text: "La asistencia ya estaba confirmada." }],
   ["unchanged", { kind: "alert", text: "El estado seleccionado coincide con el actual." }],
 ]);
 
-const auditActionLabels = {
-  door_registration: "Alta en puerta",
-  manual_confirm: "Confirmación manual",
-  correction: "Rectificación manual",
+const auditEventLabels = {
+  door_registered: "Alta en puerta",
+  attendance_qr: "Validación QR",
+  attendance_manual: "Confirmación manual",
+  attendance_corrected: "Rectificación manual",
+  cancelled: "Cancelación",
+  changed: "Cambio de turno",
 };
 
 const statusLabels = {
   booked: "Apuntado",
   attended: "Asistido",
 };
+
+function formatAuditStatusSummary(entry) {
+  if (entry.previousStatus && entry.newStatus) {
+    return ` (${statusLabels[entry.previousStatus]} → ${statusLabels[entry.newStatus]})`;
+  }
+  if (entry.eventType === "door_registered") {
+    return ` (${statusLabels.booked})`;
+  }
+  if (entry.eventType === "attendance_qr" || entry.eventType === "attendance_manual") {
+    return ` (${statusLabels.attended})`;
+  }
+  return "";
+}
 
 const panelClass =
   "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
@@ -72,7 +92,7 @@ const secondaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
 export default async function AttendancePage({ params, searchParams }) {
-  const organizer = await requireCapability("attendance_validation");
+  await requireCapability("attendance_validation");
   const { shiftId } = await params;
   const resolvedSearch = await searchParams;
   const query = typeof resolvedSearch?.q === "string" ? resolvedSearch.q : "";
@@ -80,15 +100,16 @@ export default async function AttendancePage({ params, searchParams }) {
   const doorCode = typeof resolvedSearch?.door === "string" ? resolvedSearch.door : "";
   const manualCode = typeof resolvedSearch?.manual === "string" ? resolvedSearch.manual : "";
 
-  const shift = getShiftDetail(organizer.workspaceId, shiftId);
+  const shift = await getShiftDetail(shiftId);
   if (!shift) notFound();
 
-  const allAttendees = listShiftAttendeesDetailed(organizer.workspaceId, shiftId);
-  const filteredAttendees = query
-    ? listShiftAttendeesDetailed(organizer.workspaceId, shiftId, query)
-    : allAttendees;
-  const doorAccounts = listActiveAccountsForDoor(organizer.workspaceId, shiftId, accountQuery);
-  const auditEntries = listAttendanceAudit(organizer.workspaceId, shiftId);
+  const [allAttendees, queriedAttendees, doorAccounts, auditEntries] = await Promise.all([
+    listShiftAttendeesDetailed(shiftId),
+    query ? listShiftAttendeesDetailed(shiftId, query) : Promise.resolve(null),
+    listActiveAccountsForDoor(shiftId, accountQuery),
+    listAttendanceAudit(shiftId),
+  ]);
+  const filteredAttendees = queriedAttendees ?? allAttendees;
 
   const doorBanner = doorFeedback.get(doorCode);
   const manualBanner = manualFeedback.get(manualCode);
@@ -102,7 +123,9 @@ export default async function AttendancePage({ params, searchParams }) {
         <h1>{shift.activityTitle}</h1>
         <p>
           {dateTimeFormat.format(new Date(shift.startsAt))} – {dateTimeFormat.format(new Date(shift.endsAt))} ·{" "}
-          {shift.reservedCount}/{shift.capacity} plazas ocupadas ({shift.available} disponibles)
+          {shift.capacity === null
+            ? `${shift.reservedCount} plazas ocupadas (aforo ilimitado)`
+            : `${shift.reservedCount}/${shift.capacity} plazas ocupadas (${shift.available} disponibles)`}
         </p>
       </header>
 
@@ -262,15 +285,15 @@ export default async function AttendancePage({ params, searchParams }) {
           <ul className="grid list-disc gap-1.5 pl-6">
             {auditEntries.map((entry) => (
               <li key={entry.id}>
-                <strong>{auditActionLabels[entry.action]}</strong> · {entry.personName} (
-                {entry.previousStatus ? `${statusLabels[entry.previousStatus]} → ` : ""}
-                {statusLabels[entry.newStatus]}) · Motivo: «{entry.reason}» · Por {entry.actorName} el{" "}
+                <strong>{auditEventLabels[entry.eventType] ?? entry.eventType}</strong> · {entry.personName}
+                {formatAuditStatusSummary(entry)}
+                {entry.reason ? ` · Motivo: «${entry.reason}»` : ""} · Por {entry.actorName} el{" "}
                 {dateTimeFormat.format(new Date(entry.createdAt))}
               </li>
             ))}
           </ul>
         ) : (
-          <p>Todavía no se han registrado operaciones manuales en este turno.</p>
+          <p>Todavía no se han registrado operaciones auditadas en este turno.</p>
         )}
       </section>
     </main>

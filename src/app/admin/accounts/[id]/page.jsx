@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../../components/back-link";
-import { getAccountAdminDetail } from "../../../../demo/admin";
-import { ALL_CAPABILITIES } from "../../../../demo/session-store";
+import { CAPABILITY_CODES } from "../../../../lib/auth/session";
+import { getAccountAdminDetail } from "../../../../server/repositories/admin";
 import { requireCapability } from "../../access";
 import { setAccountStatusAction, toggleAccountCapabilityAction } from "../actions";
 
@@ -43,6 +43,14 @@ const statusMessages = new Map([
   ["account_active", "Cuenta reactivada."],
 ]);
 
+const errorMessages = new Map([
+  ["last_general_admin", "No se puede revocar la administración general ni desactivar la única cuenta activa con esta capacidad."],
+  ["invalid_capability", "La capacidad seleccionada no es válida."],
+  ["invalid_status", "El estado solicitado no es válido."],
+  ["missing_profile", "No se encontró la cuenta indicada."],
+  ["missing_actor", "No se pudo identificar al administrador responsable."],
+]);
+
 const deletionLabels = {
   pending: "Pendiente",
   in_review: "En revisión",
@@ -55,14 +63,16 @@ const secondaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
 export default async function AdminAccountDetailPage({ params, searchParams }) {
-  const admin = await requireCapability("general_admin");
+  await requireCapability("general_admin");
   const { id } = await params;
   const resolvedSearch = await searchParams;
   const statusCode = typeof resolvedSearch?.status === "string" ? resolvedSearch.status : "";
-  const account = getAccountAdminDetail(admin.workspaceId, id);
+  const errorCode = typeof resolvedSearch?.error === "string" ? resolvedSearch.error : "";
+  const account = await getAccountAdminDetail(id);
   if (!account) notFound();
 
   const statusMessage = statusMessages.get(statusCode);
+  const errorMessage = errorMessages.get(errorCode);
   const activeCapabilities = new Set(account.capabilities);
 
   return (
@@ -83,6 +93,11 @@ export default async function AdminAccountDetailPage({ params, searchParams }) {
       {statusMessage && (
         <p className="rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink empty:hidden" role="status">
           {statusMessage}
+        </p>
+      )}
+      {errorMessage && (
+        <p className="rounded-[4px] bg-brand-accent/35 px-4 py-3.5 text-brand-ink" role="alert">
+          {errorMessage}
         </p>
       )}
 
@@ -108,7 +123,7 @@ export default async function AdminAccountDetailPage({ params, searchParams }) {
           talento.
         </p>
         <ul className="m-0 grid list-none gap-4 p-0">
-          {ALL_CAPABILITIES.map((capability) => {
+          {CAPABILITY_CODES.map((capability) => {
             const enabled = activeCapabilities.has(capability);
             const info = capabilityDetails[capability];
             return (
@@ -136,7 +151,7 @@ export default async function AdminAccountDetailPage({ params, searchParams }) {
         {account.reservations.length > 0 ? (
           <ul className="grid list-disc gap-1.5 pl-6">
             {account.reservations.map((item) => (
-              <li key={item.shiftId}>
+              <li key={item.participationId}>
                 <strong>{item.activityTitle}</strong> · {item.shiftName} ·{" "}
                 {item.status === "attended" ? "Asistido" : "Apuntado"} (reservado el{" "}
                 {dateTimeFormat.format(new Date(item.reservedAt))})

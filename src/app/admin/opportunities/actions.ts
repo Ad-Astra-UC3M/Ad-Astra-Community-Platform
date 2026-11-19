@@ -2,8 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createAdminOpportunity, setAdminOpportunityStatus } from "../../../demo/admin";
-import type { OpportunityStatus, OpportunityType } from "../../../demo/opportunities";
+import {
+  createAdminOpportunity,
+  setAdminOpportunityStatus,
+  type OpportunityType,
+  type PublishStatus,
+} from "../../../server/repositories/admin";
 import { requireCapability } from "../access";
 
 function readField(form: FormData, name: string): string {
@@ -28,25 +32,28 @@ export async function createAdminOpportunityAction(form: FormData) {
   const rawType = readField(form, "type");
   const type: OpportunityType = rawType === "research" ? "research" : "internship";
   const rawStatus = readField(form, "status");
-  const status: OpportunityStatus = rawStatus === "published" ? "published" : "draft";
+  const status: PublishStatus = rawStatus === "published" ? "published" : "draft";
 
-  const result = createAdminOpportunity(editor.workspaceId, {
-    type,
-    title: readField(form, "title"),
-    organization: readField(form, "organization"),
-    description: readField(form, "description"),
-    requirements: readField(form, "requirements"),
-    location: readField(form, "location"),
-    modality: readField(form, "modality"),
-    lead: readField(form, "lead") || null,
-    deadline: parseOptionalDate(readField(form, "deadline")),
-    applicationUrl: readField(form, "applicationUrl") || null,
-    contactEmail: readField(form, "contactEmail") || null,
-    imageUrl: readField(form, "imageUrl") || null,
-    imageAlt: readField(form, "imageAlt") || null,
-    infoUrl: readField(form, "infoUrl") || null,
-    status,
-  });
+  const result = await createAdminOpportunity(
+    {
+      type,
+      title: readField(form, "title"),
+      organization: readField(form, "organization"),
+      description: readField(form, "description"),
+      requirements: readField(form, "requirements") || null,
+      location: readField(form, "location") || null,
+      workModality: readField(form, "modality") || null,
+      researchLead: readField(form, "lead") || null,
+      deadlineAt: parseOptionalDate(readField(form, "deadline")),
+      applicationUrl: readField(form, "applicationUrl") || null,
+      contactEmail: readField(form, "contactEmail") || null,
+      imageUrl: readField(form, "imageUrl") || null,
+      imageAlt: readField(form, "imageAlt") || null,
+      infoUrl: readField(form, "infoUrl") || null,
+      status,
+    },
+    editor.personId,
+  );
 
   revalidateOpportunityPaths();
   if (!result.ok) {
@@ -59,10 +66,10 @@ export async function setAdminOpportunityStatusAction(form: FormData) {
   const editor = await requireCapability("content_editing");
   const opportunityId = readField(form, "opportunityId");
   const rawStatus = readField(form, "status");
-  const status: OpportunityStatus =
+  const status: PublishStatus =
     rawStatus === "draft" || rawStatus === "archived" ? rawStatus : "published";
 
-  const result = setAdminOpportunityStatus(editor.workspaceId, opportunityId, status);
+  const result = await setAdminOpportunityStatus(opportunityId, status, editor.personId);
   revalidateOpportunityPaths();
   if (!result.ok) {
     redirect(`/admin/opportunities?error=${encodeURIComponent(result.error)}`);

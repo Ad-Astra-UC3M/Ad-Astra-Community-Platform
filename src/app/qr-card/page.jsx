@@ -1,6 +1,6 @@
 import QRCode from "qrcode";
-import { getCardVersion, issueCard } from "../../demo/card";
-import { requireUser } from "../../demo/session";
+import { requireUser } from "../../lib/auth/session";
+import { issueCard } from "../../server/services/attendance-card";
 import { reissueMyCard } from "./actions";
 import { CardTools } from "./tools";
 
@@ -10,8 +10,7 @@ const primaryButtonClass =
 export default async function CardPage({ searchParams }) {
   const user = await requireUser("/qr-card");
   const { status } = await searchParams;
-  const token = await issueCard(user.workspaceId, user.id);
-  const version = getCardVersion(user.workspaceId, user.id);
+  const { token, version } = await issueCard(user.personId);
   const image = await QRCode.toDataURL(token, { errorCorrectionLevel: "M", margin: 4, width: 360 });
 
   return (

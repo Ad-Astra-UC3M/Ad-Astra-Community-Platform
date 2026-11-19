@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { listShifts } from "../../demo/activities";
-import { getAdminMetrics } from "../../demo/admin";
+import { listShifts } from "../../server/repositories/activities";
+import { getAdminMetrics } from "../../server/repositories/admin";
 import { requireAdminAny } from "./access";
 
 export const metadata = { title: "Panel de administración" };
@@ -72,8 +72,10 @@ export default async function AdminPage() {
   const user = await requireAdminAny();
   const capabilities = new Set(user.capabilities);
   const visibleModules = moduleCards.filter((card) => capabilities.has(card.capability));
-  const metrics = capabilities.has("general_admin") ? getAdminMetrics(user.workspaceId) : null;
-  const shifts = capabilities.has("attendance_validation") ? listShifts(user.workspaceId) : [];
+  const [metrics, shifts] = await Promise.all([
+    capabilities.has("general_admin") ? getAdminMetrics() : Promise.resolve(null),
+    capabilities.has("attendance_validation") ? listShifts() : Promise.resolve([]),
+  ]);
 
   return (
     <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
@@ -114,7 +116,10 @@ export default async function AdminPage() {
               {metrics.shifts.map((shift) => (
                 <li key={shift.shiftId}>
                   <strong>{shift.activityTitle}</strong> · {shift.shiftName} ({activityStatusLabels[shift.activityStatus]}):{" "}
-                  {shift.reservedCount}/{shift.capacity} reservas · {shift.attendedCount} asistencias confirmadas
+                  {shift.capacity === null
+                    ? `${shift.reservedCount} reservas (aforo ilimitado)`
+                    : `${shift.reservedCount}/${shift.capacity} reservas`}{" "}
+                  · {shift.attendedCount} asistencias confirmadas
                 </li>
               ))}
             </ul>

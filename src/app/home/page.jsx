@@ -1,15 +1,25 @@
 import { ArrowRight02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
-import { requireUser } from "../../demo/session";
+import { requireUser } from "../../lib/auth/session";
 
 export const metadata = { title: "Inicio" };
 
-const sharedLinks = [
+const studentLinks = [
   {
     href: "/activities",
     label: "Actividades",
     description: "Explora los talleres y encuentros y elige un turno.",
+  },
+  {
+    href: "/my-activities",
+    label: "Mis actividades",
+    description: "Consulta tus reservas, cambia de turno o revisa el estado de tu asistencia.",
+  },
+  {
+    href: "/qr-card",
+    label: "Tarjeta QR",
+    description: "Muestra tu código al llegar al evento o reemítelo si lo necesitas.",
   },
   {
     href: "/opportunities",
@@ -28,34 +38,16 @@ const sharedLinks = [
   },
 ];
 
-const studentLinks = [
-  sharedLinks[0],
-  {
-    href: "/my-activities",
-    label: "Mis actividades",
-    description: "Consulta tus reservas, cambia de turno o revisa el estado de tu asistencia.",
-  },
-  {
-    href: "/qr-card",
-    label: "Tarjeta QR",
-    description: "Muestra tu código al llegar al evento o reemítelo si lo necesitas.",
-  },
-  ...sharedLinks.slice(1),
-];
-
-const organizerLinks = [
-  {
-    href: "/admin",
-    label: "Gestión de asistencia",
-    description: "Selecciona un turno y valida las tarjetas de los asistentes.",
-  },
-  ...sharedLinks,
-];
+const adminLink = {
+  href: "/admin",
+  label: "Panel de gestión",
+  description: "Accede a las herramientas de gestión habilitadas para tu cuenta.",
+};
 
 export default async function HomePage() {
   const user = await requireUser("/home");
-  const organizer = user.role === "organizer";
-  const links = organizer ? organizerLinks : studentLinks;
+  const hasAdmin = user.capabilities.length > 0;
+  const links = hasAdmin ? [adminLink, ...studentLinks] : studentLinks;
 
   return (
     <main className="mx-auto grid w-full max-w-[58rem] gap-7 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
@@ -64,8 +56,8 @@ export default async function HomePage() {
           Hola, {user.name}
         </h1>
         <p className="max-w-[48ch] text-[1.2rem] leading-relaxed">
-          {organizer
-            ? "Desde aquí puedes registrar la asistencia a los turnos de la demo."
+          {hasAdmin
+            ? "Gestiona la comunidad desde el panel de administración, reserva actividades y actualiza tu perfil."
             : "Reserva tu próximo turno, explora oportunidades y gestiona tu perfil desde la comunidad."}
         </p>
       </div>

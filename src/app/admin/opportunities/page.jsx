@@ -1,5 +1,5 @@
 import { BackLink } from "../../../components/back-link";
-import { listAdminOpportunities } from "../../../demo/admin";
+import { listAdminOpportunities } from "../../../server/repositories/admin";
 import { requireCapability } from "../access";
 import { createAdminOpportunityAction, setAdminOpportunityStatusAction } from "./actions";
 
@@ -31,7 +31,13 @@ const statusMessages = new Map([
 ]);
 
 const errorMessages = new Map([
+  ["missing_actor", "No se pudo identificar a la persona editora."],
+  ["invalid_type", "El tipo de oportunidad indicado no es válido."],
+  ["invalid_status", "El estado de oportunidad indicado no es válido."],
+  ["invalid_slug", "El identificador de la oportunidad no es válido."],
+  ["duplicate_slug", "Ya existe una oportunidad con ese identificador."],
   ["missing_title", "Para publicar debes indicar un título."],
+  ["missing_organization", "Debes indicar la organización o grupo responsable."],
   ["missing_description", "Para publicar debes indicar una descripción."],
   ["missing_contact", "Para publicar debes indicar una URL HTTPS de solicitud o un correo de contacto."],
   ["invalid_application_url", "La URL de solicitud debe empezar por https://."],
@@ -39,6 +45,7 @@ const errorMessages = new Map([
   ["invalid_image_url", "La URL de la imagen debe empezar por https://."],
   ["missing_image_alt", "Si añades una imagen de portada, el texto alternativo es obligatorio."],
   ["invalid_info_url", "La URL de información adicional debe empezar por https://."],
+  ["invalid_date", "La fecha límite indicada no es válida."],
   ["missing", "No se encontró la oportunidad solicitada."],
 ]);
 
@@ -54,12 +61,12 @@ const secondaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
 export default async function AdminOpportunitiesPage({ searchParams }) {
-  const editor = await requireCapability("content_editing");
+  await requireCapability("content_editing");
   const resolvedSearch = await searchParams;
   const statusCode = typeof resolvedSearch?.status === "string" ? resolvedSearch.status : "";
   const errorCode = typeof resolvedSearch?.error === "string" ? resolvedSearch.error : "";
 
-  const opportunities = listAdminOpportunities(editor.workspaceId);
+  const opportunities = await listAdminOpportunities();
   const statusMessage = statusMessages.get(statusCode);
   const errorMessage = errorMessages.get(errorCode);
 
@@ -171,12 +178,12 @@ export default async function AdminOpportunitiesPage({ searchParams }) {
               </p>
               <h3>{opportunity.title}</h3>
               <p>
-                {[opportunity.organization, opportunity.location, opportunity.modality].filter(Boolean).join(" · ")}
+                {[opportunity.organization, opportunity.location, opportunity.workModality].filter(Boolean).join(" · ")}
               </p>
             </header>
             <p>{opportunity.description}</p>
-            {opportunity.deadline && (
-              <p>Fecha límite: {dateFormat.format(new Date(opportunity.deadline))}</p>
+            {opportunity.deadlineAt && (
+              <p>Fecha límite: {dateFormat.format(new Date(opportunity.deadlineAt))}</p>
             )}
             <p>
               Solicitud:{" "}

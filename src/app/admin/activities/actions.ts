@@ -2,16 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { addActivityImage } from "../../../demo/activities";
+import { addActivityImage } from "../../../server/repositories/activities";
 import {
-  type ActivityStatus,
   type AdminActivityImageInput,
+  type PublishStatus,
   addActivityShift,
   createAdminActivity,
   deleteShift,
   setActivityStatus,
   updateShiftCapacity,
-} from "../../../demo/admin";
+} from "../../../server/repositories/admin";
 import { requireCapability } from "../access";
 
 function readField(form: FormData, name: string): string {
@@ -37,12 +37,13 @@ export async function createAdminActivityAction(form: FormData) {
   const description = readField(form, "description");
   const location = readField(form, "location");
   const rawStatus = readField(form, "status");
-  const status: ActivityStatus = rawStatus === "draft" ? "draft" : "published";
+  const status: PublishStatus = rawStatus === "draft" ? "draft" : "published";
 
   const shiftName = readField(form, "shiftName");
   const startsAt = parseTimestamp(readField(form, "startsAt"));
   const endsAt = parseTimestamp(readField(form, "endsAt"));
-  const capacity = Number.parseInt(readField(form, "capacity"), 10);
+  const rawCapacity = readField(form, "capacity");
+  const capacity = rawCapacity === "" ? null : Number.parseInt(rawCapacity, 10);
 
   const images: AdminActivityImageInput[] = [];
   for (const pos of [1, 2]) {
@@ -53,8 +54,7 @@ export async function createAdminActivityAction(form: FormData) {
     }
   }
 
-  const result = createAdminActivity(
-    editor.workspaceId,
+  const result = await createAdminActivity(
     {
       title,
       description,
@@ -65,7 +65,7 @@ export async function createAdminActivityAction(form: FormData) {
         : { startsAt, endsAt, capacity }),
       images,
     },
-    editor.id,
+    editor.personId,
   );
 
   revalidateActivityPaths();
@@ -76,14 +76,15 @@ export async function createAdminActivityAction(form: FormData) {
 }
 
 export async function addActivityShiftAction(form: FormData) {
-  const editor = await requireCapability("content_editing");
+  await requireCapability("content_editing");
   const activityId = readField(form, "activityId");
   const name = readField(form, "name");
   const startsAt = parseTimestamp(readField(form, "startsAt"));
   const endsAt = parseTimestamp(readField(form, "endsAt"));
-  const capacity = Number.parseInt(readField(form, "capacity"), 10);
+  const rawCapacity = readField(form, "capacity");
+  const capacity = rawCapacity === "" ? null : Number.parseInt(rawCapacity, 10);
 
-  const result = addActivityShift(editor.workspaceId, activityId, {
+  const result = await addActivityShift(activityId, {
     name,
     startsAt,
     endsAt,
@@ -98,13 +99,13 @@ export async function addActivityShiftAction(form: FormData) {
 }
 
 export async function addActivityImageAction(form: FormData) {
-  const editor = await requireCapability("content_editing");
+  await requireCapability("content_editing");
   const activityId = readField(form, "activityId");
   const imageUrl = readField(form, "imageUrl");
   const imageAlt = readField(form, "imageAlt");
   const position = Number.parseInt(readField(form, "position"), 10);
 
-  const result = addActivityImage(editor.workspaceId, activityId, {
+  const result = await addActivityImage(activityId, {
     imageUrl,
     imageAlt,
     position,
@@ -118,11 +119,12 @@ export async function addActivityImageAction(form: FormData) {
 }
 
 export async function updateShiftCapacityAction(form: FormData) {
-  const editor = await requireCapability("content_editing");
+  await requireCapability("content_editing");
   const shiftId = readField(form, "shiftId");
-  const capacity = Number.parseInt(readField(form, "capacity"), 10);
+  const rawCapacity = readField(form, "capacity");
+  const capacity = rawCapacity === "" ? null : Number.parseInt(rawCapacity, 10);
 
-  const result = updateShiftCapacity(editor.workspaceId, shiftId, capacity);
+  const result = await updateShiftCapacity(shiftId, capacity);
   revalidateActivityPaths();
   if (!result.ok) {
     redirect(`/admin/activities?error=${encodeURIComponent(result.error)}`);
@@ -131,10 +133,10 @@ export async function updateShiftCapacityAction(form: FormData) {
 }
 
 export async function deleteShiftAction(form: FormData) {
-  const editor = await requireCapability("content_editing");
+  await requireCapability("content_editing");
   const shiftId = readField(form, "shiftId");
 
-  const result = deleteShift(editor.workspaceId, shiftId);
+  const result = await deleteShift(shiftId);
   revalidateActivityPaths();
   if (!result.ok) {
     redirect(`/admin/activities?error=${encodeURIComponent(result.error)}`);
@@ -146,10 +148,10 @@ export async function setActivityStatusAction(form: FormData) {
   const editor = await requireCapability("content_editing");
   const activityId = readField(form, "activityId");
   const rawStatus = readField(form, "status");
-  const status: ActivityStatus =
+  const status: PublishStatus =
     rawStatus === "draft" || rawStatus === "archived" ? rawStatus : "published";
 
-  const result = setActivityStatus(editor.workspaceId, activityId, status, editor.id);
+  const result = await setActivityStatus(activityId, status, editor.personId);
   revalidateActivityPaths();
   if (!result.ok) {
     redirect(`/admin/activities?error=${encodeURIComponent(result.error)}`);

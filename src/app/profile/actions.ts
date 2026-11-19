@@ -1,7 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { requireUser } from "../../lib/auth/session";
 import {
+  parseLanguageList,
   parseTagList,
   requestAccountDeletion,
   saveTalentProfile,
@@ -9,8 +11,7 @@ import {
   type TalentLink,
   type TalentLinkKind,
   updateBasicProfile,
-} from "../../demo/profile";
-import { requireUser } from "../../demo/session";
+} from "../../server/repositories/profile";
 
 const fixedLinks: { field: string; kind: TalentLinkKind; label: string }[] = [
   { field: "linkCvUrl", kind: "cv", label: "CV" },
@@ -31,14 +32,18 @@ function optionalTextField(formData: FormData, key: string): string | undefined 
 
 export async function saveBasicProfileAction(formData: FormData) {
   const user = await requireUser();
-  const result = updateBasicProfile(user.workspaceId, user.id, {
+  const result = await updateBasicProfile(user.personId, {
     firstName: textField(formData, "firstName"),
     lastName: textField(formData, "lastName"),
     degree: textField(formData, "degree"),
     course: textField(formData, "course"),
+    academicLevel: optionalTextField(formData, "academicLevel"),
+    languageModality: optionalTextField(formData, "languageModality"),
     email: optionalTextField(formData, "email"),
     role: optionalTextField(formData, "role"),
     id: optionalTextField(formData, "id"),
+    status: optionalTextField(formData, "status"),
+    authUserId: optionalTextField(formData, "authUserId"),
   });
 
   if (!result.ok) {
@@ -68,9 +73,13 @@ export async function saveTalentProfileAction(formData: FormData) {
     });
   }
 
-  const result = saveTalentProfile(user.workspaceId, user.id, {
+  const expectedGraduationYear = formData.has("expectedGraduationYear")
+    ? textField(formData, "expectedGraduationYear")
+    : textField(formData, "graduationYear");
+
+  const result = await saveTalentProfile(user.personId, {
     university: textField(formData, "university"),
-    graduationYear: textField(formData, "graduationYear"),
+    expectedGraduationYear,
     headline: textField(formData, "headline"),
     experiencesSummary: textField(formData, "experiencesSummary"),
     featuredProject: textField(formData, "featuredProject"),
@@ -78,7 +87,8 @@ export async function saveTalentProfileAction(formData: FormData) {
     tools: parseTagList(textField(formData, "tools")),
     interests: parseTagList(textField(formData, "interests")),
     sectors: parseTagList(textField(formData, "sectors")),
-    languages: parseTagList(textField(formData, "languages")),
+    opportunityTypes: parseTagList(textField(formData, "opportunityTypes")),
+    languages: parseLanguageList(textField(formData, "languages")),
     links,
   });
 
@@ -97,7 +107,7 @@ export async function updateDisseminationAction(formData: FormData) {
   }
 
   const granted = decision === "true";
-  const status = setDisseminationDecision(user.workspaceId, user.id, granted);
+  const status = await setDisseminationDecision(user.personId, granted);
   if (!status) {
     redirect("/profile/privacy?error=missing");
   }
@@ -107,7 +117,7 @@ export async function updateDisseminationAction(formData: FormData) {
 
 export async function requestDeletionAction(formData: FormData) {
   const user = await requireUser();
-  const result = requestAccountDeletion(user.workspaceId, user.id, textField(formData, "reason"));
+  const result = await requestAccountDeletion(user.personId, textField(formData, "reason"));
   if (!result.ok) {
     redirect(`/profile/privacy?error=${result.error}`);
   }

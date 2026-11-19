@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { resolveDeletionRequest } from "../../../demo/admin";
+import { resolveDeletionRequest } from "../../../server/repositories/admin";
 import { requireCapability } from "../access";
 
 function readField(form: FormData, name: string): string {
@@ -20,12 +20,11 @@ export async function resolveDeletionRequestAction(form: FormData) {
     redirect("/admin/deletion-requests");
   }
 
-  const result = resolveDeletionRequest(
-    admin.workspaceId,
+  const result = await resolveDeletionRequest(
     requestId,
     status,
     resolutionNote,
-    admin.id,
+    admin.personId,
   );
 
   revalidatePath(`/admin/deletion-requests/${encodeURIComponent(requestId)}`);

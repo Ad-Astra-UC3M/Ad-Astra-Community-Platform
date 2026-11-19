@@ -2,19 +2,20 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { checkIn } from "../../../../demo/activities";
+import { checkIn, type CheckInResult } from "../../../../server/repositories/activities";
 import {
   correctAttendance,
   isAccountDeactivated,
   manualConfirmAttendance,
   registerAtDoor,
-} from "../../../../demo/admin";
-import { readCard } from "../../../../demo/card";
+} from "../../../../server/repositories/admin";
+import { verifyCard } from "../../../../server/services/attendance-card";
 import { requireCapability } from "../../access";
 
-const messages = {
+const messages: Record<CheckInResult, string> = {
   recorded: "Asistencia registrada.",
   already: "Ya registrado.",
+  deactivated: "La cuenta está desactivada y no puede validar asistencia.",
   missing: "Esta persona no tiene reserva en el turno seleccionado.",
 };
 
@@ -26,12 +27,12 @@ function readField(form: FormData, name: string): string {
 export async function validateCard(shiftId: string, _previous: string, form: FormData) {
   const organizer = await requireCapability("attendance_validation");
   const token = form.get("token");
-  const person = typeof token === "string" && (await readCard(organizer.workspaceId, token.trim()));
-  if (!person) return "Tarjeta no válida para esta demostración.";
-  if (isAccountDeactivated(organizer.workspaceId, person)) {
+  const personId = typeof token === "string" ? await verifyCard(token.trim()) : null;
+  if (!personId) return "Tarjeta no válida o revocada.";
+  if (await isAccountDeactivated(personId)) {
     return "La cuenta está desactivada y no puede validar asistencia.";
   }
-  const result = checkIn(organizer.workspaceId, shiftId, person, organizer.id);
+  const result = await checkIn(shiftId, personId, organizer.personId);
   revalidatePath(`/admin/attendance/${encodeURIComponent(shiftId)}`);
   revalidatePath("/admin");
   revalidatePath("/my-activities");
@@ -44,7 +45,7 @@ export async function registerAtDoorAction(form: FormData) {
   const targetAccountId = readField(form, "targetAccountId");
   const reason = readField(form, "reason");
 
-  const result = registerAtDoor(organizer.workspaceId, shiftId, targetAccountId, organizer.id, reason);
+  const result = await registerAtDoor(shiftId, targetAccountId, organizer.personId, reason);
   revalidatePath(`/admin/attendance/${encodeURIComponent(shiftId)}`);
   revalidatePath("/admin");
   revalidatePath("/my-activities");
@@ -59,7 +60,7 @@ export async function confirmManualAttendanceAction(form: FormData) {
   const personId = readField(form, "personId");
   const reason = readField(form, "reason");
 
-  const result = manualConfirmAttendance(organizer.workspaceId, shiftId, personId, organizer.id, reason);
+  const result = await manualConfirmAttendance(shiftId, personId, organizer.personId, reason);
   revalidatePath(`/admin/attendance/${encodeURIComponent(shiftId)}`);
   revalidatePath("/admin");
   revalidatePath("/my-activities");
@@ -75,12 +76,11 @@ export async function correctAttendanceAction(form: FormData) {
   const targetStatus = readField(form, "targetStatus") === "attended" ? "attended" : "booked";
   const reason = readField(form, "reason");
 
-  const result = correctAttendance(
-    organizer.workspaceId,
+  const result = await correctAttendance(
     shiftId,
     personId,
     targetStatus,
-    organizer.id,
+    organizer.personId,
     reason,
   );
   revalidatePath(`/admin/attendance/${encodeURIComponent(shiftId)}`);

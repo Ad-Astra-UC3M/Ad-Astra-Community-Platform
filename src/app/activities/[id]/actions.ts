@@ -1,15 +1,16 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { reserveShift } from "../../../demo/activities";
-import { requireUser } from "../../../demo/session";
+import { requireUser } from "../../../lib/auth/session";
+import { reserveShift } from "../../../server/repositories/activities";
 
 export async function reserveActivityShift(activityId: string, formData: FormData) {
   const user = await requireUser();
   const shiftId = formData.get("shiftId");
-  const result = typeof shiftId === "string" && shiftId
-    ? reserveShift(user.workspaceId, activityId, shiftId, user)
-    : "missing";
+  const result =
+    typeof shiftId === "string" && shiftId
+      ? await reserveShift(activityId, shiftId, user.personId)
+      : "missing";
 
   redirect(`/activities/${encodeURIComponent(activityId)}?status=${result}`);
 }

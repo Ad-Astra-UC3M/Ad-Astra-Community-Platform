@@ -1,6 +1,6 @@
 import { BackLink } from "../../../components/back-link";
-import { getTalentProfile } from "../../../demo/profile";
-import { requireUser } from "../../../demo/session";
+import { requireUser } from "../../../lib/auth/session";
+import { getTalentProfile } from "../../../server/repositories/profile";
 import { saveTalentProfileAction } from "../actions";
 
 export const metadata = { title: "Perfil de talento voluntario" };
@@ -9,12 +9,44 @@ const errorMessages = new Map([
   ["invalid_year", "Introduce un año de graduación válido de cuatro cifras (entre 1950 y 2100) o déjalo vacío."],
   ["invalid_url", "Todos los enlaces deben ser direcciones web válidas que empiecen por http:// o https://."],
   ["invalid_link_kind", "El tipo de enlace indicado no es válido."],
+  ["invalid_experiences", "Revisa el formato y la longitud de las experiencias indicadas."],
+  ["invalid_languages", "Revisa el formato de los idiomas introducidos (por ejemplo, Español (nativo), Inglés (C1))."],
+  ["duplicate_language", "No repitas el mismo idioma en la lista de idiomas."],
   ["fields", "Revisa la longitud de los campos y las etiquetas (máximo 20 por categoría)."],
   ["missing", "No se ha encontrado la cuenta asociada a esta sesión."],
 ]);
 
 function firstLinkByKind(links, kind) {
   return links.find((link) => link.kind === kind);
+}
+
+function formatFeaturedProject(experiences) {
+  const featured = experiences.find((item) => item.isFeatured);
+  if (!featured) return "";
+  return featured.description ?? featured.title;
+}
+
+function formatExperiencesSummary(experiences) {
+  return experiences
+    .filter((item) => !item.isFeatured)
+    .map((item) => {
+      if (item.title === "Resumen de experiencia" && item.description) {
+        return item.description;
+      }
+      const header = item.organization ? `${item.title} (${item.organization})` : item.title;
+      return item.description ? `${header}: ${item.description}` : header;
+    })
+    .join("\n\n");
+}
+
+function formatLanguages(languages) {
+  return languages
+    .map((entry) =>
+      entry.level && entry.level !== "No especificado"
+        ? `${entry.language} (${entry.level})`
+        : entry.language,
+    )
+    .join(", ");
 }
 
 const panelClass =
@@ -40,7 +72,7 @@ const codeClass = "rounded bg-brand-soft/20 px-1.5 py-0.5 font-mono text-[0.9em]
 
 export default async function TalentProfilePage({ searchParams }) {
   const user = await requireUser("/profile/talent");
-  const profile = getTalentProfile(user.workspaceId, user.id, user.id);
+  const profile = await getTalentProfile(user.personId, user.personId);
   const { status, error } = await searchParams;
   const errorMessage = typeof error === "string" ? errorMessages.get(error) : undefined;
   const saved = status === "saved";
@@ -62,6 +94,10 @@ export default async function TalentProfilePage({ searchParams }) {
   const githubLink = firstLinkByKind(profile.links, "github");
   const portfolioLink = firstLinkByKind(profile.links, "portfolio");
   const otherLink = firstLinkByKind(profile.links, "other");
+  const featuredProject = formatFeaturedProject(profile.experiences);
+  const experiencesSummary = formatExperiencesSummary(profile.experiences);
+  const formattedLanguages = formatLanguages(profile.languages);
+  const formKey = profile.updatedAt ? new Date(profile.updatedAt).toISOString() : "empty";
 
   return (
     <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
@@ -92,7 +128,7 @@ export default async function TalentProfilePage({ searchParams }) {
       )}
 
       <section className={panelClass}>
-        <form key={profile.updatedAt ?? "empty"} action={saveTalentProfileAction} className="grid min-w-0 gap-4">
+        <form key={formKey} action={saveTalentProfileAction} className="grid min-w-0 gap-4">
           <h2 className={sectionHeadingClass}>Formación y trayectoria</h2>
 
           <label className={fieldClass}>
@@ -101,7 +137,7 @@ export default async function TalentProfilePage({ searchParams }) {
               name="university"
               defaultValue={profile.university}
               placeholder="Universidad Carlos III de Madrid"
-              maxLength={120}
+              maxLength={160}
               className={inputClass}
             />
           </label>
@@ -112,7 +148,7 @@ export default async function TalentProfilePage({ searchParams }) {
               name="graduationYear"
               type="text"
               inputMode="numeric"
-              defaultValue={profile.graduationYear ?? ""}
+              defaultValue={profile.expectedGraduationYear ?? ""}
               placeholder="2027"
               maxLength={4}
               className={inputClass}
@@ -125,7 +161,7 @@ export default async function TalentProfilePage({ searchParams }) {
               name="headline"
               defaultValue={profile.headline}
               placeholder="Ej.: Estudiante de aviónica y sistemas embebidos"
-              maxLength={160}
+              maxLength={200}
               className={inputClass}
             />
           </label>
@@ -135,7 +171,7 @@ export default async function TalentProfilePage({ searchParams }) {
             <textarea
               name="experiencesSummary"
               rows={4}
-              defaultValue={profile.experiencesSummary}
+              defaultValue={experiencesSummary}
               placeholder="Prácticas, proyectos de asociación, docencia o experiencia relevante."
               maxLength={2000}
               className={textareaClass}
@@ -147,9 +183,9 @@ export default async function TalentProfilePage({ searchParams }) {
             <textarea
               name="featuredProject"
               rows={3}
-              defaultValue={profile.featuredProject}
+              defaultValue={featuredProject}
               placeholder="Describe brevemente un proyecto técnico o académico del que estés orgulloso/a."
-              maxLength={1000}
+              maxLength={2000}
               className={textareaClass}
             />
           </label>
@@ -198,10 +234,20 @@ export default async function TalentProfilePage({ searchParams }) {
           </label>
 
           <label className={fieldClass}>
+            Tipos de oportunidad
+            <input
+              name="opportunityTypes"
+              defaultValue={profile.opportunityTypes.join(", ")}
+              placeholder="Prácticas, investigación, TFG/TFM"
+              className={inputClass}
+            />
+          </label>
+
+          <label className={fieldClass}>
             Idiomas
             <input
               name="languages"
-              defaultValue={profile.languages.join(", ")}
+              defaultValue={formattedLanguages}
               placeholder="Español (nativo), Inglés (C1)"
               className={inputClass}
             />

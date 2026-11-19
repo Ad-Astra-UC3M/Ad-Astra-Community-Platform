@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../components/back-link";
-import { getOpportunity } from "../../../demo/opportunities";
-import { requireUser } from "../../../demo/session";
+import { requireUser } from "../../../lib/auth/session";
+import { getOpportunity } from "../../../server/repositories/opportunities";
 import { removeOpportunityBookmark, saveOpportunityBookmark } from "../actions";
 
 export const metadata = { title: "Detalle de oportunidad" };
@@ -40,7 +40,7 @@ const inlineLinkClass =
 export default async function OpportunityDetailPage({ params, searchParams }) {
   const [{ id }, { status }] = await Promise.all([params, searchParams]);
   const user = await requireUser(`/opportunities/${encodeURIComponent(id)}`);
-  const opportunity = getOpportunity(user.workspaceId, id, user.id);
+  const opportunity = await getOpportunity(id, user.personId);
   if (!opportunity || opportunity.status !== "published") notFound();
 
   const message = typeof status === "string" ? statusMessages.get(status) : undefined;
@@ -56,7 +56,7 @@ export default async function OpportunityDetailPage({ params, searchParams }) {
           {opportunity.title}
         </h1>
         <p>
-          {[opportunity.organization, opportunity.location, opportunity.modality]
+          {[opportunity.organization, opportunity.location, opportunity.workModality]
             .filter(Boolean)
             .join(" · ")}
         </p>
@@ -89,14 +89,14 @@ export default async function OpportunityDetailPage({ params, searchParams }) {
             <p>{opportunity.requirements}</p>
           </>
         )}
-        {opportunity.lead && (
-          <p><strong>Responsable:</strong> {opportunity.lead}</p>
+        {opportunity.researchLead && (
+          <p><strong>Responsable:</strong> {opportunity.researchLead}</p>
         )}
-        {opportunity.deadline && (
+        {opportunity.deadlineAt && (
           <p>
             <strong>Fecha límite:</strong>{" "}
-            <time dateTime={new Date(opportunity.deadline).toISOString()}>
-              {dateFormat.format(new Date(opportunity.deadline))}
+            <time dateTime={new Date(opportunity.deadlineAt).toISOString()}>
+              {dateFormat.format(new Date(opportunity.deadlineAt))}
             </time>
           </p>
         )}

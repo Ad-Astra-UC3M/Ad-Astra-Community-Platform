@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BackLink } from "../../../components/back-link";
-import { getDisseminationStatus, getMyDeletionRequest } from "../../../demo/profile";
-import { requireUser } from "../../../demo/session";
+import { requireUser } from "../../../lib/auth/session";
+import { getDisseminationStatus, getMyDeletionRequest } from "../../../server/repositories/profile";
 import { requestDeletionAction, updateDisseminationAction } from "../actions";
 
 export const metadata = { title: "Difusión y privacidad" };
@@ -56,9 +56,12 @@ const codeClass = "rounded bg-brand-soft/20 px-1.5 py-0.5 font-mono text-[0.9em]
 
 export default async function ProfilePrivacyPage({ searchParams }) {
   const user = await requireUser("/profile/privacy");
-  const dissemination = getDisseminationStatus(user.workspaceId, user.id);
-  const deletionRequest = getMyDeletionRequest(user.workspaceId, user.id);
-  const { status, error } = await searchParams;
+  const [dissemination, deletionRequest, resolvedParams] = await Promise.all([
+    getDisseminationStatus(user.personId),
+    getMyDeletionRequest(user.personId),
+    searchParams,
+  ]);
+  const { status, error } = resolvedParams;
   const statusMessage = typeof status === "string" ? statusMessages.get(status) : undefined;
   const errorMessage = typeof error === "string" ? errorMessages.get(error) : undefined;
   const hasOpenDeletion =
@@ -94,7 +97,11 @@ export default async function ProfilePrivacyPage({ searchParams }) {
         </h2>
         <p>
           <strong>Estado actual:</strong>{" "}
-          {dissemination.granted ? "Autorizada" : "No autorizada (valor por defecto)"}
+          {dissemination.granted
+            ? "Autorizada"
+            : dissemination.expired
+              ? "No autorizada (autorización vencida)"
+              : "No autorizada (valor por defecto)"}
         </p>
         <p>
           <strong>Versión de política:</strong>{" "}
@@ -103,8 +110,9 @@ export default async function ProfilePrivacyPage({ searchParams }) {
           <code className={codeClass}>{dissemination.purpose}</code>).
         </p>
         <p className={noticeClass}>
-          En este MVP no están habilitadas las exportaciones ni el acceso de empresas externas. Negarte
-          o retirar tu decisión no bloquea el uso del portal ni borra tu perfil de talento.
+          En esta fase del portal no están habilitadas las exportaciones ni el acceso de empresas
+          externas. Negarte o retirar tu decisión no bloquea el uso del portal ni borra tu perfil de
+          talento.
         </p>
 
         <div className="flex flex-wrap items-center gap-3">

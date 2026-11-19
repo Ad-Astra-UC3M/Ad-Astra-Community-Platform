@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../components/back-link";
-import { getActivity } from "../../../demo/activities";
-import { requireUser } from "../../../demo/session";
+import { requireUser } from "../../../lib/auth/session";
+import { getActivity } from "../../../server/repositories/activities";
 import { ShiftSchedule } from "../shift-schedule";
 import { reserveActivityShift } from "./actions";
 
@@ -11,6 +11,7 @@ const messages = new Map([
   ["duplicate", "Ya tienes una reserva en este turno."],
   ["full", "El turno se ha completado."],
   ["closed", "El turno ya ha empezado."],
+  ["deactivated", "Tu cuenta está desactivada y no puede realizar reservas."],
   ["missing", "El turno ya no está disponible."],
 ]);
 
@@ -24,8 +25,9 @@ const secondaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink";
 
 function ShiftCard({ shift, reserve, singleShift, now }) {
-  const closed = shift.startsAt <= now;
-  const bookable = !closed && shift.available > 0 && !shift.booking;
+  const closed = new Date(shift.startsAt).getTime() <= now;
+  const hasCapacity = shift.available === null || shift.available > 0;
+  const bookable = !closed && hasCapacity && !shift.booking;
 
   return (
     <article className={panelClass}>
@@ -36,10 +38,17 @@ function ShiftCard({ shift, reserve, singleShift, now }) {
         </p>
       )}
       <ShiftSchedule startsAt={shift.startsAt} endsAt={shift.endsAt} />
+      {shift.locationOverride && <p>Ubicación del turno: {shift.locationOverride}</p>}
       {closed ? (
         <p>Inscripción cerrada</p>
+      ) : shift.capacity === null || shift.available === null ? (
+        <p>Aforo ilimitado</p>
       ) : (
-        <p>{shift.available === 0 ? "Completo" : `${shift.available} de ${shift.capacity} plazas libres`}</p>
+        <p>
+          {shift.available === 0
+            ? "Completo"
+            : `${shift.available} de ${shift.capacity} plazas libres`}
+        </p>
       )}
       {shift.booking && (
         <div className="grid gap-3">
@@ -62,7 +71,7 @@ function ShiftCard({ shift, reserve, singleShift, now }) {
 export default async function ActivityPage({ params, searchParams }) {
   const [{ id }, { status }] = await Promise.all([params, searchParams]);
   const user = await requireUser(`/activities/${encodeURIComponent(id)}`);
-  const activity = getActivity(user.workspaceId, id, user.id);
+  const activity = await getActivity(id, user.personId);
   if (!activity) notFound();
 
   const message = typeof status === "string" ? messages.get(status) : undefined;
@@ -83,7 +92,7 @@ export default async function ActivityPage({ params, searchParams }) {
       {activity.images.length > 0 && (
         <section className="grid min-w-0 gap-4" aria-label="Imágenes de la actividad">
           {activity.images.map((image, index) => (
-            <figure key={image.position} className={`m-0 ${panelClass}`}>
+            <figure key={image.id} className={`m-0 ${panelClass}`}>
               <img
                 src={image.imageUrl}
                 alt={image.imageAlt}

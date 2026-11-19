@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BackLink } from "../../../components/back-link";
-import { searchTalentProfiles } from "../../../demo/admin";
+import { searchTalentProfiles } from "../../../server/repositories/admin";
 import { requireCapability } from "../access";
 
 export const metadata = { title: "Consulta de talento" };
@@ -13,10 +13,17 @@ const secondaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
 export default async function AdminTalentPage({ searchParams }) {
-  const viewer = await requireCapability("talent_consultation");
+  await requireCapability("talent_consultation");
   const resolved = await searchParams;
   const query = typeof resolved?.q === "string" ? resolved.q : "";
-  const profiles = searchTalentProfiles(viewer.workspaceId, query);
+  const rawTags = typeof resolved?.tags === "string" ? resolved.tags : "";
+  const tags = rawTags
+    ? rawTags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+    : undefined;
+  const profiles = await searchTalentProfiles({ query, tags });
 
   return (
     <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
@@ -61,7 +68,7 @@ export default async function AdminTalentPage({ searchParams }) {
         ) : (
           <ul className="m-0 grid list-none gap-4 p-0">
             {profiles.map((profile) => (
-              <li className={panelClass} key={profile.accountId}>
+              <li className={panelClass} key={profile.personId}>
                 <p className="text-[0.9rem] font-bold text-brand-primary">
                   {profile.disseminationGranted ? "Difusión autorizada" : "Sin autorización de difusión"} ·{" "}
                   {profile.linksCount} enlace{profile.linksCount === 1 ? "" : "s"}
@@ -69,7 +76,7 @@ export default async function AdminTalentPage({ searchParams }) {
                 <h3>{profile.name}</h3>
                 {profile.headline && <p><strong>{profile.headline}</strong></p>}
                 <p>
-                  {[profile.degree, profile.course, profile.university, profile.graduationYear]
+                  {[profile.degree, profile.course, profile.university, profile.expectedGraduationYear]
                     .filter(Boolean)
                     .join(" · ")}
                 </p>
@@ -77,7 +84,7 @@ export default async function AdminTalentPage({ searchParams }) {
                 {profile.tools.length > 0 && <p>Herramientas: {profile.tools.join(", ")}</p>}
                 {profile.interests.length > 0 && <p>Intereses: {profile.interests.join(", ")}</p>}
                 <div>
-                  <Link className={primaryButtonClass} href={`/admin/talent/${profile.accountId}`}>
+                  <Link className={primaryButtonClass} href={`/admin/talent/${profile.personId}`}>
                     Ver perfil de talento
                   </Link>
                 </div>

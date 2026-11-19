@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BackLink } from "../../../components/back-link";
-import { listShiftSummaries } from "../../../demo/admin";
+import { listShiftSummaries } from "../../../server/repositories/admin";
 import { requireCapability } from "../access";
 
 export const metadata = { title: "Validación de asistencia" };
@@ -26,8 +26,8 @@ const primaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
 export default async function AdminAttendanceIndexPage() {
-  const organizer = await requireCapability("attendance_validation");
-  const shifts = listShiftSummaries(organizer.workspaceId);
+  await requireCapability("attendance_validation");
+  const shifts = await listShiftSummaries();
 
   return (
     <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
@@ -55,8 +55,10 @@ export default async function AdminAttendanceIndexPage() {
                 {dateTimeFormat.format(new Date(shift.startsAt))} – {dateTimeFormat.format(new Date(shift.endsAt))}
               </p>
               <p>
-                {shift.reservedCount}/{shift.capacity} plazas ocupadas ({shift.available} disponibles) ·{" "}
-                {shift.attendedCount} asistencias confirmadas
+                {shift.capacity === null
+                  ? `${shift.reservedCount} plazas ocupadas (aforo ilimitado)`
+                  : `${shift.reservedCount}/${shift.capacity} plazas ocupadas (${shift.available} disponibles)`}{" "}
+                · {shift.attendedCount} asistencias confirmadas
               </p>
               <div>
                 <Link className={primaryButtonClass} href={`/admin/attendance/${shift.id}`}>

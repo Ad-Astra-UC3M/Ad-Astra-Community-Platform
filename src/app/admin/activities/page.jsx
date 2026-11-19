@@ -1,5 +1,5 @@
 import { BackLink } from "../../../components/back-link";
-import { listAdminActivities } from "../../../demo/admin";
+import { listAdminActivities } from "../../../server/repositories/admin";
 import { requireCapability } from "../access";
 import {
   addActivityImageAction,
@@ -39,7 +39,12 @@ const statusMessages = new Map([
 ]);
 
 const errorMessages = new Map([
+  ["missing_actor", "No se pudo identificar a la persona editora."],
   ["missing_fields", "Completa título, descripción y ubicación."],
+  ["invalid_status", "El estado indicado para la actividad no es válido."],
+  ["invalid_slug", "El identificador de la actividad no es válido."],
+  ["duplicate_slug", "Ya existe una actividad con ese identificador."],
+  ["invalid_external_url", "La URL de inscripción externa debe empezar por https://."],
   ["invalid_schedule", "La fecha de fin debe ser posterior a la fecha de inicio."],
   ["invalid_capacity", "El aforo debe ser un número entero mayor que cero."],
   ["invalid_image_url", "Las imágenes deben usar una URL HTTPS válida."],
@@ -50,7 +55,7 @@ const errorMessages = new Map([
   ["invalid_position", "La posición de imagen debe ser un entero positivo único."],
   ["duplicate_position", "Ya existe una imagen en esa posición."],
   ["below_reserved", "No se puede reducir el aforo por debajo de las reservas vigentes."],
-  ["has_participants", "No se puede borrar un turno que ya tiene participantes inscritos."],
+  ["has_participants", "No se puede borrar un turno que ya tiene participantes inscritos o historial registrado."],
   ["no_valid_shifts", "Para publicar una actividad es necesario al menos un turno válido."],
   ["missing_activity", "No se encontró la actividad indicada."],
   ["missing_shift", "No se encontró el turno indicado."],
@@ -74,12 +79,12 @@ const secondaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
 export default async function AdminActivitiesPage({ searchParams }) {
-  const editor = await requireCapability("content_editing");
+  await requireCapability("content_editing");
   const resolvedSearch = await searchParams;
   const statusCode = typeof resolvedSearch?.status === "string" ? resolvedSearch.status : "";
   const errorCode = typeof resolvedSearch?.error === "string" ? resolvedSearch.error : "";
 
-  const activities = listAdminActivities(editor.workspaceId);
+  const activities = await listAdminActivities();
   const statusMessage = statusMessages.get(statusCode);
   const errorMessage = errorMessages.get(errorCode);
   const defaultStart = defaultDateTimeInput(48);
@@ -213,7 +218,10 @@ export default async function AdminActivitiesPage({ searchParams }) {
                         {dateTimeFormat.format(new Date(shift.endsAt))}
                       </p>
                       <p>
-                        {shift.reservedCount}/{shift.capacity} plazas ocupadas · {shift.attendedCount} asistencias
+                        {shift.capacity === null
+                          ? `${shift.reservedCount} plazas ocupadas (aforo ilimitado)`
+                          : `${shift.reservedCount}/${shift.capacity} plazas ocupadas`}{" "}
+                        · {shift.attendedCount} asistencias
                       </p>
                       <div className="flex flex-wrap items-end gap-3">
                         <form action={updateShiftCapacityAction} className="flex flex-wrap items-end gap-3">
@@ -226,8 +234,8 @@ export default async function AdminActivitiesPage({ searchParams }) {
                               type="number"
                               min={1}
                               max={1000}
-                              defaultValue={shift.capacity}
-                              required
+                              defaultValue={shift.capacity ?? ""}
+                              placeholder="Ilimitado"
                             />
                           </label>
                           <button type="submit" className={secondaryButtonClass}>Actualizar aforo</button>

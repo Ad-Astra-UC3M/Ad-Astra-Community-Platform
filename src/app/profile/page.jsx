@@ -1,8 +1,8 @@
 import { ArrowRight02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
-import { getBasicProfile } from "../../demo/profile";
-import { requireUser } from "../../demo/session";
+import { requireUser } from "../../lib/auth/session";
+import { getBasicProfile } from "../../server/repositories/profile";
 import { saveBasicProfileAction } from "./actions";
 
 export const metadata = { title: "Mi perfil" };
@@ -16,7 +16,7 @@ const dateFormat = new Intl.DateTimeFormat("es-ES", {
 
 const errorMessages = new Map([
   ["email_immutable", "El correo institucional UC3M no se puede modificar tras el alta."],
-  ["identity_immutable", "No se puede modificar el identificador ni el rol de la cuenta."],
+  ["identity_immutable", "No se puede modificar el identificador ni el estado de la cuenta."],
   ["fields", "Completa nombre, apellidos, titulación y curso respetando los límites de longitud."],
   ["missing", "No se ha encontrado la cuenta asociada a esta sesión."],
 ]);
@@ -51,7 +51,7 @@ const inlineLinkClass =
 
 export default async function ProfilePage({ searchParams }) {
   const user = await requireUser("/profile");
-  const profile = getBasicProfile(user.workspaceId, user.id);
+  const profile = await getBasicProfile(user.personId);
   const { status, error } = await searchParams;
   const errorMessage = typeof error === "string" ? errorMessages.get(error) : undefined;
   const saved = status === "saved";
@@ -96,7 +96,7 @@ export default async function ProfilePage({ searchParams }) {
           Datos básicos
         </h2>
         <form
-          key={`${profile.firstName}|${profile.lastName}|${profile.degree}|${profile.course}`}
+          key={`${profile.firstName}|${profile.lastName}|${profile.degree}|${profile.course}|${profile.academicLevel ?? ""}|${profile.languageModality ?? ""}`}
           action={saveBasicProfileAction}
           className="grid min-w-0 gap-4"
         >
@@ -156,6 +156,28 @@ export default async function ProfilePage({ searchParams }) {
               defaultValue={profile.course}
               maxLength={40}
               required
+              className={inputClass}
+            />
+          </label>
+
+          <label className={fieldClass}>
+            Nivel académico (opcional)
+            <input
+              name="academicLevel"
+              defaultValue={profile.academicLevel ?? ""}
+              placeholder="Ej.: Grado, Máster, Doctorado"
+              maxLength={40}
+              className={inputClass}
+            />
+          </label>
+
+          <label className={fieldClass}>
+            Modalidad de idioma (opcional)
+            <input
+              name="languageModality"
+              defaultValue={profile.languageModality ?? ""}
+              placeholder="Ej.: Español, Inglés, Bilingüe"
+              maxLength={40}
               className={inputClass}
             />
           </label>

@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { BackLink } from "../../components/back-link";
-import { signUp } from "../../demo/session";
+import { signUp } from "../../lib/auth/session";
 
-export const metadata = { title: "Crear cuenta de prueba" };
+export const metadata = { title: "Crear cuenta" };
 
 const errors = {
   privacy: "Acepta el aviso de privacidad para continuar.",
-  email: "Introduce un correo ficticio con dominio uc3m.es o uno de sus subdominios.",
-  password: "Elige una contraseña de prueba de entre 8 y 128 caracteres.",
+  email: "Introduce un correo institucional válido con dominio uc3m.es o uno de sus subdominios.",
+  password: "Elige una contraseña de entre 8 y 128 caracteres.",
   fields: "Completa el nombre, los apellidos, la titulación y el curso.",
-  duplicate: "Ya existe un alta con ese correo en este navegador.",
+  duplicate: "Ya existe una cuenta registrada con ese correo institucional.",
+  provider: "No hemos podido completar el registro en este momento. Inténtalo de nuevo más tarde.",
 };
 
 const primaryButtonClass =
@@ -20,19 +21,21 @@ const inputClass =
 
 export default async function SignUpPage({ searchParams }) {
   const { error } = await searchParams;
-  const message = typeof error === "string" && Object.hasOwn(errors, error)
-    ? errors[error]
-    : null;
+  const message =
+    typeof error === "string" && Object.hasOwn(errors, error)
+      ? errors[error]
+      : null;
 
   return (
     <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
       <div className="grid gap-2">
         <p className="text-[0.9rem] font-bold text-brand-primary">Comunidad Ad Astra UC3M</p>
-        <h1>Crear cuenta de prueba</h1>
+        <h1>Crear cuenta</h1>
       </div>
       <div className="grid min-w-0 gap-4 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8">
         <p className="rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink">
-          Usa datos inventados y una contraseña exclusiva de esta demo. Puedes editar los ejemplos.
+          Regístrate con tu correo institucional UC3M (<code>@alumnos.uc3m.es</code> o{" "}
+          <code>@uc3m.es</code>). Te enviaremos un enlace para verificar tu dirección antes de acceder.
         </p>
         {message && (
           <p className="rounded-[4px] bg-brand-accent/35 px-4 py-3.5 text-brand-ink" role="alert">
@@ -40,35 +43,71 @@ export default async function SignUpPage({ searchParams }) {
           </p>
         )}
         {error === "duplicate" && (
-          <BackLink href="/verify-email">Volver a la verificación</BackLink>
+          <div className="flex flex-wrap items-center gap-4">
+            <BackLink href="/sign-in">Acceder a la comunidad</BackLink>
+            <Link href="/verify-email">Reenviar correo de verificación</Link>
+          </div>
         )}
-        <form action={signUp} className="grid min-w-0 gap-4" autoComplete="off">
+        <form action={signUp} className="grid min-w-0 gap-4">
           <label className="grid min-w-0 gap-1.5 font-bold">
             Nombre
-            <input name="firstName" defaultValue="Lucía" maxLength={80} required className={inputClass} />
+            <input
+              name="firstName"
+              placeholder="Ej.: Lucía"
+              autoComplete="given-name"
+              maxLength={80}
+              required
+              className={inputClass}
+            />
           </label>
           <label className="grid min-w-0 gap-1.5 font-bold">
             Apellidos
-            <input name="lastName" defaultValue="Ejemplo" maxLength={120} required className={inputClass} />
+            <input
+              name="lastName"
+              placeholder="Ej.: García Martín"
+              autoComplete="family-name"
+              maxLength={120}
+              required
+              className={inputClass}
+            />
           </label>
           <label className="grid min-w-0 gap-1.5 font-bold">
-            Correo UC3M de prueba
-            <input name="email" type="email" defaultValue="demo@alumnos.uc3m.es" maxLength={254} required className={inputClass} />
+            Correo institucional UC3M
+            <input
+              name="email"
+              type="email"
+              placeholder="nombre@alumnos.uc3m.es"
+              autoComplete="email"
+              maxLength={254}
+              required
+              className={inputClass}
+            />
           </label>
           <label className="grid min-w-0 gap-1.5 font-bold">
             Titulación
-            <input name="degree" defaultValue="Ingeniería Aeroespacial" maxLength={120} required className={inputClass} />
+            <input
+              name="degree"
+              placeholder="Ej.: Ingeniería Aeroespacial"
+              maxLength={120}
+              required
+              className={inputClass}
+            />
           </label>
           <label className="grid min-w-0 gap-1.5 font-bold">
             Curso
-            <input name="course" defaultValue="2.º" maxLength={40} required className={inputClass} />
+            <input
+              name="course"
+              placeholder="Ej.: 2.º"
+              maxLength={40}
+              required
+              className={inputClass}
+            />
           </label>
           <label className="grid min-w-0 gap-1.5 font-bold">
-            Contraseña de prueba
+            Contraseña
             <input
               name="password"
               type="password"
-              defaultValue="ComunidadDemo2026!"
               autoComplete="new-password"
               minLength={8}
               maxLength={128}
@@ -77,8 +116,9 @@ export default async function SignUpPage({ searchParams }) {
             />
           </label>
           <div id="privacy-notice">
-            El prototipo guarda los datos de prueba en este equipo para que puedas retomar el recorrido desde el
-            mismo navegador. La verificación del correo es simulada.
+            Recibirás un enlace de verificación en tu correo institucional UC3M. Tu cuenta quedará
+            activa al confirmar ese enlace y tu correo permanecerá fijo para conservar tu identidad e
+            historial en la comunidad.
           </div>
           <label className="cursor-pointer">
             <input
@@ -89,11 +129,11 @@ export default async function SignUpPage({ searchParams }) {
               required
               className="mr-1.5 inline-block size-[1.15em] align-[-0.15em] accent-brand-primary"
             />{" "}
-            Acepto el <Link href="/privacy">aviso de privacidad</Link> de esta demostración.
+            Acepto el <Link href="/privacy">aviso de privacidad</Link> de la Comunidad Ad Astra UC3M.
           </label>
           <button type="submit" className={primaryButtonClass}>Crear cuenta</button>
         </form>
-        <Link href="/sign-in">Ya tengo una cuenta de prueba</Link>
+        <Link href="/sign-in">Ya tengo una cuenta</Link>
       </div>
     </main>
   );

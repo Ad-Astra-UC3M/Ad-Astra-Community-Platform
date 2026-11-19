@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../../components/back-link";
-import { getTalentAdminDetail } from "../../../../demo/admin";
+import { getTalentAdminDetail } from "../../../../server/repositories/admin";
 import { requireCapability } from "../../access";
 
 export const metadata = { title: "Detalle de perfil de talento" };
@@ -20,13 +20,19 @@ const linkKindLabels = {
   other: "Otro enlace",
 };
 
+const experienceKindLabels = {
+  team: "Equipo",
+  project: "Proyecto",
+  work: "Experiencia laboral",
+};
+
 const panelClass =
   "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
 
 export default async function AdminTalentDetailPage({ params }) {
-  const viewer = await requireCapability("talent_consultation");
+  await requireCapability("talent_consultation");
   const { id } = await params;
-  const profile = getTalentAdminDetail(viewer.workspaceId, id);
+  const profile = await getTalentAdminDetail(id);
   if (!profile) notFound();
 
   return (
@@ -49,25 +55,32 @@ export default async function AdminTalentDetailPage({ params }) {
         <h2>Formación y trayectoria</h2>
         <p>
           Universidad: {profile.university || "No indicada"}
-          {profile.graduationYear ? ` · Año previsto de graduación: ${profile.graduationYear}` : ""}
+          {profile.expectedGraduationYear ? ` · Año previsto de graduación: ${profile.expectedGraduationYear}` : ""}
         </p>
         <p>
           Preferencia de difusión:{" "}
           <strong>{profile.disseminationGranted ? "Autorizada" : "No autorizada"}</strong>
           {profile.disseminationDecidedAt
-            ? ` (registrada el ${dateFormat.format(new Date(profile.disseminationDecidedAt))}, versión ${profile.disseminationPolicyVersion ?? "vigente"})`
+            ? ` (registrada el ${dateFormat.format(new Date(profile.disseminationDecidedAt))}, versión ${profile.disseminationPolicyVersion ?? "vigente"}${
+                profile.disseminationValidUntil
+                  ? `, válida hasta el ${dateFormat.format(new Date(profile.disseminationValidUntil))}`
+                  : ""
+              })`
             : ""}
         </p>
-        {profile.experiencesSummary && (
-          <div className="grid min-w-0 gap-4">
-            <h3>Experiencia</h3>
-            <p>{profile.experiencesSummary}</p>
-          </div>
-        )}
-        {profile.featuredProject && (
-          <div className="grid min-w-0 gap-4">
-            <h3>Proyecto destacado</h3>
-            <p>{profile.featuredProject}</p>
+        {profile.experiences.length > 0 && (
+          <div className="grid min-w-0 gap-3">
+            <h3>Experiencias y proyectos ({profile.experiences.length})</h3>
+            <ul className="grid list-disc gap-2 pl-6">
+              {profile.experiences.map((exp, index) => (
+                <li key={`${exp.kind}-${exp.title}-${index}`}>
+                  <strong>{experienceKindLabels[exp.kind] ?? exp.kind}</strong>: {exp.title}
+                  {exp.organization ? ` (${exp.organization})` : ""}
+                  {exp.isFeatured ? " · Destacado" : ""}
+                  {exp.description ? ` — ${exp.description}` : ""}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </section>
@@ -78,7 +91,16 @@ export default async function AdminTalentDetailPage({ params }) {
         <p>Herramientas: {profile.tools.length ? profile.tools.join(", ") : "Sin especificar"}</p>
         <p>Intereses: {profile.interests.length ? profile.interests.join(", ") : "Sin especificar"}</p>
         <p>Sectores: {profile.sectors.length ? profile.sectors.join(", ") : "Sin especificar"}</p>
-        <p>Idiomas: {profile.languages.length ? profile.languages.join(", ") : "Sin especificar"}</p>
+        <p>
+          Tipos de oportunidad:{" "}
+          {profile.opportunityTypes.length ? profile.opportunityTypes.join(", ") : "Sin especificar"}
+        </p>
+        <p>
+          Idiomas:{" "}
+          {profile.languages.length
+            ? profile.languages.map((lang) => `${lang.language} (${lang.level})`).join(", ")
+            : "Sin especificar"}
+        </p>
       </section>
 
       <section className={panelClass}>

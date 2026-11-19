@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BackLink } from "../../../components/back-link";
-import { searchAccounts } from "../../../demo/admin";
+import { searchAccounts } from "../../../server/repositories/admin";
 import { requireCapability } from "../access";
 
 export const metadata = { title: "Cuentas y permisos" };
@@ -28,7 +28,7 @@ const secondaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
 export default async function AdminAccountsPage({ searchParams }) {
-  const admin = await requireCapability("general_admin");
+  await requireCapability("general_admin");
   const resolved = await searchParams;
   const query = typeof resolved?.query === "string" ? resolved.query : "";
   const degree = typeof resolved?.degree === "string" ? resolved.degree : "";
@@ -39,7 +39,7 @@ export default async function AdminAccountsPage({ searchParams }) {
       ? resolved.hasParticipation
       : "";
 
-  const accounts = searchAccounts(admin.workspaceId, {
+  const accounts = await searchAccounts({
     query,
     degree,
     course,
@@ -108,7 +108,7 @@ export default async function AdminAccountsPage({ searchParams }) {
             {accounts.map((account) => (
               <li className={panelClass} key={account.id}>
                 <p className="text-[0.9rem] font-bold text-brand-primary">
-                  {statusLabels[account.status]} · {account.role === "organizer" ? "Organización" : "Estudiante"}
+                  {statusLabels[account.status]} · {account.capabilities.length > 0 ? "Organización" : "Estudiante"}
                 </p>
                 <h3>{account.name}</h3>
                 <p>

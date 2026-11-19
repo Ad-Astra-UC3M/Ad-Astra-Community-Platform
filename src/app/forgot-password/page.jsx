@@ -1,9 +1,5 @@
-import Link from "next/link";
 import { BackLink } from "../../components/back-link";
-import {
-  hasPendingBrowserPasswordReset,
-  submitPasswordResetRequest,
-} from "../../demo/session";
+import { requestPasswordResetAction } from "../../lib/auth/session";
 
 export const metadata = { title: "Recuperar contraseña" };
 
@@ -15,7 +11,6 @@ const inputClass =
 
 export default async function ForgotPasswordPage({ searchParams }) {
   const { sent } = await searchParams;
-  const pending = await hasPendingBrowserPasswordReset();
 
   return (
     <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
@@ -25,29 +20,32 @@ export default async function ForgotPasswordPage({ searchParams }) {
       </div>
       <div className="grid min-w-0 gap-4 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8">
         <p className="rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink">
-          Introduce el correo UC3M de tu cuenta de prueba para generar un enlace de recuperación de un solo uso.
+          Introduce tu correo institucional UC3M para recibir un enlace de recuperación de un solo
+          uso.
         </p>
         {sent === "1" && (
           <p className="rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink" role="status">
-            Si el correo corresponde a una cuenta verificada, hemos preparado el enlace de recuperación.
+            Si el correo corresponde a una cuenta verificada, hemos enviado un enlace de recuperación
+            a tu correo institucional UC3M.
           </p>
         )}
-        <form action={submitPasswordResetRequest} className="grid min-w-0 gap-4" autoComplete="off">
+        <form action={requestPasswordResetAction} className="grid min-w-0 gap-4">
           <label className="grid min-w-0 gap-1.5 font-bold">
-            Correo UC3M de prueba
-            <input name="email" type="email" defaultValue="demo@alumnos.uc3m.es" maxLength={254} required className={inputClass} />
+            Correo institucional UC3M
+            <input
+              name="email"
+              type="email"
+              placeholder="nombre@alumnos.uc3m.es"
+              autoComplete="email"
+              maxLength={254}
+              required
+              className={inputClass}
+            />
           </label>
           <button type="submit" className={primaryButtonClass}>Solicitar recuperación</button>
         </form>
         <BackLink href="/sign-in">Volver al acceso</BackLink>
       </div>
-      {pending && (
-        <div className="grid min-w-0 gap-4 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8">
-          <h2>Enlace de recuperación en la demo</h2>
-          <p>En esta demostración puedes abrir directamente el enlace de un solo uso desde aquí.</p>
-          <Link className={primaryButtonClass} href="/reset-password">Abrir enlace de recuperación</Link>
-        </div>
-      )}
     </main>
   );
 }
