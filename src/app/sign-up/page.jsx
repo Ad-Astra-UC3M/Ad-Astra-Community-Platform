@@ -69,7 +69,7 @@ export default async function SignUpPage({ searchParams }) {
           </div>
           <label>
             <input type="checkbox" name="privacy" value="accepted" aria-describedby="privacy-notice" required />{" "}
-            Acepto el aviso de privacidad de esta demostración.
+            Acepto el <Link href="/privacy">aviso de privacidad</Link> de esta demostración.
           </label>
           <button type="submit" className="button">Crear cuenta</button>
         </form>
