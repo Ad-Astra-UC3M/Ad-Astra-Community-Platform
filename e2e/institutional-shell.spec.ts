@@ -46,6 +46,7 @@ test("la navegación y el pie institucional acompañan al visitante, estudiante 
   await page.getByRole("button", { name: "Entrar como estudiante" }).click();
   await expect(page).toHaveURL(/\/home$/);
   await expect(footer).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
 
   await expectHeaderNav(header, {
     homeHref: "/home",
@@ -54,7 +55,9 @@ test("la navegación y el pie institucional acompañan al visitante, estudiante 
       { label: "Inicio", href: "/home" },
       { label: "Actividades", href: "/activities" },
       { label: "Mis actividades", href: "/my-activities" },
-      { label: "Tarjeta QR", href: "/qr-card" },
+      { label: "Oportunidades", href: "/opportunities" },
+      { label: "Marcadores", href: "/bookmarks" },
+      { label: "Mi perfil", href: "/profile" },
     ],
   });
   await expect(page.getByRole("navigation", { name: "Navegación de la comunidad" })).toHaveCount(0);
@@ -68,6 +71,9 @@ test("la navegación y el pie institucional acompañan al visitante, estudiante 
     links: [
       { label: "Inicio", href: "/home" },
       { label: "Actividades", href: "/activities" },
+      { label: "Oportunidades", href: "/opportunities" },
+      { label: "Marcadores", href: "/bookmarks" },
+      { label: "Mi perfil", href: "/profile" },
       { label: "Gestión", href: "/admin" },
     ],
   });

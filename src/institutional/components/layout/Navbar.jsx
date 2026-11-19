@@ -95,7 +95,7 @@ export default function Navbar({ role }) {
 export function DesktopNavbar({ links = navItems }) {
 	return (
 		<nav aria-label="Navegación principal">
-			<ul className="flex flex-row items-center gap-4">
+			<ul className="flex flex-row items-center gap-2 xl:gap-4">
 				{links.map((item) => {
 					if (item.children) {
 						return <NavDropdown key={item.label} item={item} />;

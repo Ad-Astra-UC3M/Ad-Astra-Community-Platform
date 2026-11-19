@@ -5,24 +5,42 @@ import { requireUser } from "../../demo/session";
 
 export const metadata = { title: "Inicio" };
 
-const activities = {
-  href: "/activities",
-  label: "Actividades",
-  description: "Explora los talleres y encuentros y elige un turno.",
-};
+const sharedLinks = [
+  {
+    href: "/activities",
+    label: "Actividades",
+    description: "Explora los talleres y encuentros y elige un turno.",
+  },
+  {
+    href: "/opportunities",
+    label: "Oportunidades",
+    description: "Descubre prácticas aeroespaciales y líneas de investigación en la UC3M.",
+  },
+  {
+    href: "/bookmarks",
+    label: "Mis marcadores",
+    description: "Consulta las oportunidades que has guardado para revisar más adelante.",
+  },
+  {
+    href: "/profile",
+    label: "Mi perfil",
+    description: "Actualiza tus datos básicos, tu perfil de talento voluntario y tus preferencias de privacidad.",
+  },
+];
 
 const studentLinks = [
-  activities,
+  sharedLinks[0],
   {
     href: "/my-activities",
     label: "Mis actividades",
-    description: "Consulta tus reservas y el estado de tu asistencia.",
+    description: "Consulta tus reservas, cambia de turno o revisa el estado de tu asistencia.",
   },
   {
     href: "/qr-card",
     label: "Tarjeta QR",
-    description: "Muestra tu código al llegar al evento.",
+    description: "Muestra tu código al llegar al evento o reemítelo si lo necesitas.",
   },
+  ...sharedLinks.slice(1),
 ];
 
 const organizerLinks = [
@@ -31,7 +49,7 @@ const organizerLinks = [
     label: "Gestión de asistencia",
     description: "Selecciona un turno y valida las tarjetas de los asistentes.",
   },
-  activities,
+  ...sharedLinks,
 ];
 
 export default async function HomePage() {
@@ -46,7 +64,7 @@ export default async function HomePage() {
         <p className="lead">
           {organizer
             ? "Desde aquí puedes registrar la asistencia a los turnos de la demo."
-            : "Reserva tu próximo turno y ten a mano tu QR para acreditar la asistencia."}
+            : "Reserva tu próximo turno, explora oportunidades y gestiona tu perfil desde la comunidad."}
         </p>
       </div>
       <nav className="home-links" aria-label="Accesos directos">
