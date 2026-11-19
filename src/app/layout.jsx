@@ -2,9 +2,6 @@ import { Navbar, Footer } from "../components/original-layout";
 import { CommunityBar } from "../components/community-bar";
 import { currentUser } from "../demo/session";
 import "./globals.css";
-import "../components/navigation-links.css";
-import "../institutional/institutional.css";
-import "../components/institutional-shell.css";
 
 export const metadata = {
   title: { default: "Comunidad Ad Astra UC3M", template: "%s · Ad Astra UC3M" },
@@ -16,12 +13,25 @@ export default async function RootLayout({ children }) {
 
   return (
     <html lang="es">
-      <body>
-        <a className="skip-link" href="#main-content">Saltar al contenido</a>
-        <div className="institutional"><Navbar role={user?.role} /></div>
-        {user && <CommunityBar role={user.role} />}
+      <body className="bg-brand-surface pt-24 font-serif text-brand-ink print:pt-0">
+        <a
+          className="fixed top-3 left-6 z-[1000] -translate-y-[200%] bg-brand-surface px-4 py-2.5 text-brand-primary underline underline-offset-4 focus:translate-y-0 print:hidden"
+          href="#main-content"
+        >
+          Saltar al contenido
+        </a>
+        <div className="print:hidden">
+          <Navbar role={user?.role} />
+        </div>
+        {user && (
+          <div className="print:hidden">
+            <CommunityBar role={user.role} />
+          </div>
+        )}
         <div id="main-content" tabIndex={-1}>{children}</div>
-        <div className="institutional"><Footer /></div>
+        <div className="print:hidden">
+          <Footer />
+        </div>
       </body>
     </html>
   );

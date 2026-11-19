@@ -1,505 +1,122 @@
+@import "tailwindcss";
+
 @font-face {
   font-family: "Wild World";
   src: url("/fonts/wild-world-es.woff2") format("woff2");
   font-display: swap;
-}
-
-:root {
-  --primary: #4c52b3;
-  --ink: #2f3367;
-  --cream: #feffee;
-  --accent: #ffdb5a;
-  --lavender: #b9beff;
-  --line: color-mix(in srgb, var(--primary) 27%, var(--cream));
-  --tint: color-mix(in srgb, var(--lavender) 20%, var(--cream));
-  --display: "Wild World", "Arial Black", system-ui, sans-serif;
-  --body: "Bodoni 72", "Bodoni MT", Georgia, serif;
-  --gutter: 1.5rem;
-}
-
-*, *::before, *::after {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  background: var(--cream);
-  color: var(--ink);
-  font: 1rem/1.6 var(--body);
-}
-
-h1, h2, h3, p, ul, ol, figure {
-  margin: 0;
-}
-
-h1, h2 {
-  font-family: var(--display);
-  font-weight: 400;
-  text-transform: uppercase;
-  overflow-wrap: anywhere;
-}
-
-h1 {
-  color: var(--primary);
-  font-size: 1.75rem;
-  line-height: 1.12;
-}
-
-h2 {
-  font-size: 1.25rem;
-  line-height: 1.22;
-}
-
-h3 {
-  font-size: 1.2rem;
-  line-height: 1.3;
-}
-
-a {
-  color: var(--primary);
-  text-underline-offset: 0.22em;
-}
-
-a:hover {
-  color: var(--ink);
-}
-
-:focus-visible {
-  outline: 3px solid var(--primary);
-  outline-offset: 4px;
-}
-
-:where(.home-banner, .demo-entry) :focus-visible {
-  outline-color: var(--accent);
-}
-
-button, input, textarea, select {
-  font: inherit;
-}
-
-button, summary, input[type="checkbox"], input[type="radio"] {
-  cursor: pointer;
-}
-
-ul, ol {
-  padding-inline-start: 1.4rem;
-}
-
-ul.stack {
-  list-style: none;
-  padding: 0;
-}
-
-img, video {
-  display: block;
-  max-inline-size: 100%;
-}
-
-.frame, main.shell {
-  width: min(100%, 80rem);
-  margin-inline: auto;
-  padding-inline: var(--gutter);
-}
-
-main.shell {
-  max-width: 58rem;
-  padding-block: 2rem 4rem;
-}
-
-main.landing {
-  max-width: 80rem;
-}
-
-.shell:where(:not(.landing, .home, .stack)) > * + * {
-  margin-block-start: 1.25rem;
-}
-
-.shell > .eyebrow + h1 {
-  margin-block-start: 0.5rem;
-}
-
-.eyebrow {
-  color: var(--primary);
-  font-size: 0.9rem;
-  font-weight: 700;
-}
-
-.lead {
-  font-size: 1.2rem;
-  line-height: 1.55;
-  max-width: 48ch;
-}
-
-.stack {
-  display: grid;
-  gap: 1rem;
-}
-
-.stack > form {
-  min-width: 0;
-}
-
-.panel {
-  background: color-mix(in srgb, var(--tint) 45%, var(--cream));
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 1.25rem;
-  min-width: 0;
-}
-
-.panel:not(.stack) > * + * {
-  margin-block-start: 0.75rem;
-}
-
-.notice {
-  padding: 0.875rem 1rem;
-  border-radius: 4px;
-  background: var(--tint);
-}
-
-[role="alert"] {
-  background: color-mix(in srgb, var(--accent) 34%, var(--cream));
-  border-radius: 4px;
-  padding: 0.875rem 1rem;
-}
-
-.field {
-  display: grid;
-  gap: 0.35rem;
-  min-width: 0;
-  font-weight: 700;
-}
-
-input:not([type="checkbox"], [type="radio"], [type="hidden"]),
-textarea,
-select {
-  width: 100%;
-  min-width: 0;
-  min-height: 3rem;
-  border: 1px solid var(--primary);
-  border-radius: 4px;
-  background: var(--cream);
-  color: var(--ink);
-  padding: 0.65rem 0.75rem;
+  font-style: normal;
   font-weight: 400;
 }
 
-textarea {
-  resize: vertical;
+@font-face {
+  font-family: "Wild World Institutional";
+  src:
+    url("../institutional/assets/fonts/wild-world-es.woff2") format("woff2"),
+    url("../institutional/assets/fonts/wild-world-es.otf") format("opentype");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400;
 }
 
-input:is([type="checkbox"], [type="radio"]) {
-  width: 1.15em;
-  height: 1.15em;
-  margin: 0 0.35em 0 0;
-  vertical-align: -0.15em;
-  accent-color: var(--primary);
+@theme {
+  --color-astra-blue: #4c52b3;
+  --color-astra-blue-medium: #8288e9;
+  --color-astra-blue-light: #b9beff;
+  --color-astra-cream: #feffee;
+  --color-astra-navy: #2f3367;
+  --color-astra-yellow: #ffdb5a;
+
+  --color-brand-primary: var(--color-astra-blue);
+  --color-brand-secondary: var(--color-astra-blue-medium);
+  --color-brand-soft: var(--color-astra-blue-light);
+  --color-brand-surface: var(--color-astra-cream);
+  --color-brand-ink: var(--color-astra-navy);
+  --color-brand-accent: var(--color-astra-yellow);
+
+  --font-display: "Wild World", "Arial Black", system-ui, sans-serif;
+  --font-serif: "Bodoni 72", "Bodoni 72 Smallcaps", "Bodoni MT", Didot, "Bodoni Moda", Georgia, serif;
 }
 
-.button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  justify-self: start;
-  max-width: 100%;
-  min-height: 3rem;
-  padding: 0.7rem 1.25rem;
-  border: 1px solid var(--primary);
-  border-radius: 4px;
-  background: var(--primary);
-  color: var(--cream);
-  font: 400 0.79rem/1.3 var(--display);
-  text-align: center;
-  text-transform: uppercase;
-  text-decoration: none;
-}
-
-.button:hover {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--cream);
-}
-
-.button.secondary {
-  background: var(--cream);
-  color: var(--primary);
-}
-
-.button.secondary:hover {
-  background: var(--lavender);
-  border-color: var(--primary);
-  color: var(--ink);
-}
-
-.button:disabled {
-  background: var(--tint);
-  border-color: var(--line);
-  color: var(--ink);
-  cursor: default;
-}
-
-.text-button {
-  background: transparent;
-  border: 0;
-  color: var(--primary);
-  min-height: 44px;
-  padding: 0.45rem 0;
-  text-align: left;
-  text-decoration: underline;
-  text-underline-offset: 0.22em;
-}
-
-.text-button:hover {
-  color: var(--ink);
-}
-
-.skip-link {
-  position: absolute;
-  z-index: 20;
-  inset: 0.75rem auto auto var(--gutter);
-  transform: translateY(-150%);
-  background: var(--cream);
-  padding: 0.6rem 1rem;
-}
-
-.skip-link:focus {
-  transform: none;
-}
-
-.session-bar {
-  border-top: 1px solid var(--line);
-  background: var(--tint);
-}
-
-.session-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0 1.5rem;
-  padding-block: 0.35rem;
-  font-size: 0.94rem;
-}
-
-.session-actions, .action-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.session-actions {
-  column-gap: 1.5rem;
-  row-gap: 0;
-}
-
-.landing-hero {
-  display: grid;
-  gap: 1.75rem;
-}
-
-.landing-intro {
-  display: grid;
-  align-content: center;
-  gap: 1.25rem;
-}
-
-.landing-intro h1 {
-  font-size: 1.5rem;
-}
-
-.landing-intro h1 span {
-  display: block;
-}
-
-.landing-photo img {
-  width: 100%;
-  height: auto;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
-  border-radius: 8px 8px 0 0;
-}
-
-.landing-photo figcaption {
-  border-top: 3px solid var(--accent);
-  padding-block-start: 0.45rem;
-  font-size: 0.9rem;
-}
-
-.demo-entry {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.25rem 2rem;
-  margin-block-start: 2rem;
-  background: var(--ink);
-  color: var(--cream);
-  padding: 1.25rem;
-  border-radius: 8px;
-}
-
-.demo-entry p {
-  margin-block-start: 0.4rem;
-}
-
-.home-banner {
-  background: var(--ink);
-  color: var(--cream);
-  border-radius: 8px;
-  padding: 1.5rem;
-}
-
-.home-banner h1 {
-  color: var(--cream);
-}
-
-.home-banner .lead {
-  margin-block-start: 0.75rem;
-}
-
-.home-links {
-  margin-block-start: 1.75rem;
-}
-
-.home-links ul {
-  list-style: none;
-  padding: 0;
-  border-top: 1px solid var(--line);
-}
-
-.home-links li {
-  border-bottom: 1px solid var(--line);
-}
-
-.home-links a {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.25rem;
-  padding: 1rem 0.75rem;
-  color: var(--ink);
-  text-decoration: none;
-}
-
-.home-links a:hover {
-  background: var(--tint);
-}
-
-.home-link-text {
-  display: grid;
-  gap: 0.15rem;
-}
-
-.home-link-title {
-  color: var(--primary);
-  font-size: 1.18rem;
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 0.22em;
-}
-
-.ticket {
-  width: min(100%, 23rem);
-  justify-items: center;
-  background: var(--cream);
-  text-align: center;
-  padding: 1.25rem;
-}
-
-.ticket img {
-  width: min(100%, 18.75rem);
-  height: auto;
-}
-
-.scanner video {
-  width: min(100%, 32rem);
-  border-radius: 4px;
-}
-
-.scanner [role="status"]:not(:empty) {
-  border-radius: 4px;
-  background: var(--tint);
-  padding: 0.875rem 1rem;
-}
-
-.card-tools summary {
-  width: fit-content;
-  display: list-item;
-  color: var(--primary);
-  padding-block: 0.65rem;
-}
-
-.card-tools details > .field {
-  margin-block: 0.6rem;
-}
-
-@media (min-width: 30rem) {
-  .landing-intro h1 {
-    font-size: 2rem;
-  }
-}
-
-@media (min-width: 48rem) {
-  :root {
-    --gutter: 2rem;
-  }
-
-  main.shell {
-    padding-block: 3rem 5rem;
-  }
-
-  h1 {
-    font-size: 2.5rem;
-  }
-
-  .panel, .demo-entry, .home-banner {
-    padding: 2rem;
-  }
-
-  .landing-intro h1 {
-    font-size: 2.5rem;
-  }
-}
-
-@media (min-width: 62rem) {
-  .landing-hero {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
-    gap: 2.5rem;
-  }
-
-  .landing-intro h1 {
-    font-size: 2.375rem;
-  }
-
-  .demo-entry {
-    margin-block-start: 3rem;
-  }
-}
-
-@media (min-width: 75rem) {
-  .landing-hero {
-    gap: 3rem;
-  }
-
-  .landing-intro h1 {
-    font-size: 3rem;
-  }
-}
-
-@media print {
-  .skip-link, .shell:has(.ticket) > :not(.ticket) {
-    display: none;
+@layer base {
+  html {
+    scroll-padding-top: 6rem;
   }
 
   body {
-    background: white;
-    color: black;
+    background-color: var(--color-brand-surface);
+    color: var(--color-brand-ink);
+    font-family: var(--font-serif);
+    line-height: 1.6;
   }
 
-  .ticket {
-    background: white;
-    border: 1px solid;
-    break-inside: avoid;
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+  }
+
+  h1 {
+    color: var(--color-brand-primary);
+    font-size: 1.75rem;
+    line-height: 1.12;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+    line-height: 1.22;
+  }
+
+  h3 {
+    font-size: 1.2rem;
+    line-height: 1.3;
+  }
+
+  @media (min-width: 48rem) {
+    h1 {
+      font-size: 2.5rem;
+    }
+  }
+
+  main a {
+    color: var(--color-brand-primary);
+    text-decoration: underline;
+    text-underline-offset: 0.22em;
+  }
+
+  main a:hover {
+    color: var(--color-brand-ink);
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-brand-primary);
+    outline-offset: 4px;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-brand-accent) 72%, transparent);
+    color: var(--color-brand-ink);
+  }
+
+  @media print {
+    body {
+      background: white;
+      color: black;
+    }
+  }
+}
+
+@keyframes astra-footer-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes astra-footer-orbit-reverse {
+  to {
+    transform: rotate(-360deg);
   }
 }

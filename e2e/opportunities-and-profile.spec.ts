@@ -54,7 +54,7 @@ test("oportunidades con filtro por tipo y marcadores idempotentes", async ({ pag
   await page.getByRole("button", { name: "Entrar como estudiante" }).click();
   await expect(page).toHaveURL(/\/home$/);
 
-  await page.locator('.home-links a[href="/opportunities"]').click();
+  await page.getByRole("navigation", { name: "Accesos directos" }).locator('a[href="/opportunities"]').click();
   await expect(page).toHaveURL(/\/opportunities$/);
 
   await page.getByRole("navigation", { name: "Filtrar oportunidades por tipo" })
@@ -86,7 +86,7 @@ test("aviso de privacidad, perfil básico, talento voluntario, difusión y solic
   await page.getByRole("button", { name: "Entrar como estudiante" }).click();
   await expect(page).toHaveURL(/\/home$/);
 
-  await page.locator('.home-links a[href="/profile"]').click();
+  await page.getByRole("navigation", { name: "Accesos directos" }).locator('a[href="/profile"]').click();
   await expect(page).toHaveURL(/\/profile$/);
   await expect(page.getByLabel(/Correo UC3M/i)).toHaveAttribute("readonly", "");
   await page.getByLabel("Nombre", { exact: true }).fill("Elena");

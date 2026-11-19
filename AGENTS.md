@@ -14,6 +14,7 @@ Lee el [README](README.md) y la última entrada de la [bitácora](docs/developme
 ## Criterios de implementación
 
 - Escribe los componentes React propios en JavaScript con extensión `.jsx`, incluidas páginas, layouts, adaptadores y pruebas que rendericen JSX. Los componentes de terceros pueden conservar `.tsx`.
+- Estiliza los componentes y páginas con **Tailwind CSS** y los tokens de tema definidos en `src/app/globals.css`, evitando hojas de CSS tradicional separadas.
 
 - Prioriza calidad, legibilidad y sencillez (no peso). Usa modelos y contratos explícitos. Valida datos externos y permisos en las fronteras y conserva los invariantes en la operación que escribe, evitando ruido defensivo innecesario cuando las interfaces y modelos de datos estén bien definidos.
 - Mantén rutas, subrutas, componentes y modelos en inglés, y la interfaz en español. Cuida una estructura de carpetas legible y accesible, organiza el código por recorrido y acerca sus pruebas. Extrae componentes cuando varias pantallas compartan un comportamiento concreto.

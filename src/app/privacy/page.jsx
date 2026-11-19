@@ -3,18 +3,22 @@ import { BackLink } from "../../components/back-link";
 
 export const metadata = { title: "Aviso de privacidad" };
 
+const panelClass = "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
+
 export default function PrivacyNoticePage() {
   return (
-    <main className="shell stack">
+    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
       <BackLink href="/sign-up">Volver al registro</BackLink>
-      <p className="eyebrow">Comunidad Ad Astra UC3M · Versión demo-1</p>
-      <h1>Aviso de privacidad</h1>
-      <p className="lead">
+      <div className="grid gap-2">
+        <p className="text-[0.9rem] font-bold text-brand-primary">Comunidad Ad Astra UC3M · Versión demo-1</p>
+        <h1>Aviso de privacidad</h1>
+      </div>
+      <p className="max-w-[48ch] text-[1.2rem] leading-relaxed">
         Este aviso resume qué datos trata la Comunidad Ad Astra UC3M en este prototipo y qué controles
         tienes disponibles sobre tu cuenta y tu perfil.
       </p>
 
-      <section className="panel stack">
+      <section className={panelClass}>
         <h2>1. Datos básicos y cuenta UC3M</h2>
         <p>
           Al crear una cuenta recogemos tu nombre, apellidos, correo institucional UC3M, titulación y
@@ -27,7 +31,7 @@ export default function PrivacyNoticePage() {
         </p>
       </section>
 
-      <section className="panel stack">
+      <section className={panelClass}>
         <h2>2. Perfil de talento voluntario</h2>
         <p>
           De forma completamente opcional puedes completar un perfil de talento con tu universidad, año
@@ -41,7 +45,7 @@ export default function PrivacyNoticePage() {
         </p>
       </section>
 
-      <section className="panel stack">
+      <section className={panelClass}>
         <h2>3. Decisión de difusión separada</h2>
         <p>
           La autorización de difusión profesional (versión <code>talent-diffusion-v1</code>) es
@@ -54,7 +58,7 @@ export default function PrivacyNoticePage() {
         </p>
       </section>
 
-      <section className="panel stack">
+      <section className={panelClass}>
         <h2>4. Solicitud de supresión de cuenta</h2>
         <p>
           Puedes presentar una solicitud de supresión desde el apartado{" "}
@@ -64,7 +68,7 @@ export default function PrivacyNoticePage() {
         </p>
       </section>
 
-      <p className="notice">
+      <p className="rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink">
         Entorno de demostración: los datos introducidos en este prototipo son sintéticos y se guardan en
         local para permitir probar los recorridos completos.
       </p>

@@ -1,7 +1,0 @@
-body { padding-top: 6rem; }
-html { scroll-padding-top: 6rem; }
-.skip-link { z-index: 1000; }
-@media print {
-  body { padding-top: 0; }
-  .institutional, .community-bar { display: none; }
-}
