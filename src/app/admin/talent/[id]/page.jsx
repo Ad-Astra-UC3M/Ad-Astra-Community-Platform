@@ -20,6 +20,9 @@ const linkKindLabels = {
   other: "Otro enlace",
 };
 
+const panelClass =
+  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
+
 export default async function AdminTalentDetailPage({ params }) {
   const viewer = await requireCapability("talent_consultation");
   const { id } = await params;
@@ -27,14 +30,14 @@ export default async function AdminTalentDetailPage({ params }) {
   if (!profile) notFound();
 
   return (
-    <main className="shell stack">
+    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
       <BackLink href="/admin/talent">Volver a consulta de talento</BackLink>
-      <header className="stack">
-        <p className="eyebrow">
+      <header className="grid min-w-0 gap-4">
+        <p className="text-[0.9rem] font-bold text-brand-primary">
           Consulta de talento · {profile.disseminationGranted ? "Difusión autorizada" : "Sin autorización de difusión"}
         </p>
         <h1>{profile.name}</h1>
-        {profile.headline && <p className="lead">{profile.headline}</p>}
+        {profile.headline && <p className="max-w-[48ch] text-[1.2rem] leading-[1.55]">{profile.headline}</p>}
         <p>
           {profile.email}
           {profile.degree ? ` · ${profile.degree}` : ""}
@@ -42,7 +45,7 @@ export default async function AdminTalentDetailPage({ params }) {
         </p>
       </header>
 
-      <section className="panel stack">
+      <section className={panelClass}>
         <h2>Formación y trayectoria</h2>
         <p>
           Universidad: {profile.university || "No indicada"}
@@ -56,20 +59,20 @@ export default async function AdminTalentDetailPage({ params }) {
             : ""}
         </p>
         {profile.experiencesSummary && (
-          <div className="stack">
+          <div className="grid min-w-0 gap-4">
             <h3>Experiencia</h3>
             <p>{profile.experiencesSummary}</p>
           </div>
         )}
         {profile.featuredProject && (
-          <div className="stack">
+          <div className="grid min-w-0 gap-4">
             <h3>Proyecto destacado</h3>
             <p>{profile.featuredProject}</p>
           </div>
         )}
       </section>
 
-      <section className="panel stack">
+      <section className={panelClass}>
         <h2>Competencias e intereses</h2>
         <p>Habilidades: {profile.skills.length ? profile.skills.join(", ") : "Sin especificar"}</p>
         <p>Herramientas: {profile.tools.length ? profile.tools.join(", ") : "Sin especificar"}</p>
@@ -78,14 +81,19 @@ export default async function AdminTalentDetailPage({ params }) {
         <p>Idiomas: {profile.languages.length ? profile.languages.join(", ") : "Sin especificar"}</p>
       </section>
 
-      <section className="panel stack">
+      <section className={panelClass}>
         <h2>Enlaces profesionales ({profile.links.length})</h2>
         {profile.links.length > 0 ? (
-          <ul>
+          <ul className="grid list-disc gap-1.5 pl-6">
             {profile.links.map((link, index) => (
               <li key={`${link.kind}-${index}`}>
                 <strong>{linkKindLabels[link.kind] ?? link.kind}</strong>:{" "}
-                <a href={link.url} target="_blank" rel="noopener noreferrer">
+                <a
+                  className="text-brand-primary underline underline-offset-[0.22em] hover:text-brand-ink"
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   {link.label}
                 </a>
               </li>

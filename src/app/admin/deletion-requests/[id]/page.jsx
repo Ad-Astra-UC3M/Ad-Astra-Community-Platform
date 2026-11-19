@@ -34,6 +34,16 @@ const errorMessages = new Map([
   ["missing", "No se encontró la solicitud indicada."],
 ]);
 
+const panelClass =
+  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
+const fieldClass = "grid min-w-0 gap-1.5 font-bold";
+const textareaClass =
+  "min-h-12 w-full min-w-0 resize-y rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
+const primaryButtonClass =
+  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
+const secondaryButtonClass =
+  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
+
 export default async function AdminDeletionRequestDetailPage({ params, searchParams }) {
   const admin = await requireCapability("general_admin");
   const { id } = await params;
@@ -48,26 +58,36 @@ export default async function AdminDeletionRequestDetailPage({ params, searchPar
   const errorMessage = errorMessages.get(errorCode);
 
   return (
-    <main className="shell stack">
+    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
       <BackLink href="/admin/deletion-requests">Volver a solicitudes</BackLink>
-      <header className="stack">
-        <p className="eyebrow">Solicitud de supresión · {statusLabels[request.status]}</p>
+      <header className="grid min-w-0 gap-4">
+        <p className="text-[0.9rem] font-bold text-brand-primary">
+          Solicitud de supresión · {statusLabels[request.status]}
+        </p>
         <h1>{request.accountName}</h1>
         <p>
           {request.accountEmail} · Estado de la cuenta:{" "}
           <strong>{request.accountStatus === "active" ? "Activa" : "Desactivada"}</strong>
         </p>
         <div>
-          <Link className="button secondary" href={`/admin/accounts/${request.accountId}`}>
+          <Link className={secondaryButtonClass} href={`/admin/accounts/${request.accountId}`}>
             Ver ficha de la cuenta
           </Link>
         </div>
       </header>
 
-      {statusMessage && <p className="notice" role="status">{statusMessage}</p>}
-      {errorMessage && <p className="notice" role="alert">{errorMessage}</p>}
+      {statusMessage && (
+        <p className="rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink empty:hidden" role="status">
+          {statusMessage}
+        </p>
+      )}
+      {errorMessage && (
+        <p className="rounded-[4px] bg-brand-accent/35 px-4 py-3.5 text-brand-ink" role="alert">
+          {errorMessage}
+        </p>
+      )}
 
-      <section className="panel stack">
+      <section className={panelClass}>
         <h2>Datos de la solicitud</h2>
         <p>Fecha de creación: {dateTimeFormat.format(new Date(request.createdAt))}</p>
         <p>Motivo aportado: {request.reason || "Sin motivo adicional."}</p>
@@ -85,14 +105,15 @@ export default async function AdminDeletionRequestDetailPage({ params, searchPar
       {request.status !== "resolved" && (
         <>
           {request.status === "pending" && (
-            <section className="panel stack" aria-label="Marcar solicitud en revisión">
+            <section className={panelClass} aria-label="Marcar solicitud en revisión">
               <h2>Pasar a en revisión</h2>
-              <form action={resolveDeletionRequestAction} className="stack">
+              <form action={resolveDeletionRequestAction} className="grid min-w-0 gap-4">
                 <input type="hidden" name="requestId" value={request.id} />
                 <input type="hidden" name="status" value="in_review" />
-                <label className="field">
+                <label className={fieldClass}>
                   Nota preliminar de revisión (opcional)
                   <textarea
+                    className={textareaClass}
                     name="resolutionNote"
                     rows={2}
                     maxLength={2000}
@@ -100,24 +121,25 @@ export default async function AdminDeletionRequestDetailPage({ params, searchPar
                   />
                 </label>
                 <div>
-                  <button type="submit" className="button secondary">Marcar en revisión</button>
+                  <button type="submit" className={secondaryButtonClass}>Marcar en revisión</button>
                 </div>
               </form>
             </section>
           )}
 
-          <section className="panel stack" aria-label="Resolver solicitud de supresión">
+          <section className={panelClass} aria-label="Resolver solicitud de supresión">
             <h2>Resolver solicitud</h2>
             <p>
               Al resolver se registran de forma permanente el resultado motivado, tu identidad como responsable y la
               fecha de cierre.
             </p>
-            <form action={resolveDeletionRequestAction} className="stack">
+            <form action={resolveDeletionRequestAction} className="grid min-w-0 gap-4">
               <input type="hidden" name="requestId" value={request.id} />
               <input type="hidden" name="status" value="resolved" />
-              <label className="field">
+              <label className={fieldClass}>
                 Resultado motivado de la resolución
                 <textarea
+                  className={textareaClass}
                   name="resolutionNote"
                   required
                   rows={4}
@@ -127,7 +149,7 @@ export default async function AdminDeletionRequestDetailPage({ params, searchPar
                 />
               </label>
               <div>
-                <button type="submit" className="button">Marcar como resuelta</button>
+                <button type="submit" className={primaryButtonClass}>Marcar como resuelta</button>
               </div>
             </form>
           </section>

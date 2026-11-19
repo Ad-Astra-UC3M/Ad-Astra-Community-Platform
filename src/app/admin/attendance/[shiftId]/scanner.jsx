@@ -65,20 +65,60 @@ export function Scanner({action}) {
     return () => { closed = true; stop(); };
   }, [active]);
 
-  return <section className="panel stack scanner">
-    <h2>Leer tarjeta</h2>
-    <button type="button" className="button secondary" disabled={pending} onClick={() => {
-      setCameraError("");
-      setActive(!active);
-    }}>{active ? "Cerrar cámara" : "Abrir cámara"}</button>
-    {active && <video ref={video} muted playsInline aria-label="Vista de cámara" style={{maxWidth:"100%"}} />}
-    {cameraError && <p role="alert">{cameraError}</p>}
-    <form className="stack" action={submit} ref={form}>
-      <label className="field">Código de la tarjeta
-        <textarea required name="token" maxLength={2048} ref={input} rows={3} />
-      </label>
-      <button className="button" disabled={pending}>{pending ? "Validando…" : "Validar tarjeta"}</button>
-    </form>
-    <p role="status" aria-live="polite">{result}</p>
-  </section>;
+  return (
+    <section className="grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8">
+      <h2>Leer tarjeta</h2>
+      <button
+        type="button"
+        className="inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink"
+        disabled={pending}
+        onClick={() => {
+          setCameraError("");
+          setActive(!active);
+        }}
+      >
+        {active ? "Cerrar cámara" : "Abrir cámara"}
+      </button>
+      {active && (
+        <video
+          ref={video}
+          muted
+          playsInline
+          aria-label="Vista de cámara"
+          className="block w-full max-w-[32rem] rounded-[4px]"
+        />
+      )}
+      {cameraError && (
+        <p className="rounded-[4px] bg-brand-accent/35 px-4 py-3.5 text-brand-ink" role="alert">
+          {cameraError}
+        </p>
+      )}
+      <form className="grid min-w-0 gap-4" action={submit} ref={form}>
+        <label className="grid min-w-0 gap-1.5 font-bold">
+          Código de la tarjeta
+          <textarea
+            className="min-h-12 w-full min-w-0 resize-y rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink"
+            required
+            name="token"
+            maxLength={2048}
+            ref={input}
+            rows={3}
+          />
+        </label>
+        <button
+          className="inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink"
+          disabled={pending}
+        >
+          {pending ? "Validando…" : "Validar tarjeta"}
+        </button>
+      </form>
+      <p
+        className="rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink empty:hidden"
+        role="status"
+        aria-live="polite"
+      >
+        {result}
+      </p>
+    </section>
+  );
 }

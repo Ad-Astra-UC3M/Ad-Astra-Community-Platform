@@ -17,6 +17,16 @@ const statusLabels = {
   deactivated: "Desactivada",
 };
 
+const panelClass =
+  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
+const fieldClass = "grid min-w-0 gap-1.5 font-bold";
+const inputClass =
+  "min-h-12 w-full min-w-0 rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
+const primaryButtonClass =
+  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
+const secondaryButtonClass =
+  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
+
 export default async function AdminAccountsPage({ searchParams }) {
   const admin = await requireCapability("general_admin");
   const resolved = await searchParams;
@@ -38,66 +48,66 @@ export default async function AdminAccountsPage({ searchParams }) {
   });
 
   return (
-    <main className="shell stack">
+    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
       <BackLink href="/admin">Volver al panel</BackLink>
-      <header className="stack">
-        <p className="eyebrow">Administración general</p>
+      <header className="grid min-w-0 gap-4">
+        <p className="text-[0.9rem] font-bold text-brand-primary">Administración general</p>
         <h1>Cuentas y permisos</h1>
-        <p className="lead">
+        <p className="max-w-[48ch] text-[1.2rem] leading-[1.55]">
           Busca y filtra cuentas verificadas, gestiona sus capacidades independientes y activa o desactiva su acceso.
           Los perfiles de talento permanecen aislados bajo la capacidad de consulta de talento.
         </p>
       </header>
 
-      <section className="panel stack" aria-label="Filtros de búsqueda de cuentas">
+      <section className={panelClass} aria-label="Filtros de búsqueda de cuentas">
         <h2>Buscar y filtrar</h2>
-        <form method="get" className="stack">
-          <label className="field">
+        <form method="get" className="grid min-w-0 gap-4">
+          <label className={fieldClass}>
             Nombre o correo
-            <input name="query" type="search" defaultValue={query} placeholder="Nombre, apellidos o correo UC3M" />
+            <input className={inputClass} name="query" type="search" defaultValue={query} placeholder="Nombre, apellidos o correo UC3M" />
           </label>
-          <label className="field">
+          <label className={fieldClass}>
             Titulación
-            <input name="degree" type="text" defaultValue={degree} placeholder="Ingeniería Aeroespacial" />
+            <input className={inputClass} name="degree" type="text" defaultValue={degree} placeholder="Ingeniería Aeroespacial" />
           </label>
-          <label className="field">
+          <label className={fieldClass}>
             Curso
-            <input name="course" type="text" defaultValue={course} placeholder="3º" />
+            <input className={inputClass} name="course" type="text" defaultValue={course} placeholder="3º" />
           </label>
-          <label className="field">
+          <label className={fieldClass}>
             Estado de la cuenta
-            <select name="status" defaultValue={status}>
+            <select className={inputClass} name="status" defaultValue={status}>
               <option value="">Todos</option>
               <option value="active">Activa</option>
               <option value="deactivated">Desactivada</option>
             </select>
           </label>
-          <label className="field">
+          <label className={fieldClass}>
             Participación en actividades
-            <select name="hasParticipation" defaultValue={hasParticipation}>
+            <select className={inputClass} name="hasParticipation" defaultValue={hasParticipation}>
               <option value="">Todas</option>
               <option value="yes">Con reservas</option>
               <option value="no">Sin reservas</option>
             </select>
           </label>
-          <div className="action-row">
-            <button type="submit" className="button">Aplicar filtros</button>
-            <Link className="button secondary" href="/admin/accounts">Limpiar</Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="submit" className={primaryButtonClass}>Aplicar filtros</button>
+            <Link className={secondaryButtonClass} href="/admin/accounts">Limpiar</Link>
           </div>
         </form>
       </section>
 
-      <section className="stack" aria-label="Listado de cuentas">
+      <section className="grid min-w-0 gap-4" aria-label="Listado de cuentas">
         <h2>Resultados ({accounts.length})</h2>
         {accounts.length === 0 ? (
-          <section className="panel">
+          <section className={panelClass}>
             <p>No se han encontrado cuentas con los filtros indicados.</p>
           </section>
         ) : (
-          <ul className="stack">
+          <ul className="m-0 grid list-none gap-4 p-0">
             {accounts.map((account) => (
-              <li className="panel stack" key={account.id}>
-                <p className="eyebrow">
+              <li className={panelClass} key={account.id}>
+                <p className="text-[0.9rem] font-bold text-brand-primary">
                   {statusLabels[account.status]} · {account.role === "organizer" ? "Organización" : "Estudiante"}
                 </p>
                 <h3>{account.name}</h3>
@@ -116,7 +126,7 @@ export default async function AdminAccountsPage({ searchParams }) {
                     : "Sin capacidades administrativas"}
                 </p>
                 <div>
-                  <Link className="button secondary" href={`/admin/accounts/${account.id}`}>
+                  <Link className={secondaryButtonClass} href={`/admin/accounts/${account.id}`}>
                     Ver ficha y permisos
                   </Link>
                 </div>

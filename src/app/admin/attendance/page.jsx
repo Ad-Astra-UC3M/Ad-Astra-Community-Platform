@@ -20,30 +20,35 @@ const statusLabels = {
   archived: "Archivada",
 };
 
+const panelClass =
+  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
+const primaryButtonClass =
+  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
+
 export default async function AdminAttendanceIndexPage() {
   const organizer = await requireCapability("attendance_validation");
   const shifts = listShiftSummaries(organizer.workspaceId);
 
   return (
-    <main className="shell stack">
+    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
       <BackLink href="/admin">Volver al panel</BackLink>
-      <header className="stack">
-        <p className="eyebrow">Validación de asistencia</p>
+      <header className="grid min-w-0 gap-4">
+        <p className="text-[0.9rem] font-bold text-brand-primary">Validación de asistencia</p>
         <h1>Turnos disponibles</h1>
-        <p className="lead">
+        <p className="max-w-[48ch] text-[1.2rem] leading-[1.55]">
           Selecciona un turno para validar tarjetas QR, inscribir manualmente en puerta o registrar correcciones.
         </p>
       </header>
 
       {shifts.length === 0 ? (
-        <section className="panel">
+        <section className={panelClass}>
           <p>No hay turnos registrados en este momento.</p>
         </section>
       ) : (
-        <ul className="stack">
+        <ul className="m-0 grid list-none gap-4 p-0">
           {shifts.map((shift) => (
-            <li className="panel stack" key={shift.id}>
-              <p className="eyebrow">{statusLabels[shift.activityStatus]}</p>
+            <li className={panelClass} key={shift.id}>
+              <p className="text-[0.9rem] font-bold text-brand-primary">{statusLabels[shift.activityStatus]}</p>
               <h2>{shift.activityTitle}</h2>
               <p>
                 <strong>{shift.name}</strong> ·{" "}
@@ -54,7 +59,7 @@ export default async function AdminAttendanceIndexPage() {
                 {shift.attendedCount} asistencias confirmadas
               </p>
               <div>
-                <Link className="button" href={`/admin/attendance/${shift.id}`}>
+                <Link className={primaryButtonClass} href={`/admin/attendance/${shift.id}`}>
                   Validar {shift.name}
                 </Link>
               </div>

@@ -49,6 +49,11 @@ const deletionLabels = {
   resolved: "Resuelta",
 };
 
+const panelClass =
+  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
+const secondaryButtonClass =
+  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
+
 export default async function AdminAccountDetailPage({ params, searchParams }) {
   const admin = await requireCapability("general_admin");
   const { id } = await params;
@@ -61,10 +66,10 @@ export default async function AdminAccountDetailPage({ params, searchParams }) {
   const activeCapabilities = new Set(account.capabilities);
 
   return (
-    <main className="shell stack">
+    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
       <BackLink href="/admin/accounts">Volver a cuentas</BackLink>
-      <header className="stack">
-        <p className="eyebrow">
+      <header className="grid min-w-0 gap-4">
+        <p className="text-[0.9rem] font-bold text-brand-primary">
           Administración general · {account.status === "active" ? "Cuenta activa" : "Cuenta desactivada"}
         </p>
         <h1>{account.name}</h1>
@@ -75,9 +80,13 @@ export default async function AdminAccountDetailPage({ params, searchParams }) {
         </p>
       </header>
 
-      {statusMessage && <p className="notice" role="status">{statusMessage}</p>}
+      {statusMessage && (
+        <p className="rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink empty:hidden" role="status">
+          {statusMessage}
+        </p>
+      )}
 
-      <section className="panel stack" aria-label="Estado de la cuenta">
+      <section className={panelClass} aria-label="Estado de la cuenta">
         <h2>Estado y acceso</h2>
         <p>
           Estado actual: <strong>{account.status === "active" ? "Activa" : "Desactivada"}</strong>. Desactivar una
@@ -86,24 +95,24 @@ export default async function AdminAccountDetailPage({ params, searchParams }) {
         <form action={setAccountStatusAction}>
           <input type="hidden" name="accountId" value={account.id} />
           <input type="hidden" name="status" value={account.status === "active" ? "deactivated" : "active"} />
-          <button type="submit" className="button secondary">
+          <button type="submit" className={secondaryButtonClass}>
             {account.status === "active" ? "Desactivar cuenta" : "Reactivar cuenta"}
           </button>
         </form>
       </section>
 
-      <section className="panel stack" aria-label="Capacidades administrativas">
+      <section className={panelClass} aria-label="Capacidades administrativas">
         <h2>Capacidades independientes</h2>
         <p>
           Cada capacidad habilita exclusivamente su módulo. La administración general nunca implica consulta de
           talento.
         </p>
-        <ul className="stack">
+        <ul className="m-0 grid list-none gap-4 p-0">
           {ALL_CAPABILITIES.map((capability) => {
             const enabled = activeCapabilities.has(capability);
             const info = capabilityDetails[capability];
             return (
-              <li className="panel stack" key={capability}>
+              <li className={panelClass} key={capability}>
                 <p>
                   <strong>{info.label}</strong> · {enabled ? "Activa" : "No concedida"}
                 </p>
@@ -112,7 +121,7 @@ export default async function AdminAccountDetailPage({ params, searchParams }) {
                   <input type="hidden" name="accountId" value={account.id} />
                   <input type="hidden" name="capability" value={capability} />
                   <input type="hidden" name="enabled" value={enabled ? "false" : "true"} />
-                  <button type="submit" className="button secondary">
+                  <button type="submit" className={secondaryButtonClass}>
                     {enabled ? `Revocar ${info.label}` : `Conceder ${info.label}`}
                   </button>
                 </form>
@@ -122,10 +131,10 @@ export default async function AdminAccountDetailPage({ params, searchParams }) {
         </ul>
       </section>
 
-      <section className="panel stack" aria-label="Historial de reservas y asistencias">
+      <section className={panelClass} aria-label="Historial de reservas y asistencias">
         <h2>Historial de reservas y asistencias ({account.reservations.length})</h2>
         {account.reservations.length > 0 ? (
-          <ul>
+          <ul className="grid list-disc gap-1.5 pl-6">
             {account.reservations.map((item) => (
               <li key={item.shiftId}>
                 <strong>{item.activityTitle}</strong> · {item.shiftName} ·{" "}
@@ -140,12 +149,15 @@ export default async function AdminAccountDetailPage({ params, searchParams }) {
       </section>
 
       {account.deletionRequests.length > 0 && (
-        <section className="panel stack" aria-label="Solicitudes de supresión asociadas">
+        <section className={panelClass} aria-label="Solicitudes de supresión asociadas">
           <h2>Solicitudes de supresión</h2>
-          <ul>
+          <ul className="grid list-disc gap-1.5 pl-6">
             {account.deletionRequests.map((req) => (
               <li key={req.id}>
-                <Link href={`/admin/deletion-requests/${req.id}`}>
+                <Link
+                  className="text-brand-primary underline underline-offset-[0.22em] hover:text-brand-ink"
+                  href={`/admin/deletion-requests/${req.id}`}
+                >
                   Solicitud {deletionLabels[req.status]} · creada el {dateTimeFormat.format(new Date(req.createdAt))}
                 </Link>
               </li>
@@ -154,10 +166,10 @@ export default async function AdminAccountDetailPage({ params, searchParams }) {
         </section>
       )}
 
-      <section className="panel stack" aria-label="Auditoría de permisos">
+      <section className={panelClass} aria-label="Auditoría de permisos">
         <h2>Auditoría de capacidades</h2>
         {account.capabilityAudit.length > 0 ? (
-          <ul>
+          <ul className="grid list-disc gap-1.5 pl-6">
             {account.capabilityAudit.map((entry) => (
               <li key={entry.id}>
                 <strong>{entry.action === "granted" ? "Concedida" : "Revocada"}</strong>:{" "}

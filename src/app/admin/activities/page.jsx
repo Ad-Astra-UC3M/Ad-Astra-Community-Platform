@@ -62,6 +62,17 @@ function defaultDateTimeInput(offsetHours) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:00`;
 }
 
+const panelClass =
+  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
+const fieldClass = "grid min-w-0 gap-1.5 font-bold";
+const inputClass =
+  "min-h-12 w-full min-w-0 rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
+const textareaClass = `${inputClass} resize-y`;
+const primaryButtonClass =
+  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
+const secondaryButtonClass =
+  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
+
 export default async function AdminActivitiesPage({ searchParams }) {
   const editor = await requireCapability("content_editing");
   const resolvedSearch = await searchParams;
@@ -75,120 +86,128 @@ export default async function AdminActivitiesPage({ searchParams }) {
   const defaultEnd = defaultDateTimeInput(50);
 
   return (
-    <main className="shell stack">
+    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
       <BackLink href="/admin">Volver al panel</BackLink>
-      <header className="stack">
-        <p className="eyebrow">Edición de contenido</p>
+      <header className="grid min-w-0 gap-4">
+        <p className="text-[0.9rem] font-bold text-brand-primary">Edición de contenido</p>
         <h1>Actividades y turnos</h1>
-        <p className="lead">
+        <p className="max-w-[48ch] text-[1.2rem] leading-[1.55]">
           Crea actividades con turno «normal» por defecto o turnos múltiples, ajusta aforos sin afectar reservas
           existentes y gestiona su estado de publicación.
         </p>
       </header>
 
-      {statusMessage && <p className="notice" role="status">{statusMessage}</p>}
-      {errorMessage && <p className="notice" role="alert">{errorMessage}</p>}
+      {statusMessage && (
+        <p className="rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink empty:hidden" role="status">
+          {statusMessage}
+        </p>
+      )}
+      {errorMessage && (
+        <p className="rounded-[4px] bg-brand-accent/35 px-4 py-3.5 text-brand-ink" role="alert">
+          {errorMessage}
+        </p>
+      )}
 
-      <section className="panel stack" aria-label="Crear nueva actividad">
+      <section className={panelClass} aria-label="Crear nueva actividad">
         <h2>Nueva actividad</h2>
-        <form action={createAdminActivityAction} className="stack">
-          <label className="field">
+        <form action={createAdminActivityAction} className="grid min-w-0 gap-4">
+          <label className={fieldClass}>
             Título
-            <input name="title" type="text" required maxLength={160} placeholder="Ejemplo: Seminario de propulsión" />
+            <input className={inputClass} name="title" type="text" required maxLength={160} placeholder="Ejemplo: Seminario de propulsión" />
           </label>
-          <label className="field">
+          <label className={fieldClass}>
             Descripción
-            <textarea name="description" required rows={3} maxLength={2000} />
+            <textarea className={textareaClass} name="description" required rows={3} maxLength={2000} />
           </label>
-          <label className="field">
+          <label className={fieldClass}>
             Ubicación
-            <input name="location" type="text" required maxLength={160} placeholder="Campus de Leganés" />
+            <input className={inputClass} name="location" type="text" required maxLength={160} placeholder="Campus de Leganés" />
           </label>
-          <label className="field">
+          <label className={fieldClass}>
             Estado inicial
-            <select name="status" defaultValue="published">
+            <select className={inputClass} name="status" defaultValue="published">
               <option value="published">Publicada</option>
               <option value="draft">Borrador</option>
             </select>
           </label>
-          <label className="field">
+          <label className={fieldClass}>
             Nombre del turno (opcional; si se deja vacío se crea como «normal»)
-            <input name="shiftName" type="text" maxLength={80} placeholder="normal" />
+            <input className={inputClass} name="shiftName" type="text" maxLength={80} placeholder="normal" />
           </label>
-          <label className="field">
+          <label className={fieldClass}>
             Inicio del turno
-            <input name="startsAt" type="datetime-local" required defaultValue={defaultStart} />
+            <input className={inputClass} name="startsAt" type="datetime-local" required defaultValue={defaultStart} />
           </label>
-          <label className="field">
+          <label className={fieldClass}>
             Fin del turno
-            <input name="endsAt" type="datetime-local" required defaultValue={defaultEnd} />
+            <input className={inputClass} name="endsAt" type="datetime-local" required defaultValue={defaultEnd} />
           </label>
-          <label className="field">
+          <label className={fieldClass}>
             Aforo del turno
-            <input name="capacity" type="number" min={1} max={1000} required defaultValue={20} />
+            <input className={inputClass} name="capacity" type="number" min={1} max={1000} required defaultValue={20} />
           </label>
-          <label className="field">
+          <label className={fieldClass}>
             Imagen de portada (URL HTTPS opcional)
-            <input name="imageUrl1" type="url" placeholder="https://www.adastrauc3m.es/og-image.png" />
+            <input className={inputClass} name="imageUrl1" type="url" placeholder="https://www.adastrauc3m.es/og-image.png" />
           </label>
-          <label className="field">
+          <label className={fieldClass}>
             Texto alternativo de la portada (obligatorio si indicas imagen)
-            <input name="imageAlt1" type="text" maxLength={200} />
+            <input className={inputClass} name="imageAlt1" type="text" maxLength={200} />
           </label>
-          <label className="field">
+          <label className={fieldClass}>
             Segunda imagen (URL HTTPS opcional)
-            <input name="imageUrl2" type="url" placeholder="https://www.adastrauc3m.es/logo.png" />
+            <input className={inputClass} name="imageUrl2" type="url" placeholder="https://www.adastrauc3m.es/logo.png" />
           </label>
-          <label className="field">
+          <label className={fieldClass}>
             Texto alternativo de la segunda imagen
-            <input name="imageAlt2" type="text" maxLength={200} />
+            <input className={inputClass} name="imageAlt2" type="text" maxLength={200} />
           </label>
           <div>
-            <button type="submit" className="button">Crear actividad</button>
+            <button type="submit" className={primaryButtonClass}>Crear actividad</button>
           </div>
         </form>
       </section>
 
-      <section className="stack" aria-label="Listado administrativo de actividades">
+      <section className="grid min-w-0 gap-4" aria-label="Listado administrativo de actividades">
         <h2>Actividades existentes ({activities.length})</h2>
         {activities.map((activity) => (
-          <article className="panel stack" key={activity.id}>
-            <header className="stack">
-              <p className="eyebrow">{statusLabels[activity.status]} · {activity.location}</p>
+          <article className={panelClass} key={activity.id}>
+            <header className="grid min-w-0 gap-4">
+              <p className="text-[0.9rem] font-bold text-brand-primary">{statusLabels[activity.status]} · {activity.location}</p>
               <h3>{activity.title}</h3>
               <p>{activity.description}</p>
             </header>
 
-            <div className="action-row">
+            <div className="flex flex-wrap items-center gap-3">
               {activity.status !== "published" && (
                 <form action={setActivityStatusAction}>
                   <input type="hidden" name="activityId" value={activity.id} />
                   <input type="hidden" name="status" value="published" />
-                  <button type="submit" className="button secondary">Publicar</button>
+                  <button type="submit" className={secondaryButtonClass}>Publicar</button>
                 </form>
               )}
               {activity.status !== "draft" && (
                 <form action={setActivityStatusAction}>
                   <input type="hidden" name="activityId" value={activity.id} />
                   <input type="hidden" name="status" value="draft" />
-                  <button type="submit" className="button secondary">Pasar a borrador</button>
+                  <button type="submit" className={secondaryButtonClass}>Pasar a borrador</button>
                 </form>
               )}
               {activity.status !== "archived" && (
                 <form action={setActivityStatusAction}>
                   <input type="hidden" name="activityId" value={activity.id} />
                   <input type="hidden" name="status" value="archived" />
-                  <button type="submit" className="button secondary">Archivar</button>
+                  <button type="submit" className={secondaryButtonClass}>Archivar</button>
                 </form>
               )}
             </div>
 
-            <div className="stack">
+            <div className="grid min-w-0 gap-4">
               <h4>Turnos ({activity.shifts.length})</h4>
               {activity.shifts.length > 0 ? (
-                <ul className="stack">
+                <ul className="m-0 grid list-none gap-4 p-0">
                   {activity.shifts.map((shift) => (
-                    <li className="panel stack" key={shift.id}>
+                    <li className={panelClass} key={shift.id}>
                       <p>
                         <strong>{shift.name}</strong> · {dateTimeFormat.format(new Date(shift.startsAt))} –{" "}
                         {dateTimeFormat.format(new Date(shift.endsAt))}
@@ -196,12 +215,13 @@ export default async function AdminActivitiesPage({ searchParams }) {
                       <p>
                         {shift.reservedCount}/{shift.capacity} plazas ocupadas · {shift.attendedCount} asistencias
                       </p>
-                      <div className="action-row">
-                        <form action={updateShiftCapacityAction} className="action-row">
+                      <div className="flex flex-wrap items-end gap-3">
+                        <form action={updateShiftCapacityAction} className="flex flex-wrap items-end gap-3">
                           <input type="hidden" name="shiftId" value={shift.id} />
-                          <label className="field">
+                          <label className={fieldClass}>
                             Nuevo aforo ({shift.name})
                             <input
+                              className={inputClass}
                               name="capacity"
                               type="number"
                               min={1}
@@ -210,11 +230,11 @@ export default async function AdminActivitiesPage({ searchParams }) {
                               required
                             />
                           </label>
-                          <button type="submit" className="button secondary">Actualizar aforo</button>
+                          <button type="submit" className={secondaryButtonClass}>Actualizar aforo</button>
                         </form>
                         <form action={deleteShiftAction}>
                           <input type="hidden" name="shiftId" value={shift.id} />
-                          <button type="submit" className="button secondary">Eliminar turno</button>
+                          <button type="submit" className={secondaryButtonClass}>Eliminar turno</button>
                         </form>
                       </div>
                     </li>
@@ -224,45 +244,48 @@ export default async function AdminActivitiesPage({ searchParams }) {
                 <p>Sin turnos configurados.</p>
               )}
 
-              <details className="card-tools">
-                <summary>Añadir turno o imagen a «{activity.title}»</summary>
-                <div className="stack">
-                  <form action={addActivityShiftAction} className="stack">
+              <details className="grid min-w-0 gap-3">
+                <summary className="w-fit cursor-pointer py-2.5 font-bold text-brand-primary hover:text-brand-ink">
+                  Añadir turno o imagen a «{activity.title}»
+                </summary>
+                <div className="grid min-w-0 gap-4 pt-2">
+                  <form action={addActivityShiftAction} className="grid min-w-0 gap-4">
                     <input type="hidden" name="activityId" value={activity.id} />
-                    <label className="field">
+                    <label className={fieldClass}>
                       Nombre del nuevo turno
-                      <input name="name" type="text" required maxLength={80} placeholder="Turno adicional" />
+                      <input className={inputClass} name="name" type="text" required maxLength={80} placeholder="Turno adicional" />
                     </label>
-                    <label className="field">
+                    <label className={fieldClass}>
                       Inicio
-                      <input name="startsAt" type="datetime-local" required defaultValue={defaultStart} />
+                      <input className={inputClass} name="startsAt" type="datetime-local" required defaultValue={defaultStart} />
                     </label>
-                    <label className="field">
+                    <label className={fieldClass}>
                       Fin
-                      <input name="endsAt" type="datetime-local" required defaultValue={defaultEnd} />
+                      <input className={inputClass} name="endsAt" type="datetime-local" required defaultValue={defaultEnd} />
                     </label>
-                    <label className="field">
+                    <label className={fieldClass}>
                       Aforo
-                      <input name="capacity" type="number" min={1} max={1000} required defaultValue={10} />
+                      <input className={inputClass} name="capacity" type="number" min={1} max={1000} required defaultValue={10} />
                     </label>
                     <div>
-                      <button type="submit" className="button secondary">Añadir turno</button>
+                      <button type="submit" className={secondaryButtonClass}>Añadir turno</button>
                     </div>
                   </form>
 
-                  <form action={addActivityImageAction} className="stack">
+                  <form action={addActivityImageAction} className="grid min-w-0 gap-4">
                     <input type="hidden" name="activityId" value={activity.id} />
-                    <label className="field">
+                    <label className={fieldClass}>
                       URL HTTPS de la imagen
-                      <input name="imageUrl" type="url" required placeholder="https://www.adastrauc3m.es/og-image.png" />
+                      <input className={inputClass} name="imageUrl" type="url" required placeholder="https://www.adastrauc3m.es/og-image.png" />
                     </label>
-                    <label className="field">
+                    <label className={fieldClass}>
                       Texto alternativo
-                      <input name="imageAlt" type="text" required maxLength={200} />
+                      <input className={inputClass} name="imageAlt" type="text" required maxLength={200} />
                     </label>
-                    <label className="field">
+                    <label className={fieldClass}>
                       Posición (1 = portada)
                       <input
+                        className={inputClass}
                         name="position"
                         type="number"
                         min={1}
@@ -271,7 +294,7 @@ export default async function AdminActivitiesPage({ searchParams }) {
                       />
                     </label>
                     <div>
-                      <button type="submit" className="button secondary">Añadir imagen</button>
+                      <button type="submit" className={secondaryButtonClass}>Añadir imagen</button>
                     </div>
                   </form>
                 </div>
