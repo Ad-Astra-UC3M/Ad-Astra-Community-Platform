@@ -4,7 +4,7 @@ import {
   registerVerifyAndSignIn,
   signInAs,
   signOut,
-  waitForMailboxToken,
+  waitForMailboxOtp,
 } from "./helpers/e2e-env";
 
 test("CA-01: capacidades independientes en /admin con 404 al carecer de permiso", async ({ page }) => {
@@ -35,38 +35,12 @@ test("CA-02 y CA-03: retorno a ruta protegida tras acceso y recuperación de con
   const initialPassword = "ClaveInicial2026!";
   const nextPassword = "ClaveNueva2026!";
 
-  await page.goto("/sign-up");
-  await page.getByLabel("Nombre", { exact: true }).fill("Marco");
-  await page.getByLabel("Apellidos", { exact: true }).fill(`Acceso ${info.project.name}`);
-  await page.getByLabel(/Correo institucional UC3M/i).fill(email);
-  await page.getByLabel("Titulación", { exact: true }).fill("Ingeniería Aeroespacial");
-  await page.getByLabel("Curso", { exact: true }).fill("2.º");
-  await page.getByLabel("Contraseña", { exact: true }).fill(initialPassword);
-  await page.getByRole("checkbox").check();
-  await page.getByRole("button", { name: "Crear cuenta", exact: true }).click();
-  await expect(page).toHaveURL(/\/verify-email\?sent=1$/);
-
-  const verifyToken = await waitForMailboxToken(email, "email-verification");
-  const verifyUrl = `/verify-email?token=${encodeURIComponent(verifyToken)}`;
-
-  // Abrir la URL en GET (como un escáner/prefetcher de enlaces) NO consume el token antes de pulsar el botón
-  await page.goto(verifyUrl);
-  await expect(page.getByRole("button", { name: "Confirmar correo electrónico" })).toBeVisible();
-  await expect(page.getByText(/verificado correctamente/i)).toHaveCount(0);
-  await page.reload();
-  await expect(page.getByRole("button", { name: "Confirmar correo electrónico" })).toBeVisible();
-
-  await page.getByRole("button", { name: "Confirmar correo electrónico" }).click();
-  await expect(page).toHaveURL(/\/verify-email\?verified=1$/);
-  await expect(page.getByRole("status")).toContainText("verificado correctamente");
-
-  await page.getByRole("link", { name: "Acceder a la comunidad" }).click();
-  await expect(page).toHaveURL(/\/sign-in$/);
-  await page.getByLabel(/Correo/i).fill(email);
-  await page.getByLabel(/Contraseña/i).fill(initialPassword);
-  await page.getByRole("button", { name: "Acceder", exact: true }).click();
-  await expect(page).toHaveURL(/\/home$/);
-
+  await registerVerifyAndSignIn(page, {
+    firstName: "Marco",
+    lastName: `Acceso ${info.project.name}`,
+    email,
+    password: initialPassword,
+  });
   await signOut(page);
 
   // Acceso directo a ruta interna protegida redirige con ?next= y retorna tras iniciar sesión
@@ -77,24 +51,44 @@ test("CA-02 y CA-03: retorno a ruta protegida tras acceso y recuperación de con
   await page.getByRole("button", { name: "Acceder", exact: true }).click();
   await expect(page).toHaveURL(/\/bookmarks$/);
 
-  // Recuperación de contraseña de un solo uso mediante buzón de pruebas (sin enlace simulado en UI)
+  // El buzón de pruebas permite copiar el código que recibe el usuario.
   await signOut(page);
   await page.goto("/sign-in");
   await page.getByRole("link", { name: "¿Has olvidado tu contraseña?" }).click();
   await expect(page).toHaveURL(/\/forgot-password$/);
   await page.getByLabel(/Correo/i).fill(email);
   await page.getByRole("button", { name: "Solicitar recuperación" }).click();
-  await expect(page).toHaveURL(/\/forgot-password\?sent=1$/);
-  await expect(page.getByRole("status")).toContainText("recuperación");
-  await expect(page.getByRole("link", { name: /Abrir enlace de recuperación/i })).toHaveCount(0);
+  await expect(page).toHaveURL(/\/reset-password\?sent=1$/);
+  const main = page.getByRole("main");
+  await expect(main.getByRole("status")).toContainText("código de recuperación");
+  const emailField = main.getByLabel("Correo institucional UC3M");
+  await expect(emailField).toHaveValue(email);
 
-  const resetToken = await waitForMailboxToken(email, "password-reset");
-  await page.goto(`/reset-password?token=${encodeURIComponent(resetToken)}`);
-  await page.getByLabel("Nueva contraseña", { exact: true }).fill(nextPassword);
-  await page.getByLabel("Confirmar nueva contraseña", { exact: true }).fill(nextPassword);
-  await page.getByRole("button", { name: "Guardar nueva contraseña" }).click();
+  const otp = await waitForMailboxOtp(email, "password-reset");
+  expect(otp).toMatch(/^\d{6}$/);
+  const submitPasswordReset = async (password: string, confirmation = password) => {
+    await main.getByLabel("Código de recuperación").fill(otp);
+    await main.getByLabel("Nueva contraseña", { exact: true }).fill(password);
+    await main.getByLabel("Confirmar nueva contraseña", { exact: true }).fill(confirmation);
+    await main.getByRole("button", { name: "Guardar nueva contraseña" }).click();
+  };
+
+  // Un error de formulario permite reintentar con el mismo código.
+  await submitPasswordReset(nextPassword, initialPassword);
+  await expect(page).toHaveURL(/\/reset-password\?error=mismatch$/);
+  await expect(main.getByRole("alert")).toContainText("no coinciden");
+  await expect(emailField).toHaveValue(email);
+
+  await submitPasswordReset(nextPassword);
   await expect(page).toHaveURL(/\/sign-in\?reset=ok$/);
   await expect(page.getByRole("status")).toContainText("Contraseña actualizada");
+
+  await page.goto("/reset-password");
+  await emailField.fill(email);
+  await submitPasswordReset("ClaveReutilizada2026!");
+  await expect(page).toHaveURL(/\/reset-password\?error=invalid$/);
+  await expect(main.getByRole("alert")).toBeVisible();
+  await page.goto("/sign-in");
 
   // Contraseña antigua rechazada y nueva aceptada
   await page.getByLabel(/Correo/i).fill(email);

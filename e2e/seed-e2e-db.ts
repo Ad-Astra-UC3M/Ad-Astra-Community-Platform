@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { bootstrapAdmin } from "../scripts/bootstrap-admin";
 import { closeDb, getDb } from "../src/db/client";
 import { activities, opportunities, profiles, shifts } from "../src/db/schema";
-import { createTestAuthProvider, getLatestTestToken } from "../src/lib/auth/test-auth-provider";
+import { createTestAuthProvider, getLatestTestOtp } from "../src/lib/auth/test-auth-provider";
 import { registerAccount, verifyAccountEmail } from "../src/server/auth/service";
 import { reserveShift } from "../src/server/repositories/activities";
 import { createAdminActivity, setProfileCapability } from "../src/server/repositories/admin";
@@ -41,16 +41,17 @@ async function seedVerifiedUser(
     throw new Error(`Failed seeding ${input.email}: ${reg.error}`);
   }
 
-  const token = await getLatestTestToken(db, input.email, "email-verification");
-  if (!token) {
-    throw new Error(`Missing verification token for ${input.email}`);
+  const otp = await getLatestTestOtp(db, input.email, "email-verification");
+  if (!otp) {
+    throw new Error(`Missing verification OTP for ${input.email}`);
   }
 
-  const verified = await verifyAccountEmail(db, authProvider, token);
+  const verified = await verifyAccountEmail(db, authProvider, { email: input.email, otp });
   if (!verified.ok) {
     throw new Error(`Failed verifying ${input.email}: ${verified.error}`);
   }
 
+  await authProvider.signOut();
   return { profileId: reg.profileId, authUserId: reg.authUserId };
 }
 
@@ -282,7 +283,7 @@ async function main() {
       throw new Error("E2E seed verification failed.");
     }
 
-    // Clear seed verification tokens from the mailbox file so E2E tests start clean.
+    // Clear seed verification codes from the mailbox file so E2E tests start clean.
     if (mailboxFile) {
       rmSync(mailboxFile, { force: true });
     }

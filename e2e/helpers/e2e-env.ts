@@ -32,7 +32,7 @@ export const E2E_ACCOUNTS = {
 export type MailboxEntry = {
   kind: "email-verification" | "password-reset";
   email: string;
-  token: string;
+  otp: string;
   createdAt: string;
 };
 
@@ -49,10 +49,10 @@ export function readMailboxEntries(): MailboxEntry[] {
     .map((line) => JSON.parse(line) as MailboxEntry);
 }
 
-export async function waitForMailboxToken(
+export async function waitForMailboxOtp(
   email: string,
   kind: MailboxEntry["kind"],
-  previousToken?: string,
+  previousOtp?: string,
   timeoutMs = 10_000,
 ): Promise<string> {
   const normalized = email.trim().toLowerCase();
@@ -63,13 +63,13 @@ export async function waitForMailboxToken(
       (entry) => entry.email === normalized && entry.kind === kind,
     );
     const latest = entries.at(-1);
-    if (latest && latest.token !== previousToken) {
-      return latest.token;
+    if (latest && latest.otp !== previousOtp) {
+      return latest.otp;
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
-  throw new Error(`Timed out waiting for ${kind} token for ${normalized} in mailbox`);
+  throw new Error(`Timed out waiting for ${kind} OTP for ${normalized} in mailbox`);
 }
 
 export async function signInAs(
@@ -87,17 +87,16 @@ export async function signOut(page: Page): Promise<void> {
   await page.waitForURL(/\/$/);
 }
 
-export async function registerVerifyAndSignIn(
-  page: Page,
-  account: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    degree?: string;
-    course?: string;
-    password: string;
-  },
-): Promise<void> {
+type Registration = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  degree?: string;
+  course?: string;
+  password: string;
+};
+
+export async function registerForVerification(page: Page, account: Registration): Promise<void> {
   await page.goto("/sign-up");
   await page.getByLabel("Nombre", { exact: true }).fill(account.firstName);
   await page.getByLabel("Apellidos", { exact: true }).fill(account.lastName);
@@ -108,16 +107,13 @@ export async function registerVerifyAndSignIn(
   await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Crear cuenta", exact: true }).click();
   await page.waitForURL(/\/verify-email\?sent=1$/);
+}
 
-  const token = await waitForMailboxToken(account.email, "email-verification");
-  await page.goto(`/verify-email?token=${encodeURIComponent(token)}`);
+export async function registerVerifyAndSignIn(page: Page, account: Registration): Promise<void> {
+  await registerForVerification(page, account);
+
+  const otp = await waitForMailboxOtp(account.email, "email-verification");
+  await page.getByLabel("Código de verificación").fill(otp);
   await page.getByRole("button", { name: "Confirmar correo electrónico" }).click();
-  await page.waitForURL(/\/verify-email\?verified=1$/);
-  await page.getByRole("link", { name: "Acceder a la comunidad" }).click();
-  await page.waitForURL(/\/sign-in$/);
-
-  await page.getByLabel(/Correo/i).fill(account.email);
-  await page.getByLabel(/Contraseña/i).fill(account.password);
-  await page.getByRole("button", { name: "Acceder", exact: true }).click();
   await page.waitForURL(/\/home$/);
 }
