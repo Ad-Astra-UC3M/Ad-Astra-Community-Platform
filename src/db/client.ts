@@ -1,5 +1,5 @@
 import { mkdirSync } from "node:fs";
-import { PGlite } from "@electric-sql/pglite";
+import type { PGlite } from "@electric-sql/pglite";
 import { Pool } from "@neondatabase/serverless";
 import type { ExtractTablesWithRelations } from "drizzle-orm";
 import { drizzle as drizzleNeon } from "drizzle-orm/neon-serverless";
@@ -53,6 +53,12 @@ export function isPgliteMode(): boolean {
   );
 }
 
+async function loadPgliteClass(): Promise<typeof PGlite> {
+  const pkg = ["@electric-sql", "pglite"].join("/");
+  const mod = (await import(/* webpackIgnore: true */ pkg)) as { PGlite: typeof PGlite };
+  return mod.PGlite;
+}
+
 async function initPgliteDb(dataDir?: string): Promise<{
   db: AppDb;
   pglite: PGlite;
@@ -60,7 +66,8 @@ async function initPgliteDb(dataDir?: string): Promise<{
   if (dataDir) {
     mkdirSync(dataDir, { recursive: true });
   }
-  const pglite = dataDir ? new PGlite(dataDir) : new PGlite();
+  const PGliteCtor = await loadPgliteClass();
+  const pglite = dataDir ? new PGliteCtor(dataDir) : new PGliteCtor();
   await pglite.waitReady;
   await runMigrations(pglite);
   const db = drizzlePglite(pglite, { schema }) as unknown as AppDb;

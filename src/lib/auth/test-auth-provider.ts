@@ -5,6 +5,8 @@ import {
   scryptSync,
   timingSafeEqual,
 } from "node:crypto";
+import { appendFileSync, mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import { sql } from "drizzle-orm";
 
 import type { AppDb } from "../../db/client";
@@ -242,6 +244,16 @@ export function createTestAuthProvider(
       INSERT INTO neon_auth.verification (id, identifier, value, expires_at, created_at)
       VALUES (${randomUUID()}, ${identifier}, ${token}, ${expiresAt.toISOString()}::timestamptz, ${now.toISOString()}::timestamptz)
     `);
+
+    const mailboxFile = process.env.AD_ASTRA_TEST_MAILBOX_FILE?.trim();
+    if (isTestAuthEnabled() && mailboxFile) {
+      mkdirSync(dirname(mailboxFile), { recursive: true });
+      appendFileSync(
+        mailboxFile,
+        `${JSON.stringify({ kind, email, token, createdAt: now.toISOString() })}\n`,
+        "utf8",
+      );
+    }
 
     return token;
   }

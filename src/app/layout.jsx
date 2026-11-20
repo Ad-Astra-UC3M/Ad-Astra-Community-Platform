@@ -1,15 +1,16 @@
 import { Navbar, Footer } from "../components/original-layout";
 import { CommunityBar } from "../components/community-bar";
-import { currentUser } from "../demo/session";
+import { currentUser } from "../lib/auth/session";
 import "./globals.css";
 
 export const metadata = {
   title: { default: "Comunidad Ad Astra UC3M", template: "%s · Ad Astra UC3M" },
-  description: "Actividades, reservas y tarjeta de asistencia de Comunidad Ad Astra UC3M.",
+  description: "Actividades, reservas, oportunidades y tarjeta de asistencia de Comunidad Ad Astra UC3M.",
 };
 
 export default async function RootLayout({ children }) {
   const user = await currentUser();
+  const hasAdmin = Boolean(user && user.capabilities.length > 0);
 
   return (
     <html lang="es">
@@ -21,11 +22,11 @@ export default async function RootLayout({ children }) {
           Saltar al contenido
         </a>
         <div className="print:hidden">
-          <Navbar role={user?.role} />
+          <Navbar authenticated={Boolean(user)} hasAdmin={hasAdmin} />
         </div>
         {user && (
           <div className="print:hidden">
-            <CommunityBar role={user.role} />
+            <CommunityBar user={user} />
           </div>
         )}
         <div id="main-content" tabIndex={-1}>{children}</div>

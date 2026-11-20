@@ -1,5 +1,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { eq, sql } from "drizzle-orm";
 
 import { createTestDb } from "../../db/client";
@@ -598,6 +601,56 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
       else process.env.NEON_AUTH_BASE_URL = prevBaseUrl;
       if (prevSecret === undefined) delete process.env.NEON_AUTH_COOKIE_SECRET;
       else process.env.NEON_AUTH_COOKIE_SECRET = prevSecret;
+    }
+  });
+
+  it("writes verification and password-reset tokens to AD_ASTRA_TEST_MAILBOX_FILE when configured", async () => {
+    const db = await createTestDb();
+    const tempDir = mkdtempSync(join(tmpdir(), "ad-astra-mailbox-"));
+    const mailboxFile = join(tempDir, "mailbox.jsonl");
+    const prevMailbox = process.env.AD_ASTRA_TEST_MAILBOX_FILE;
+    process.env.AD_ASTRA_TEST_MAILBOX_FILE = mailboxFile;
+
+    try {
+      const authProvider = createTestAuthProvider(db);
+      const reg = await registerAccount(db, authProvider, {
+        firstName: "Buzon",
+        lastName: "Pruebas",
+        email: "buzon.pruebas@alumnos.uc3m.es",
+        degree: "Ingeniería Aeroespacial",
+        course: "2.º",
+        password: "BuzonPassword2026!",
+        privacyAccepted: true,
+      });
+      assert.equal(reg.ok, true);
+
+      const linesAfterSignUp = readFileSync(mailboxFile, "utf8")
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line) as { kind: string; email: string; token: string });
+      assert.equal(linesAfterSignUp.length, 1);
+      assert.equal(linesAfterSignUp[0].kind, "email-verification");
+      assert.equal(linesAfterSignUp[0].email, "buzon.pruebas@alumnos.uc3m.es");
+
+      assert.equal(
+        (await verifyAccountEmail(db, authProvider, linesAfterSignUp[0].token)).ok,
+        true,
+      );
+
+      await requestPasswordReset(db, authProvider, "buzon.pruebas@alumnos.uc3m.es");
+      const linesAfterReset = readFileSync(mailboxFile, "utf8")
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line) as { kind: string; email: string; token: string });
+      assert.equal(linesAfterReset.length, 2);
+      assert.equal(linesAfterReset[1].kind, "password-reset");
+      assert.equal(linesAfterReset[1].email, "buzon.pruebas@alumnos.uc3m.es");
+      assert.ok(linesAfterReset[1].token.length >= 20);
+    } finally {
+      if (prevMailbox === undefined) delete process.env.AD_ASTRA_TEST_MAILBOX_FILE;
+      else process.env.AD_ASTRA_TEST_MAILBOX_FILE = prevMailbox;
+      rmSync(tempDir, { recursive: true, force: true });
+      await db.close();
     }
   });
 });

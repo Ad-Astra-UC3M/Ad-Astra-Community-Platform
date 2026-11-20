@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { getDb } from "../../db/client";
@@ -47,6 +48,10 @@ function readFormString(formData: FormData, key: string): string {
 }
 
 export async function currentUser(): Promise<AuthUser | null> {
+  const jar = await cookies();
+  if (jar.getAll().length === 0) {
+    return null;
+  }
   const db = await getDb();
   const authProvider = await getAuthProvider(db);
   return resolveCurrentUser(db, authProvider);

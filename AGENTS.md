@@ -2,7 +2,7 @@
 
 ## Retomar el trabajo
 
-Lee el [README](README.md) y la última entrada de la [bitácora](docs/development-log.md). Comprueba `git status --short --branch`, el historial reciente, el remoto y las PR abiertas. Identifica qué está integrado, qué cambio tiene revisión pendiente y en qué punto retomar las pruebas. El prototipo usa datos sintéticos. La arquitectura de producto prevé Neon y Neon Auth para la fase de integración.
+Lee el [README](README.md) y la última entrada de la [bitácora](docs/development-log.md). Comprueba `git status --short --branch`, el historial reciente, el remoto y las PR abiertas. Identifica qué está integrado, qué cambio tiene revisión pendiente y en qué punto retomar las pruebas. La aplicación usa PostgreSQL (Neon en despliegue y PGlite en pruebas) con Drizzle ORM y Neon Auth (variables en `.env.example`, comandos `db:generate`, `db:migrate` y `db:bootstrap-admin`).
 
 ## Repartir una funcionalidad
 

@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { PGlite } from "@electric-sql/pglite";
+import type { PGlite } from "@electric-sql/pglite";
 import { Pool } from "@neondatabase/serverless";
 import { sql, type SQL } from "drizzle-orm";
 
@@ -63,7 +63,11 @@ export async function runMigrations(executor?: MigrationExecutor): Promise<void>
   const pgliteDir = process.env.AD_ASTRA_PG_TEST_DIR?.trim();
   if (pgliteDir) {
     mkdirSync(pgliteDir, { recursive: true });
-    const client = new PGlite(pgliteDir);
+    const pkg = ["@electric-sql", "pglite"].join("/");
+    const { PGlite: PGliteCtor } = (await import(/* webpackIgnore: true */ pkg)) as {
+      PGlite: typeof PGlite;
+    };
+    const client = new PGliteCtor(pgliteDir);
     try {
       await client.waitReady;
       await client.exec(rawSql);
