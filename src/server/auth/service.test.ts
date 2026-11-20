@@ -10,7 +10,7 @@ import { accountCapabilities, profiles } from "../../db/schema";
 import type { AuthProvider } from "../../lib/auth/neon-auth";
 import {
   createTestAuthProvider,
-  getLatestTestToken,
+  getLatestTestOtp,
 } from "../../lib/auth/test-auth-provider";
 import {
   isUc3mEmail,
@@ -166,14 +166,23 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
       assert.deepEqual(unverifiedSignIn, { ok: false, error: "unverified" });
       assert.equal(await resolveCurrentUser(db, authProvider), null);
 
-      // Verify email using test token from neon_auth.verification.
-      const token = await getLatestTestToken(db, "carlos.ruiz@alumnos.uc3m.es", "email-verification");
-      assert.ok(token);
-      const verified = await verifyAccountEmail(db, authProvider, token);
+      // Verify email using test code from neon_auth.verification.
+      const otp = await getLatestTestOtp(db, "carlos.ruiz@alumnos.uc3m.es", "email-verification");
+      assert.ok(otp);
+      const email = "carlos.ruiz@alumnos.uc3m.es";
+      assert.deepEqual(
+        await completePasswordReset(db, authProvider, { email, otp, password: "NewPassword2026!" }),
+        { ok: false, error: "invalid" },
+      );
+      assert.deepEqual(
+        await verifyAccountEmail(db, authProvider, { email: "otra@uc3m.es", otp }),
+        { ok: false, error: "invalid" },
+      );
+      const verified = await verifyAccountEmail(db, authProvider, { email, otp });
       assert.equal(verified.ok, true);
 
-      // Token is single-use.
-      const reused = await verifyAccountEmail(db, authProvider, token);
+      // The code is single-use.
+      const reused = await verifyAccountEmail(db, authProvider, { email, otp });
       assert.deepEqual(reused, { ok: false, error: "invalid" });
 
       // email_verified_at is now stamped in public.profiles.
@@ -313,9 +322,9 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
         privacyAccepted: true,
       });
       assert.equal(reg.ok, true);
-      const verifyToken = await getLatestTestToken(db, "david.lopez@uc3m.es", "email-verification");
-      assert.ok(verifyToken);
-      assert.equal((await verifyAccountEmail(db, deviceA, verifyToken)).ok, true);
+      const verificationOtp = await getLatestTestOtp(db, "david.lopez@uc3m.es", "email-verification");
+      assert.ok(verificationOtp);
+      assert.equal((await verifyAccountEmail(db, deviceA, { email: "david.lopez@uc3m.es", otp: verificationOtp })).ok, true);
 
       // Open two independent sessions (deviceA and deviceB).
       assert.equal(
@@ -333,13 +342,14 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
       assert.deepEqual(await requestPasswordReset(db, deviceA, "david.lopez@uc3m.es"), {
         ok: true,
       });
-      const resetToken = await getLatestTestToken(db, "david.lopez@uc3m.es", "password-reset");
-      assert.ok(resetToken);
+      const recoveryOtp = await getLatestTestOtp(db, "david.lopez@uc3m.es", "password-reset");
+      assert.ok(recoveryOtp);
 
       // Mismatch rejected without consuming token.
       assert.deepEqual(
         await completePasswordReset(db, deviceA, {
-          token: resetToken,
+          email: "david.lopez@uc3m.es",
+          otp: recoveryOtp,
           password: "NewPassword2026!",
           confirmPassword: "DifferentPassword!",
         }),
@@ -349,7 +359,8 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
       // Complete password reset -> revokes ALL sessions in neon_auth.session.
       assert.deepEqual(
         await completePasswordReset(db, deviceA, {
-          token: resetToken,
+          email: "david.lopez@uc3m.es",
+          otp: recoveryOtp,
           password: "NewPassword2026!",
           confirmPassword: "NewPassword2026!",
         }),
@@ -365,10 +376,11 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
       );
       assert.equal(remainingSessions.rows[0]?.count, "0");
 
-      // Token is single-use.
+      // The code is single-use.
       assert.deepEqual(
         await completePasswordReset(db, deviceA, {
-          token: resetToken,
+          email: "david.lopez@uc3m.es",
+          otp: recoveryOtp,
           password: "AnotherPassword2026!",
         }),
         { ok: false, error: "invalid" },
@@ -409,9 +421,9 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
         await resendAccountVerification(db, authProvider, "sofia.vega@alumnos.uc3m.es"),
         { ok: true },
       );
-      const token = await getLatestTestToken(db, "sofia.vega@alumnos.uc3m.es", "email-verification");
-      assert.ok(token);
-      assert.equal((await verifyAccountEmail(db, authProvider, token)).ok, true);
+      const otp = await getLatestTestOtp(db, "sofia.vega@alumnos.uc3m.es", "email-verification");
+      assert.ok(otp);
+      assert.equal((await verifyAccountEmail(db, authProvider, { email: "sofia.vega@alumnos.uc3m.es", otp })).ok, true);
       assert.equal(
         (await authenticateAccount(db, authProvider, "sofia.vega@alumnos.uc3m.es", "SofiaPassword2026!")).ok,
         true,
@@ -462,7 +474,7 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
     }
   });
 
-  it("rejects expired verification and password reset tokens deterministically", async () => {
+  it("rejects expired verification and password reset codes deterministically", async () => {
     const db = await createTestDb();
     try {
       let currentTime = new Date("2026-11-19T12:00:00Z");
@@ -486,18 +498,18 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
       );
       assert.equal(reg.ok, true);
 
-      const expiredVerifyToken = await getLatestTestToken(
+      const expiredVerificationOtp = await getLatestTestOtp(
         db,
         "paula.navarro@alumnos.uc3m.es",
         "email-verification",
         currentTime,
       );
-      assert.ok(expiredVerifyToken);
+      assert.ok(expiredVerificationOtp);
 
       // Advance 31 minutes -> verification token expired.
       currentTime = new Date("2026-11-19T12:31:00Z");
       assert.deepEqual(
-        await verifyAccountEmail(db, authProvider, expiredVerifyToken, {
+        await verifyAccountEmail(db, authProvider, { email: "paula.navarro@alumnos.uc3m.es", otp: expiredVerificationOtp }, {
           now: currentTime,
         }),
         { ok: false, error: "expired" },
@@ -509,16 +521,16 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
         authProvider,
         "paula.navarro@alumnos.uc3m.es",
       );
-      const freshVerifyToken = await getLatestTestToken(
+      const freshVerificationOtp = await getLatestTestOtp(
         db,
         "paula.navarro@alumnos.uc3m.es",
         "email-verification",
         currentTime,
       );
-      assert.ok(freshVerifyToken);
+      assert.ok(freshVerificationOtp);
       assert.equal(
         (
-          await verifyAccountEmail(db, authProvider, freshVerifyToken, {
+          await verifyAccountEmail(db, authProvider, { email: "paula.navarro@alumnos.uc3m.es", otp: freshVerificationOtp }, {
             now: currentTime,
           })
         ).ok,
@@ -531,18 +543,19 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
         authProvider,
         "paula.navarro@alumnos.uc3m.es",
       );
-      const expiredResetToken = await getLatestTestToken(
+      const expiredRecoveryOtp = await getLatestTestOtp(
         db,
         "paula.navarro@alumnos.uc3m.es",
         "password-reset",
         currentTime,
       );
-      assert.ok(expiredResetToken);
+      assert.ok(expiredRecoveryOtp);
 
       currentTime = new Date("2026-11-19T13:02:00Z");
       assert.deepEqual(
         await completePasswordReset(db, authProvider, {
-          token: expiredResetToken,
+          email: "paula.navarro@alumnos.uc3m.es",
+          otp: expiredRecoveryOtp,
           password: "NewPaulaPassword2026!",
         }),
         { ok: false, error: "invalid" },
@@ -566,6 +579,8 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
         { handler: authRoutePost, method: "POST", path: ["change-email"] },
         { handler: authRouteGet, method: "GET", path: ["change-email"] },
         { handler: authRoutePost, method: "POST", path: ["sign-up", "email"] },
+        { handler: authRoutePost, method: "POST", path: ["email-otp", "change-email"] },
+        { handler: authRoutePost, method: "POST", path: ["sign-in", "email-otp"] },
         { handler: authRoutePost, method: "POST", path: ["delete-user"] },
         { handler: authRouteDelete, method: "DELETE", path: ["delete-user"] },
         { handler: authRouteGet, method: "GET", path: ["admin", "list-users"] },
@@ -604,7 +619,7 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
     }
   });
 
-  it("writes verification and password-reset tokens to AD_ASTRA_TEST_MAILBOX_FILE when configured", async () => {
+  it("writes verification and password-reset codes to AD_ASTRA_TEST_MAILBOX_FILE when configured", async () => {
     const db = await createTestDb();
     const tempDir = mkdtempSync(join(tmpdir(), "ad-astra-mailbox-"));
     const mailboxFile = join(tempDir, "mailbox.jsonl");
@@ -627,13 +642,13 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
       const linesAfterSignUp = readFileSync(mailboxFile, "utf8")
         .trim()
         .split("\n")
-        .map((line) => JSON.parse(line) as { kind: string; email: string; token: string });
+        .map((line) => JSON.parse(line) as { kind: string; email: string; otp: string });
       assert.equal(linesAfterSignUp.length, 1);
       assert.equal(linesAfterSignUp[0].kind, "email-verification");
       assert.equal(linesAfterSignUp[0].email, "buzon.pruebas@alumnos.uc3m.es");
 
       assert.equal(
-        (await verifyAccountEmail(db, authProvider, linesAfterSignUp[0].token)).ok,
+        (await verifyAccountEmail(db, authProvider, linesAfterSignUp[0])).ok,
         true,
       );
 
@@ -641,11 +656,11 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
       const linesAfterReset = readFileSync(mailboxFile, "utf8")
         .trim()
         .split("\n")
-        .map((line) => JSON.parse(line) as { kind: string; email: string; token: string });
+        .map((line) => JSON.parse(line) as { kind: string; email: string; otp: string });
       assert.equal(linesAfterReset.length, 2);
       assert.equal(linesAfterReset[1].kind, "password-reset");
       assert.equal(linesAfterReset[1].email, "buzon.pruebas@alumnos.uc3m.es");
-      assert.ok(linesAfterReset[1].token.length >= 20);
+      assert.match(linesAfterReset[1].otp, /^\d{6}$/);
     } finally {
       if (prevMailbox === undefined) delete process.env.AD_ASTRA_TEST_MAILBOX_FILE;
       else process.env.AD_ASTRA_TEST_MAILBOX_FILE = prevMailbox;

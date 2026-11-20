@@ -49,6 +49,9 @@ function isForbiddenPath(rawSegments: string[], requestUrl: string): boolean {
 
   for (const normalized of candidates) {
     if (
+      normalized.startsWith("email-otp/") ||
+      normalized === "sign-in/email-otp" ||
+      normalized === "forget-password/email-otp" ||
       normalized === "change-email" ||
       normalized.startsWith("change-email/") ||
       normalized === "sign-up" ||

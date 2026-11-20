@@ -59,9 +59,9 @@ export type RegisterAccountResult =
 export type VerifyAccountEmailResult =
   | {
       ok: true;
-      profileId: string | null;
-      authUserId: string | null;
-      email: string | null;
+      profileId: string;
+      authUserId: string;
+      email: string;
     }
   | { ok: false; error: "invalid" | "expired" };
 
@@ -70,7 +70,8 @@ export type AuthenticateAccountResult =
   | { ok: false; error: "credentials" | "unverified" };
 
 export type CompletePasswordResetInput = {
-  token: string;
+  email: string;
+  otp: string;
   password: string;
   confirmPassword?: string;
 };
@@ -120,10 +121,10 @@ const signInSchema = z.object({
   password: passwordSchema,
 });
 
-const resetTokenSchema = z
-  .string()
-  .transform((val) => val.trim())
-  .pipe(z.string().min(1).max(512));
+const emailOtpSchema = z.object({
+  email: uc3mEmailSchema,
+  otp: z.string().trim().regex(/^\d{6}$/),
+});
 
 export function isCapabilityCode(value: unknown): value is CapabilityCode {
   return (
@@ -175,7 +176,7 @@ export async function registerAccount(
   db: AppDb,
   authProvider: AuthProvider,
   input: RegisterAccountInput,
-  options?: { callbackURL?: string; now?: Date },
+  options?: { now?: Date },
 ): Promise<RegisterAccountResult> {
   if (input.privacyAccepted !== true) {
     return { ok: false, error: "privacy" };
@@ -221,7 +222,6 @@ export async function registerAccount(
     email,
     password,
     name: fullName,
-    callbackURL: options?.callbackURL,
   });
 
   let authUser: AuthProviderUser;
@@ -256,7 +256,7 @@ export async function registerAccount(
 
     if (verificationRequired) {
       await authProvider
-        .sendVerificationEmail({ email, callbackURL: options?.callbackURL })
+        .sendVerificationOtp({ email })
         .catch(() => undefined);
     }
   } else if (signUpResult.errorCode === "WEAK_PASSWORD") {
@@ -350,15 +350,15 @@ export async function registerAccount(
 export async function verifyAccountEmail(
   db: AppDb,
   authProvider: AuthProvider,
-  rawToken: string,
+  input: { email: string; otp: string },
   options?: { now?: Date },
 ): Promise<VerifyAccountEmailResult> {
-  const parsedToken = resetTokenSchema.safeParse(rawToken);
-  if (!parsedToken.success) {
+  const challenge = emailOtpSchema.safeParse(input);
+  if (!challenge.success) {
     return { ok: false, error: "invalid" };
   }
 
-  const verified = await authProvider.verifyEmail({ token: parsedToken.data });
+  const verified = await authProvider.verifyEmailOtp(challenge.data);
   if (!verified.ok) {
     return {
       ok: false,
@@ -367,16 +367,11 @@ export async function verifyAccountEmail(
   }
 
   if (!verified.user) {
-    return {
-      ok: true,
-      profileId: null,
-      authUserId: null,
-      email: null,
-    };
+    return { ok: false, error: "invalid" };
   }
 
   const email = normalizeUc3mEmail(verified.user.email);
-  if (!email) {
+  if (email !== challenge.data.email || !verified.user.emailVerified) {
     return { ok: false, error: "invalid" };
   }
 
@@ -411,7 +406,6 @@ export async function resendAccountVerification(
   db: AppDb,
   authProvider: AuthProvider,
   rawEmail: string,
-  options?: { callbackURL?: string },
 ): Promise<{ ok: true }> {
   const email = normalizeUc3mEmail(rawEmail);
   if (!email) {
@@ -435,7 +429,7 @@ export async function resendAccountVerification(
     profile.emailVerifiedAt === null
   ) {
     await authProvider
-      .sendVerificationEmail({ email, callbackURL: options?.callbackURL })
+      .sendVerificationOtp({ email })
       .catch(() => undefined);
   }
 
@@ -520,17 +514,7 @@ export async function authenticateAccount(
   };
 }
 
-export async function requestPasswordReset(
-  db: AppDb,
-  authProvider: AuthProvider,
-  rawEmail: string,
-  options?: { redirectTo?: string },
-): Promise<{ ok: true }> {
-  const email = normalizeUc3mEmail(rawEmail);
-  if (!email) {
-    return { ok: true };
-  }
-
+async function canResetPassword(db: AppDb, email: string): Promise<boolean> {
   const [profile] = await db
     .select({
       authUserId: profiles.authUserId,
@@ -541,14 +525,27 @@ export async function requestPasswordReset(
     .where(eq(profiles.email, email))
     .limit(1);
 
-  if (
+  return Boolean(
     profile &&
     profile.authUserId &&
     profile.status === "active" &&
     profile.emailVerifiedAt !== null
-  ) {
+  );
+}
+
+export async function requestPasswordReset(
+  db: AppDb,
+  authProvider: AuthProvider,
+  rawEmail: string,
+): Promise<{ ok: true }> {
+  const email = normalizeUc3mEmail(rawEmail);
+  if (!email) {
+    return { ok: true };
+  }
+
+  if (await canResetPassword(db, email)) {
     await authProvider
-      .requestPasswordReset({ email, redirectTo: options?.redirectTo })
+      .requestPasswordResetOtp({ email })
       .catch(() => undefined);
   }
 
@@ -556,7 +553,7 @@ export async function requestPasswordReset(
 }
 
 export async function completePasswordReset(
-  _db: AppDb,
+  db: AppDb,
   authProvider: AuthProvider,
   input: CompletePasswordResetInput,
 ): Promise<CompletePasswordResetResult> {
@@ -572,13 +569,13 @@ export async function completePasswordReset(
     return { ok: false, error: "mismatch" };
   }
 
-  const parsedToken = resetTokenSchema.safeParse(input.token);
-  if (!parsedToken.success) {
+  const challenge = emailOtpSchema.safeParse(input);
+  if (!challenge.success || !(await canResetPassword(db, challenge.data.email))) {
     return { ok: false, error: "invalid" };
   }
 
-  const resetResult = await authProvider.resetPassword({
-    token: parsedToken.data,
+  const resetResult = await authProvider.resetPasswordWithOtp({
+    ...challenge.data,
     newPassword: parsedPassword.data,
   });
 
