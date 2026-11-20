@@ -6,9 +6,10 @@ import { closeDb, getDb } from "../src/db/client";
 import { activities, opportunities, profiles, shifts } from "../src/db/schema";
 import { createTestAuthProvider, getLatestTestOtp } from "../src/server/auth/test-auth-provider";
 import { registerAccount, verifyAccountEmail } from "../src/server/auth/service";
-import { reserveShift } from "../src/server/repositories/activities";
-import { createAdminActivity, setProfileCapability } from "../src/server/repositories/admin";
-import { createOpportunity } from "../src/server/repositories/opportunities";
+import { reserveShift } from "../src/server/activities/participation";
+import { createAdminActivity } from "../src/server/activities/admin-data";
+import { setProfileCapability } from "../src/server/accounts/repository";
+import { createAdminOpportunity } from "../src/server/opportunities/repository";
 import { E2E_ACCOUNTS } from "./helpers/e2e-env";
 
 async function seedVerifiedUser(
@@ -234,7 +235,7 @@ async function main() {
     const existingOpportunities = await db.select({ slug: opportunities.slug }).from(opportunities);
     if (existingOpportunities.length === 0) {
       const deadline = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 2, 15, 23, 59));
-      const opp1 = await createOpportunity(
+      const opp1 = await createAdminOpportunity(
         {
           slug: "internship-flight-dynamics",
           type: "internship",
@@ -253,7 +254,7 @@ async function main() {
       );
       if (!opp1.ok) throw new Error(`Opportunity 1 seed failed: ${opp1.error}`);
 
-      const opp2 = await createOpportunity(
+      const opp2 = await createAdminOpportunity(
         {
           slug: "research-electric-propulsion",
           type: "research",

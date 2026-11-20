@@ -3,48 +3,57 @@ import { randomUUID } from "node:crypto";
 import { describe, it } from "node:test";
 import { and, eq } from "drizzle-orm";
 
-import { createTestDb, type AppDb } from "../../db/client";
+import { createTestDb, type AppDb } from "../db/client";
 import {
   adminAuditLogs,
   participationEvents,
   participations,
   profiles,
-} from "../../db/schema";
+} from "../db/schema";
 import {
   addActivityShift,
-  correctAttendance,
   createAdminActivity,
-  createAdminOpportunity,
   deleteShift,
-  getAccountAdminDetail,
-  getAdminMetrics,
-  getDeletionRequest,
-  getShiftDetail,
-  getTalentAdminDetail,
-  isAccountDeactivated,
-  listActiveAccountsForDoor,
   listAdminActivities,
-  listAdminOpportunities,
+  setActivityStatus,
+  updateShiftCapacity,
+} from "./activities/admin-data";
+import {
+  correctAttendance,
+  getShiftDetail,
+  listActiveAccountsForDoor,
   listAttendanceAudit,
-  listDeletionRequests,
   listShiftAttendeesDetailed,
   listShiftSummaries,
   manualConfirmAttendance,
   registerAtDoor,
-  resolveDeletionRequest,
+} from "./activities/attendance-data";
+import {
+  getAccountAdminDetail,
+  getAdminMetrics,
   searchAccounts,
-  searchTalentProfiles,
-  setActivityStatus,
-  setAdminOpportunityStatus,
   setProfileCapability,
   setProfileStatus,
-  updateShiftCapacity,
-} from "./admin";
+} from "./accounts/repository";
 import {
+  createAdminOpportunity,
+  listAdminOpportunities,
+  setAdminOpportunityStatus,
+} from "./opportunities/repository";
+import {
+  getDeletionRequest,
+  listDeletionRequests,
   requestAccountDeletion,
+  resolveDeletionRequest,
+} from "./profiles/deletion-requests";
+import {
   saveTalentProfile,
   setDisseminationDecision,
-} from "./profile";
+} from "./profiles/repository";
+import {
+  getTalentAdminDetail,
+  searchTalentProfiles,
+} from "./profiles/talent-consultation";
 
 async function createProfile(
   db: AppDb,
@@ -72,7 +81,7 @@ async function createProfile(
   return row;
 }
 
-describe("admin repository (PostgreSQL)", () => {
+describe("administrative flows (PostgreSQL)", () => {
   it("CA-10: alta en puerta -> booked, confirmación manual, rectificación attended -> booked conservando plaza y auditoría cronológica", async () => {
     const db = await createTestDb();
     try {
@@ -132,8 +141,6 @@ describe("admin repository (PostgreSQL)", () => {
       );
 
       // Cuenta desactivada rechazada
-      assert.equal(await isAccountDeactivated(deactivatedStudent.id, db), true);
-      assert.equal(await isAccountDeactivated(student.id, db), false);
       assert.deepEqual(
         await registerAtDoor(
           shiftA.id,
