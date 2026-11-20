@@ -10,8 +10,8 @@ import {
   type CapabilityCode,
   type ProfileRow,
 } from "../../db/schema";
-import type { AuthProvider, AuthProviderUser } from "../../lib/auth/neon-auth";
-import { normalizeUc3mEmail } from "../../lib/auth/uc3m";
+import type { AuthProvider, AuthProviderUser } from "./neon-auth";
+import { normalizeUc3mEmail } from "./uc3m";
 
 export const PRIVACY_VERSION = "v1";
 

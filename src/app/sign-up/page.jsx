@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BackLink } from "../../components/back-link";
-import { signUp } from "../../lib/auth/session";
+import { signUp } from "../auth-actions";
 
 export const metadata = { title: "Crear cuenta" };
 

@@ -1,4 +1,4 @@
-import { readAccountCodeEmail } from "../../lib/auth/session";
+import { readAccountCodeEmail } from "../../server/auth/form-context";
 import { VerifyEmailView } from "./view";
 
 export const metadata = { title: "Verificar correo" };

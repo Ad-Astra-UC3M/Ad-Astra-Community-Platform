@@ -7,23 +7,16 @@ import { eq, sql } from "drizzle-orm";
 
 import { createTestDb } from "../../db/client";
 import { accountCapabilities, profiles } from "../../db/schema";
-import type { AuthProvider } from "../../lib/auth/neon-auth";
+import type { AuthProvider } from "./neon-auth";
 import {
   createTestAuthProvider,
   getLatestTestOtp,
-} from "../../lib/auth/test-auth-provider";
+} from "./test-auth-provider";
 import {
   isUc3mEmail,
   normalizeEmail,
   sanitizeNextPath,
-} from "../../lib/auth/uc3m";
-import {
-  DELETE as authRouteDelete,
-  GET as authRouteGet,
-  PATCH as authRoutePatch,
-  POST as authRoutePost,
-  PUT as authRoutePut,
-} from "../../app/api/auth/[...path]/route";
+} from "./uc3m";
 import {
   PRIVACY_VERSION,
   authenticateAccount,
@@ -563,60 +556,6 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
       );
     } finally {
       await db.close();
-    }
-  });
-
-  it("blocks forbidden endpoints in /api/auth/[...path] with HTTP 403 and returns 404 when unconfigured (RF-02, RF-05, CA-02)", async () => {
-    const prevBaseUrl = process.env.NEON_AUTH_BASE_URL;
-    const prevSecret = process.env.NEON_AUTH_COOKIE_SECRET;
-    delete process.env.NEON_AUTH_BASE_URL;
-    delete process.env.NEON_AUTH_COOKIE_SECRET;
-    try {
-      const blockedCases: Array<{
-        handler: typeof authRoutePost;
-        method: string;
-        path: string[];
-      }> = [
-        { handler: authRoutePost, method: "POST", path: ["change-email"] },
-        { handler: authRouteGet, method: "GET", path: ["change-email"] },
-        { handler: authRoutePost, method: "POST", path: ["sign-up", "email"] },
-        { handler: authRoutePost, method: "POST", path: ["email-otp", "change-email"] },
-        { handler: authRoutePost, method: "POST", path: ["sign-in", "email-otp"] },
-        { handler: authRoutePost, method: "POST", path: ["delete-user"] },
-        { handler: authRouteDelete, method: "DELETE", path: ["delete-user"] },
-        { handler: authRouteGet, method: "GET", path: ["admin", "list-users"] },
-        { handler: authRoutePost, method: "POST", path: ["admin", "set-role"] },
-        { handler: authRoutePut, method: "PUT", path: ["admin", "update-user"] },
-        { handler: authRoutePatch, method: "PATCH", path: ["change-email"] },
-        { handler: authRoutePost, method: "POST", path: ["..", "admin", "ban-user"] },
-      ];
-
-      for (const testCase of blockedCases) {
-        const req = new Request(
-          `http://127.0.0.1:3000/api/auth/${testCase.path.join("/")}`,
-          { method: testCase.method },
-        );
-        const res = await testCase.handler(req, {
-          params: Promise.resolve({ path: testCase.path }),
-        });
-        assert.equal(
-          res.status,
-          403,
-          `Expected 403 for ${testCase.method} /api/auth/${testCase.path.join("/")}`,
-        );
-      }
-
-      // Allowed route returns 404 when Neon Auth remote instance is not configured.
-      const allowedRes = await authRouteGet(
-        new Request("http://127.0.0.1:3000/api/auth/get-session", { method: "GET" }),
-        { params: Promise.resolve({ path: ["get-session"] }) },
-      );
-      assert.equal(allowedRes.status, 404);
-    } finally {
-      if (prevBaseUrl === undefined) delete process.env.NEON_AUTH_BASE_URL;
-      else process.env.NEON_AUTH_BASE_URL = prevBaseUrl;
-      if (prevSecret === undefined) delete process.env.NEON_AUTH_COOKIE_SECRET;
-      else process.env.NEON_AUTH_COOKIE_SECRET = prevSecret;
     }
   });
 

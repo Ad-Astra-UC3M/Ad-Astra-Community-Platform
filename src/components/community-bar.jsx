@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { signOut } from "../lib/auth/session";
+import { signOut } from "../app/auth-actions";
 
 const linkClass =
   "inline-flex min-h-[44px] items-center py-2 text-brand-primary underline underline-offset-4 transition-colors hover:text-brand-ink";

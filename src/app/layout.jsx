@@ -1,6 +1,6 @@
 import { Navbar, Footer } from "../components/original-layout";
 import { CommunityBar } from "../components/community-bar";
-import { currentUser } from "../lib/auth/session";
+import { currentUser } from "../server/auth/access";
 import "./globals.css";
 
 export const metadata = {

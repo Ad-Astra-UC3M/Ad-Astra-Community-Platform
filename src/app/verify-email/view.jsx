@@ -4,11 +4,8 @@ import {
   InstitutionalEmailField,
 } from "../../components/account-code-fields";
 import { BackLink } from "../../components/back-link";
-import {
-  readOptionalNextPath,
-  resendVerificationAction,
-  verifyEmailAction,
-} from "../../lib/auth/session";
+import { readOptionalNextPath } from "../../server/auth/form-context";
+import { resendVerificationAction, verifyEmailAction } from "../auth-actions";
 
 const primaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface";

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BackLink } from "../../components/back-link";
-import { PRIVACY_VERSION } from "../../lib/auth/session";
+import { PRIVACY_VERSION } from "../../server/auth/service";
 
 export const metadata = { title: "Aviso de privacidad" };
 

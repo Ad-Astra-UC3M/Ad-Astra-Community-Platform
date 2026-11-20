@@ -1,78 +1,23 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+"use server";
 
-import { getDb } from "../../db/client";
+import { redirect } from "next/navigation";
+import { getDb } from "../db/client";
+import { getAuthProvider } from "../server/auth/neon-auth";
+import { readOptionalNextPath, setAccountCodeEmail } from "../server/auth/form-context";
+import { normalizeUc3mEmail } from "../server/auth/uc3m";
 import {
-  CAPABILITY_CODES,
-  type AccountStatus,
-  type CapabilityCode,
-} from "../../db/schema";
-import {
-  PRIVACY_VERSION,
   authenticateAccount,
   completePasswordReset,
-  isCapabilityCode,
   registerAccount,
   requestPasswordReset,
   resendAccountVerification,
-  resolveCurrentUser,
   verifyAccountEmail,
   type AuthUser,
-} from "../../server/auth/service";
-import { getAuthProvider } from "./neon-auth";
-import {
-  isUc3mEmail,
-  normalizeEmail,
-  normalizeUc3mEmail,
-  sanitizeNextPath,
-} from "./uc3m";
-
-export {
-  CAPABILITY_CODES,
-  PRIVACY_VERSION,
-  isCapabilityCode,
-  isUc3mEmail,
-  normalizeEmail,
-  sanitizeNextPath,
-  type AccountStatus,
-  type AuthUser,
-  type CapabilityCode,
-};
-
-const accountCodeCookies = {
-  verification: { name: "ada-verification-email", path: "/verify-email" },
-  recovery: { name: "ada-recovery-email", path: "/reset-password" },
-};
-
-type AccountCodeFlow = keyof typeof accountCodeCookies;
-
-export async function readAccountCodeEmail(flow: AccountCodeFlow): Promise<string> {
-  const jar = await cookies();
-  return normalizeUc3mEmail(jar.get(accountCodeCookies[flow].name)?.value) ?? "";
-}
-
-async function setAccountCodeEmail(flow: AccountCodeFlow, rawEmail: string): Promise<void> {
-  const email = normalizeUc3mEmail(rawEmail);
-  const jar = await cookies();
-  jar.set({
-    ...accountCodeCookies[flow],
-    value: email ?? "",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: email ? 10 * 60 : 0,
-  });
-}
+} from "../server/auth/service";
 
 function readFormString(formData: FormData, key: string): string {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
-}
-
-export function readOptionalNextPath(value: unknown): string {
-  if (typeof value !== "string") return "";
-  const path = value.trim();
-  return sanitizeNextPath(path) === path ? path : "";
 }
 
 function redirectWithNext(
@@ -90,38 +35,7 @@ function accountDestination(user: AuthUser, next: string): string {
   return next || (user.capabilities.length > 0 ? "/admin" : "/home");
 }
 
-export async function currentUser(): Promise<AuthUser | null> {
-  const jar = await cookies();
-  if (jar.getAll().length === 0) {
-    return null;
-  }
-  const db = await getDb();
-  const authProvider = await getAuthProvider(db);
-  return resolveCurrentUser(db, authProvider);
-}
-
-export async function requireUser(nextPath?: string): Promise<AuthUser> {
-  const user = await currentUser();
-  if (!user) {
-    redirect(
-      nextPath
-        ? "/sign-in?next=" +
-            encodeURIComponent(sanitizeNextPath(nextPath, "/home"))
-        : "/sign-in",
-    );
-  }
-  return user;
-}
-
-export async function revokeUserSessions(authUserId: string): Promise<void> {
-  const db = await getDb();
-  const authProvider = await getAuthProvider(db);
-  await authProvider.revokeUserSessions(authUserId);
-}
-
 export async function signUp(formData: FormData): Promise<never> {
-  "use server";
-
   const db = await getDb();
   const authProvider = await getAuthProvider(db);
   const result = await registerAccount(db, authProvider, {
@@ -148,8 +62,6 @@ export async function signUp(formData: FormData): Promise<never> {
 }
 
 export async function signIn(formData: FormData): Promise<never> {
-  "use server";
-
   const db = await getDb();
   const authProvider = await getAuthProvider(db);
   const email = readFormString(formData, "email");
@@ -174,8 +86,6 @@ export async function signIn(formData: FormData): Promise<never> {
 }
 
 export async function signOut(): Promise<never> {
-  "use server";
-
   const db = await getDb();
   const authProvider = await getAuthProvider(db);
   await authProvider.signOut();
@@ -183,8 +93,6 @@ export async function signOut(): Promise<never> {
 }
 
 export async function verifyEmailAction(formData: FormData): Promise<never> {
-  "use server";
-
   const db = await getDb();
   const authProvider = await getAuthProvider(db);
   const email = readFormString(formData, "email");
@@ -209,8 +117,6 @@ export async function verifyEmailAction(formData: FormData): Promise<never> {
 export async function resendVerificationAction(
   formData: FormData,
 ): Promise<never> {
-  "use server";
-
   const next = readFormString(formData, "next");
   const email = normalizeUc3mEmail(readFormString(formData, "email"));
   if (!email) {
@@ -228,8 +134,6 @@ export async function resendVerificationAction(
 export async function requestPasswordResetAction(
   formData: FormData,
 ): Promise<never> {
-  "use server";
-
   const db = await getDb();
   const authProvider = await getAuthProvider(db);
   const email = readFormString(formData, "email");
@@ -240,8 +144,6 @@ export async function requestPasswordResetAction(
 }
 
 export async function resetPasswordAction(formData: FormData): Promise<never> {
-  "use server";
-
   const db = await getDb();
   const authProvider = await getAuthProvider(db);
   const email = readFormString(formData, "email");

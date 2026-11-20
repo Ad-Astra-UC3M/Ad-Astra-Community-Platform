@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { bootstrapAdmin } from "../scripts/bootstrap-admin";
 import { closeDb, getDb } from "../src/db/client";
 import { activities, opportunities, profiles, shifts } from "../src/db/schema";
-import { createTestAuthProvider, getLatestTestOtp } from "../src/lib/auth/test-auth-provider";
+import { createTestAuthProvider, getLatestTestOtp } from "../src/server/auth/test-auth-provider";
 import { registerAccount, verifyAccountEmail } from "../src/server/auth/service";
 import { reserveShift } from "../src/server/repositories/activities";
 import { createAdminActivity, setProfileCapability } from "../src/server/repositories/admin";

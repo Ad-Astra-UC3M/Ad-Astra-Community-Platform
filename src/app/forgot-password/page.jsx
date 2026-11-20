@@ -1,6 +1,6 @@
 import { InstitutionalEmailField } from "../../components/account-code-fields";
 import { BackLink } from "../../components/back-link";
-import { requestPasswordResetAction } from "../../lib/auth/session";
+import { requestPasswordResetAction } from "../auth-actions";
 
 export const metadata = { title: "Recuperar contraseña" };
 

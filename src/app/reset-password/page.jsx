@@ -4,7 +4,8 @@ import {
   InstitutionalEmailField,
 } from "../../components/account-code-fields";
 import { BackLink } from "../../components/back-link";
-import { readAccountCodeEmail, resetPasswordAction } from "../../lib/auth/session";
+import { readAccountCodeEmail } from "../../server/auth/form-context";
+import { resetPasswordAction } from "../auth-actions";
 
 export const metadata = { title: "Restablecer contraseña" };
 

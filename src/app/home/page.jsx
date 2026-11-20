@@ -1,7 +1,7 @@
 import { ArrowRight02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
-import { requireUser } from "../../lib/auth/session";
+import { requireUser } from "../../server/auth/access";
 
 export const metadata = { title: "Inicio" };
 

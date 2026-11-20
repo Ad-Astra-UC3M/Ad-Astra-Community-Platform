@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { readOptionalNextPath, signIn } from "../../lib/auth/session";
+import { readOptionalNextPath } from "../../server/auth/form-context";
+import { signIn } from "../auth-actions";
 
 export const metadata = { title: "Acceder a la comunidad" };
 
