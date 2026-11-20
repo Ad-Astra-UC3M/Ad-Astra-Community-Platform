@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { listShifts } from "../../server/repositories/activities";
-import { getAdminMetrics } from "../../server/repositories/admin";
-import { requireAdminAny } from "./access";
+import { listShifts } from "../../server/activities/portal-data";
+import { getAdminMetrics } from "../../server/accounts/repository";
+import { requireAdminAny } from "../../server/auth/access";
 
 export const metadata = { title: "Panel de administración" };
 

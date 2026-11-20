@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../../components/back-link";
-import { CAPABILITY_CODES } from "../../../../lib/auth/session";
-import { getAccountAdminDetail } from "../../../../server/repositories/admin";
-import { requireCapability } from "../../access";
+import { CAPABILITY_CODES } from "../../../../db/schema";
+import { getAccountAdminDetail } from "../../../../server/accounts/repository";
+import { requireCapability } from "../../../../server/auth/access";
 import { setAccountStatusAction, toggleAccountCapabilityAction } from "../actions";
 
 export const metadata = { title: "Ficha de cuenta" };

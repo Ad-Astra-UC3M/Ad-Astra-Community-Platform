@@ -2,16 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import {
-  type AccountStatus,
-  isCapabilityCode,
-  revokeUserSessions,
-} from "../../../lib/auth/session";
-import {
-  setProfileCapability,
-  setProfileStatus,
-} from "../../../server/repositories/admin";
-import { requireCapability } from "../access";
+import type { AccountStatus } from "../../../db/schema";
+import { changeAccountCapability, changeAccountStatus } from "../../../server/accounts/operations";
 
 function readField(form: FormData, name: string): string {
   const value = form.get(name);
@@ -19,21 +11,12 @@ function readField(form: FormData, name: string): string {
 }
 
 export async function toggleAccountCapabilityAction(form: FormData) {
-  const admin = await requireCapability("general_admin");
   const targetAccountId = readField(form, "accountId");
   const capability = readField(form, "capability");
   const enabled = readField(form, "enabled") === "true";
 
-  if (!targetAccountId || !isCapabilityCode(capability)) {
-    redirect("/admin/accounts");
-  }
-
-  const result = await setProfileCapability(
-    targetAccountId,
-    capability,
-    enabled,
-    admin.personId,
-  );
+  const result = await changeAccountCapability(targetAccountId, capability, enabled);
+  if (!result) redirect("/admin/accounts");
   revalidatePath(`/admin/accounts/${encodeURIComponent(targetAccountId)}`);
   revalidatePath("/admin/accounts");
   revalidatePath("/admin");
@@ -49,21 +32,12 @@ export async function toggleAccountCapabilityAction(form: FormData) {
 }
 
 export async function setAccountStatusAction(form: FormData) {
-  const admin = await requireCapability("general_admin");
   const targetAccountId = readField(form, "accountId");
   const rawStatus = readField(form, "status");
   const nextStatus: AccountStatus = rawStatus === "deactivated" ? "deactivated" : "active";
 
-  if (!targetAccountId) {
-    redirect("/admin/accounts");
-  }
-
-  const result = await setProfileStatus(
-    targetAccountId,
-    nextStatus,
-    admin.personId,
-    revokeUserSessions,
-  );
+  const result = await changeAccountStatus(targetAccountId, nextStatus);
+  if (!result) redirect("/admin/accounts");
   revalidatePath(`/admin/accounts/${encodeURIComponent(targetAccountId)}`);
   revalidatePath("/admin/accounts");
   revalidatePath("/admin");

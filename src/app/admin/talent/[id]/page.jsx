@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../../components/back-link";
-import { getTalentAdminDetail } from "../../../../server/repositories/admin";
-import { requireCapability } from "../../access";
+import { getTalentAdminDetail } from "../../../../server/profiles/talent-consultation";
+import { requireCapability } from "../../../../server/auth/access";
 
 export const metadata = { title: "Detalle de perfil de talento" };
 

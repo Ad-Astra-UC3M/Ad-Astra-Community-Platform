@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BackLink } from "../../../components/back-link";
-import { searchTalentProfiles } from "../../../server/repositories/admin";
-import { requireCapability } from "../access";
+import { searchTalentProfiles } from "../../../server/profiles/talent-consultation";
+import { requireCapability } from "../../../server/auth/access";
 
 export const metadata = { title: "Consulta de talento" };
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BackLink } from "../../../components/back-link";
-import { searchAccounts } from "../../../server/repositories/admin";
-import { requireCapability } from "../access";
+import { searchAccounts } from "../../../server/accounts/repository";
+import { requireCapability } from "../../../server/auth/access";
 
 export const metadata = { title: "Cuentas y permisos" };
 

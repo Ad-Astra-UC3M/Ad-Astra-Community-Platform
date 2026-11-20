@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { requireUser } from "../../lib/auth/session";
-import { listOpportunities } from "../../server/repositories/opportunities";
+import { requireUser } from "../../server/auth/access";
+import { listOpportunities } from "../../server/opportunities/repository";
 import { removeOpportunityBookmark, saveOpportunityBookmark } from "./actions";
 
 export const metadata = { title: "Oportunidades" };

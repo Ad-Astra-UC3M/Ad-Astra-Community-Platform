@@ -1,8 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { requireUser } from "../../lib/auth/session";
-import { removeBookmark, saveBookmark } from "../../server/repositories/opportunities";
+import { removeMyBookmark, saveMyBookmark } from "../../server/opportunities/operations";
 
 function safeReturnPath(value: FormDataEntryValue | null): string {
   if (typeof value !== "string") return "/opportunities";
@@ -18,25 +17,17 @@ function redirectWithStatus(path: string, status: string): never {
 }
 
 export async function saveOpportunityBookmark(formData: FormData) {
-  const user = await requireUser();
   const opportunityId = formData.get("opportunityId");
   const returnTo = safeReturnPath(formData.get("returnTo"));
-  const result =
-    typeof opportunityId === "string" && opportunityId
-      ? await saveBookmark(user.personId, opportunityId)
-      : "missing";
+  const result = await saveMyBookmark(typeof opportunityId === "string" ? opportunityId : "");
 
   redirectWithStatus(returnTo, result);
 }
 
 export async function removeOpportunityBookmark(formData: FormData) {
-  const user = await requireUser();
   const opportunityId = formData.get("opportunityId");
   const returnTo = safeReturnPath(formData.get("returnTo"));
-  const result =
-    typeof opportunityId === "string" && opportunityId
-      ? await removeBookmark(user.personId, opportunityId)
-      : "missing";
+  const result = await removeMyBookmark(typeof opportunityId === "string" ? opportunityId : "");
 
   redirectWithStatus(returnTo, result);
 }

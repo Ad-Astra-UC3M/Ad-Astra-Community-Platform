@@ -1,6 +1,6 @@
 import { BackLink } from "../../../components/back-link";
-import { requireUser } from "../../../lib/auth/session";
-import { getTalentProfile } from "../../../server/repositories/profile";
+import { requireUser } from "../../../server/auth/access";
+import { getTalentProfile } from "../../../server/profiles/repository";
 import { saveTalentProfileAction } from "../actions";
 
 export const metadata = { title: "Perfil de talento voluntario" };

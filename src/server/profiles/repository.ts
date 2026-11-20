@@ -1,15 +1,13 @@
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb, type AppDb, type AppDbOrTx } from "../../db/client";
 import {
   TALENT_EXPERIENCE_KINDS,
   TALENT_LINK_KINDS,
-  deletionRequests,
   profiles,
   talentDisseminationDecisions,
   talentProfiles,
   type AccountStatus,
-  type DeletionStatus,
   type ProfileRow,
   type TalentExperience,
   type TalentExperienceKind,
@@ -17,12 +15,12 @@ import {
   type TalentLink,
   type TalentLinkKind,
 } from "../../db/schema";
+import { isUuid, profileExists } from "./identity";
 
 export {
   TALENT_EXPERIENCE_KINDS,
   TALENT_LINK_KINDS,
   type AccountStatus,
-  type DeletionStatus,
   type TalentExperienceKind,
   type TalentLanguage,
   type TalentLink,
@@ -31,9 +29,6 @@ export {
 
 export const DISSEMINATION_PURPOSE = "internal_and_future_talent_sharing";
 export const DISSEMINATION_POLICY_VERSION = "talent-diffusion-v1";
-
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const MAX_TAGS_PER_CATEGORY = 20;
 const MAX_TAG_LENGTH = 60;
@@ -188,21 +183,6 @@ export interface SetDisseminationOptions {
   source?: string;
 }
 
-export interface DeletionRequest {
-  id: string;
-  personId: string;
-  status: DeletionStatus;
-  reason: string;
-  resolutionNote: string | null;
-  resolvedBy: string | null;
-  createdAt: Date;
-  resolvedAt: Date | null;
-}
-
-export type RequestDeletionResult =
-  | { ok: true; created: boolean; request: DeletionRequest }
-  | { ok: false; error: "missing" | "reason_too_long" };
-
 const basicProfileEditableSchema = z.object({
   firstName: z.string().trim().min(1).max(80),
   lastName: z.string().trim().min(1).max(120),
@@ -268,23 +248,6 @@ const optionalHeadlineSchema = z
   .nullable()
   .optional();
 
-const deletionReasonSchema = z.string().trim().max(1000);
-
-function isUuid(value: string): boolean {
-  return UUID_REGEX.test(value);
-}
-
-function getPgErrorCode(error: unknown): string | undefined {
-  if (typeof error !== "object" || error === null) return undefined;
-  if ("code" in error && typeof (error as { code?: unknown }).code === "string") {
-    return (error as { code: string }).code;
-  }
-  if ("cause" in error) {
-    return getPgErrorCode((error as { cause?: unknown }).cause);
-  }
-  return undefined;
-}
-
 async function resolveDb(db?: AppDb): Promise<AppDb> {
   return db ?? getDb();
 }
@@ -306,7 +269,7 @@ function toBasicProfile(row: ProfileRow): BasicProfile {
   };
 }
 
-function mapExperienceFromDb(item: TalentExperience): TalentExperienceItem {
+export function mapExperienceFromDb(item: TalentExperience): TalentExperienceItem {
   return {
     kind: item.kind,
     title: item.title,
@@ -472,19 +435,6 @@ function parseExpectedGraduationYear(
     return { ok: false };
   }
   return { ok: true, value };
-}
-
-async function profileExists(
-  db: AppDbOrTx,
-  personId: string,
-): Promise<boolean> {
-  if (!isUuid(personId)) return false;
-  const [row] = await db
-    .select({ id: profiles.id })
-    .from(profiles)
-    .where(eq(profiles.id, personId))
-    .limit(1);
-  return Boolean(row);
 }
 
 async function readTalentProfileRow(
@@ -935,125 +885,4 @@ export async function setDisseminationDecision(
 
     return readDisseminationStatus(tx, personId, now);
   });
-}
-
-function mapDeletionRequest(
-  row: typeof deletionRequests.$inferSelect,
-): DeletionRequest {
-  return {
-    id: row.id,
-    personId: row.personId,
-    status: row.status,
-    reason: row.reason ?? "",
-    resolutionNote: row.resolutionNote ?? null,
-    resolvedBy: row.resolvedBy ?? null,
-    createdAt: row.createdAt,
-    resolvedAt: row.resolvedAt ?? null,
-  };
-}
-
-export async function requestAccountDeletion(
-  personId: string,
-  reason = "",
-  now: Date = new Date(),
-  db?: AppDb,
-): Promise<RequestDeletionResult> {
-  if (!isUuid(personId)) return { ok: false, error: "missing" };
-
-  const parsedReason = deletionReasonSchema.safeParse(reason);
-  if (!parsedReason.success) {
-    return { ok: false, error: "reason_too_long" };
-  }
-
-  const database = await resolveDb(db);
-
-  try {
-    return await database.transaction(async (tx) => {
-      const [profile] = await tx
-        .select({ id: profiles.id })
-        .from(profiles)
-        .where(eq(profiles.id, personId))
-        .for("update");
-      if (!profile) return { ok: false, error: "missing" };
-
-      const [existing] = await tx
-        .select()
-        .from(deletionRequests)
-        .where(
-          and(
-            eq(deletionRequests.personId, personId),
-            inArray(deletionRequests.status, ["pending", "in_review"]),
-          ),
-        )
-        .limit(1);
-
-      if (existing) {
-        return {
-          ok: true,
-          created: false,
-          request: mapDeletionRequest(existing),
-        };
-      }
-
-      const [inserted] = await tx
-        .insert(deletionRequests)
-        .values({
-          personId,
-          status: "pending",
-          reason: parsedReason.data || null,
-          createdAt: now,
-        })
-        .returning();
-
-      return {
-        ok: true,
-        created: true,
-        request: mapDeletionRequest(inserted),
-      };
-    });
-  } catch (error) {
-    if (getPgErrorCode(error) === "23505") {
-      const [existing] = await database
-        .select()
-        .from(deletionRequests)
-        .where(
-          and(
-            eq(deletionRequests.personId, personId),
-            inArray(deletionRequests.status, ["pending", "in_review"]),
-          ),
-        )
-        .limit(1);
-      if (existing) {
-        return {
-          ok: true,
-          created: false,
-          request: mapDeletionRequest(existing),
-        };
-      }
-    }
-    throw error;
-  }
-}
-
-export async function getMyDeletionRequest(
-  requesterId: string,
-  targetPersonId: string = requesterId,
-  db?: AppDb,
-): Promise<DeletionRequest | null> {
-  if (requesterId !== targetPersonId) return null;
-  if (!isUuid(requesterId)) return null;
-  const database = await resolveDb(db);
-
-  const [row] = await database
-    .select()
-    .from(deletionRequests)
-    .where(eq(deletionRequests.personId, requesterId))
-    .orderBy(
-      sql`CASE WHEN ${deletionRequests.status} IN ('pending', 'in_review') THEN 0 ELSE 1 END`,
-      desc(deletionRequests.createdAt),
-      desc(deletionRequests.id),
-    )
-    .limit(1);
-
-  return row ? mapDeletionRequest(row) : null;
 }

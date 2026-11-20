@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../components/back-link";
-import { requireUser } from "../../../lib/auth/session";
-import { getOpportunity } from "../../../server/repositories/opportunities";
+import { requireUser } from "../../../server/auth/access";
+import { getOpportunity } from "../../../server/opportunities/repository";
 import { removeOpportunityBookmark, saveOpportunityBookmark } from "../actions";
 
 export const metadata = { title: "Detalle de oportunidad" };

@@ -6,14 +6,14 @@ import { eq } from "drizzle-orm";
 import { createTestDb, type AppDb } from "../../db/client";
 import { adminAuditLogs, bookmarks, profiles } from "../../db/schema";
 import {
-  createOpportunity,
+  createAdminOpportunity,
   getOpportunity,
   listBookmarks,
   listOpportunities,
   removeBookmark,
   saveBookmark,
-  updateOpportunityStatus,
-} from "./opportunities";
+  setAdminOpportunityStatus,
+} from "./repository";
 
 const BASE_NOW = new Date("2026-11-20T10:00:00Z");
 
@@ -49,7 +49,7 @@ describe("opportunities PostgreSQL repository (CA-05)", () => {
       const editor = await createProfile(db, { email: "editor@uc3m.es" });
       const student = await createProfile(db);
 
-      const internship = await createOpportunity(
+      const internship = await createAdminOpportunity(
         {
           slug: "practicas-dinamica-vuelo",
           type: "internship",
@@ -76,7 +76,7 @@ describe("opportunities PostgreSQL repository (CA-05)", () => {
         assert.ok(internship.opportunity.publishedAt instanceof Date);
       }
 
-      const research = await createOpportunity(
+      const research = await createAdminOpportunity(
         {
           slug: "investigacion-propulsion-electrica",
           type: "research",
@@ -108,7 +108,7 @@ describe("opportunities PostgreSQL repository (CA-05)", () => {
 
       // Validaciones negativas (RF-08 / CA-05)
       assert.deepEqual(
-        await createOpportunity(
+        await createAdminOpportunity(
           {
             type: "research",
             title: "Sin alt",
@@ -126,7 +126,7 @@ describe("opportunities PostgreSQL repository (CA-05)", () => {
       );
 
       assert.deepEqual(
-        await createOpportunity(
+        await createAdminOpportunity(
           {
             type: "internship",
             title: "Solo infoUrl",
@@ -142,7 +142,7 @@ describe("opportunities PostgreSQL repository (CA-05)", () => {
       );
 
       assert.deepEqual(
-        await createOpportunity(
+        await createAdminOpportunity(
           {
             type: "internship",
             title: "Solicitud HTTP",
@@ -158,7 +158,7 @@ describe("opportunities PostgreSQL repository (CA-05)", () => {
       );
 
       assert.deepEqual(
-        await createOpportunity(
+        await createAdminOpportunity(
           {
             type: "internship",
             title: "Info ejecutable",
@@ -175,7 +175,7 @@ describe("opportunities PostgreSQL repository (CA-05)", () => {
       );
 
       assert.deepEqual(
-        await createOpportunity(
+        await createAdminOpportunity(
           {
             type: "research",
             title: "Imagen HTTP",
@@ -193,7 +193,7 @@ describe("opportunities PostgreSQL repository (CA-05)", () => {
       );
 
       assert.deepEqual(
-        await createOpportunity(
+        await createAdminOpportunity(
           {
             type: "research",
             title: "Correo inválido",
@@ -209,7 +209,7 @@ describe("opportunities PostgreSQL repository (CA-05)", () => {
       );
 
       assert.deepEqual(
-        await createOpportunity(
+        await createAdminOpportunity(
           {
             type: "internship",
             title: "   ",
@@ -225,7 +225,7 @@ describe("opportunities PostgreSQL repository (CA-05)", () => {
       );
 
       assert.deepEqual(
-        await createOpportunity(
+        await createAdminOpportunity(
           {
             slug: "practicas-dinamica-vuelo",
             type: "internship",
@@ -242,7 +242,7 @@ describe("opportunities PostgreSQL repository (CA-05)", () => {
       );
 
       // Borrador sin contacto permitido, pero no publicable
-      const draftIncomplete = await createOpportunity(
+      const draftIncomplete = await createAdminOpportunity(
         {
           slug: "borrador-sin-contacto",
           type: "internship",
@@ -258,12 +258,12 @@ describe("opportunities PostgreSQL repository (CA-05)", () => {
       assert.equal(draftIncomplete.ok, true);
       assert.equal(await getOpportunity("borrador-sin-contacto", student.id, db), undefined);
       assert.deepEqual(
-        await updateOpportunityStatus("borrador-sin-contacto", "published", editor.id, db),
+        await setAdminOpportunityStatus("borrador-sin-contacto", "published", editor.id, db),
         { ok: false, error: "missing_contact" },
       );
 
       // Borrador completo publicable con auditoría en admin_audit_logs
-      const draftReady = await createOpportunity(
+      const draftReady = await createAdminOpportunity(
         {
           slug: "borrador-listo",
           type: "research",
@@ -282,7 +282,7 @@ describe("opportunities PostgreSQL repository (CA-05)", () => {
         false,
       );
 
-      const published = await updateOpportunityStatus("borrador-listo", "published", editor.id, db);
+      const published = await setAdminOpportunityStatus("borrador-listo", "published", editor.id, db);
       assert.equal(published.ok, true);
       if (published.ok) {
         assert.equal(published.opportunity.status, "published");
@@ -292,11 +292,15 @@ describe("opportunities PostgreSQL repository (CA-05)", () => {
           .select()
           .from(adminAuditLogs)
           .where(eq(adminAuditLogs.targetId, published.opportunity.id));
-        assert.equal(audits.length, 1);
-        assert.equal(audits[0].actorProfileId, editor.id);
-        assert.equal(audits[0].targetType, "opportunity");
-        assert.equal(audits[0].action, "opportunity_status_updated");
-        assert.equal(audits[0].result, "success");
+        assert.deepEqual(audits.map((entry) => entry.action).sort(), [
+          "opportunity_created",
+          "opportunity_status_updated",
+        ]);
+        for (const entry of audits) {
+          assert.equal(entry.actorProfileId, editor.id);
+          assert.equal(entry.targetType, "opportunity");
+          assert.equal(entry.result, "success");
+        }
       }
 
       // Filtrado y búsqueda por UUID y por slug
@@ -324,7 +328,7 @@ describe("opportunities PostgreSQL repository (CA-05)", () => {
       const personA = await createProfile(db);
       const personB = await createProfile(db);
 
-      const created = await createOpportunity(
+      const created = await createAdminOpportunity(
         {
           slug: "avionics-testing",
           type: "internship",
@@ -362,7 +366,7 @@ describe("opportunities PostgreSQL repository (CA-05)", () => {
       assert.equal(await saveBookmark(personA.id, "no-existe", db), "missing");
 
       // Archivar oportunidad guardada
-      const archived = await updateOpportunityStatus(target.id, "archived", editor.id, db);
+      const archived = await setAdminOpportunityStatus(target.id, "archived", editor.id, db);
       assert.equal(archived.ok, true);
 
       assert.equal(await getOpportunity(target.id, personA.id, db), undefined);

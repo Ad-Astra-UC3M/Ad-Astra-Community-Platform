@@ -1,6 +1,6 @@
 import { BackLink } from "../../../components/back-link";
-import { listAdminOpportunities } from "../../../server/repositories/admin";
-import { requireCapability } from "../access";
+import { listAdminOpportunities } from "../../../server/opportunities/repository";
+import { requireCapability } from "../../../server/auth/access";
 import { createAdminOpportunityAction, setAdminOpportunityStatusAction } from "./actions";
 
 export const metadata = { title: "Gestión de oportunidades" };

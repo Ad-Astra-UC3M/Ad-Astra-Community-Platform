@@ -1,8 +1,8 @@
 import { ArrowRight02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
-import { requireUser } from "../../lib/auth/session";
-import { getBasicProfile } from "../../server/repositories/profile";
+import { requireUser } from "../../server/auth/access";
+import { getBasicProfile } from "../../server/profiles/repository";
 import { saveBasicProfileAction } from "./actions";
 
 export const metadata = { title: "Mi perfil" };

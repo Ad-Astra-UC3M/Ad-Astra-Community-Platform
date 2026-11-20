@@ -10,17 +10,16 @@ import {
   DISSEMINATION_PURPOSE,
   getBasicProfile,
   getDisseminationStatus,
-  getMyDeletionRequest,
   getTalentProfile,
   normalizeTagList,
   parseExperiencesFromText,
   parseLanguageList,
   parseTagList,
-  requestAccountDeletion,
   saveTalentProfile,
   setDisseminationDecision,
   updateBasicProfile,
-} from "./profile";
+} from "./repository";
+import { getMyDeletionRequest, requestAccountDeletion } from "./deletion-requests";
 
 async function createProfile(
   db: AppDb,

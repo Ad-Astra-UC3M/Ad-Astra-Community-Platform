@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BackLink } from "../../components/back-link";
-import { requireUser } from "../../lib/auth/session";
-import { listBookmarks } from "../../server/repositories/opportunities";
+import { requireUser } from "../../server/auth/access";
+import { listBookmarks } from "../../server/opportunities/repository";
 import { removeOpportunityBookmark } from "../opportunities/actions";
 
 export const metadata = { title: "Mis marcadores" };

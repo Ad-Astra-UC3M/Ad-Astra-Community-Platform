@@ -1,17 +1,13 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { requireUser } from "../../lib/auth/session";
 import {
   parseLanguageList,
   parseTagList,
-  requestAccountDeletion,
-  saveTalentProfile,
-  setDisseminationDecision,
   type TalentLink,
   type TalentLinkKind,
-  updateBasicProfile,
-} from "../../server/repositories/profile";
+} from "../../server/profiles/repository";
+import { requestMyAccountDeletion, saveMyTalentProfile, updateMyDissemination, updateMyProfile } from "../../server/profiles/operations";
 
 const fixedLinks: { field: string; kind: TalentLinkKind; label: string }[] = [
   { field: "linkCvUrl", kind: "cv", label: "CV" },
@@ -31,8 +27,7 @@ function optionalTextField(formData: FormData, key: string): string | undefined 
 }
 
 export async function saveBasicProfileAction(formData: FormData) {
-  const user = await requireUser();
-  const result = await updateBasicProfile(user.personId, {
+  const result = await updateMyProfile({
     firstName: textField(formData, "firstName"),
     lastName: textField(formData, "lastName"),
     degree: textField(formData, "degree"),
@@ -54,7 +49,6 @@ export async function saveBasicProfileAction(formData: FormData) {
 }
 
 export async function saveTalentProfileAction(formData: FormData) {
-  const user = await requireUser();
   const links: TalentLink[] = [];
 
   for (const item of fixedLinks) {
@@ -77,7 +71,7 @@ export async function saveTalentProfileAction(formData: FormData) {
     ? textField(formData, "expectedGraduationYear")
     : textField(formData, "graduationYear");
 
-  const result = await saveTalentProfile(user.personId, {
+  const result = await saveMyTalentProfile({
     university: textField(formData, "university"),
     expectedGraduationYear,
     headline: textField(formData, "headline"),
@@ -100,24 +94,14 @@ export async function saveTalentProfileAction(formData: FormData) {
 }
 
 export async function updateDisseminationAction(formData: FormData) {
-  const user = await requireUser();
-  const decision = formData.get("granted");
-  if (decision !== "true" && decision !== "false") {
-    redirect("/profile/privacy?error=invalid_decision");
-  }
+  const result = await updateMyDissemination(formData.get("granted"));
+  if (!result.ok) redirect(`/profile/privacy?error=${result.error}`);
 
-  const granted = decision === "true";
-  const status = await setDisseminationDecision(user.personId, granted);
-  if (!status) {
-    redirect("/profile/privacy?error=missing");
-  }
-
-  redirect(`/profile/privacy?status=${granted ? "dissemination_granted" : "dissemination_revoked"}`);
+  redirect(`/profile/privacy?status=${result.granted ? "dissemination_granted" : "dissemination_revoked"}`);
 }
 
 export async function requestDeletionAction(formData: FormData) {
-  const user = await requireUser();
-  const result = await requestAccountDeletion(user.personId, textField(formData, "reason"));
+  const result = await requestMyAccountDeletion(textField(formData, "reason"));
   if (!result.ok) {
     redirect(`/profile/privacy?error=${result.error}`);
   }

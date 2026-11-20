@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { BackLink } from "../../../components/back-link";
-import { requireUser } from "../../../lib/auth/session";
-import { getDisseminationStatus, getMyDeletionRequest } from "../../../server/repositories/profile";
+import { requireUser } from "../../../server/auth/access";
+import { getDisseminationStatus } from "../../../server/profiles/repository";
+import { getMyDeletionRequest } from "../../../server/profiles/deletion-requests";
 import { requestDeletionAction, updateDisseminationAction } from "../actions";
 
 export const metadata = { title: "Difusión y privacidad" };

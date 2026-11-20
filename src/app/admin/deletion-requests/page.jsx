@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BackLink } from "../../../components/back-link";
-import { listDeletionRequests } from "../../../server/repositories/admin";
-import { requireCapability } from "../access";
+import { listDeletionRequests } from "../../../server/profiles/deletion-requests";
+import { requireCapability } from "../../../server/auth/access";
 
 export const metadata = { title: "Solicitudes de supresión" };
 
