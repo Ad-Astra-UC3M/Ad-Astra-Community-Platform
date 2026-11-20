@@ -148,3 +148,21 @@ Las suites usan el mismo contrato con una base PGlite desechable. Cada método d
 4. `e2e/email-otp.spec.ts` recorre la página, abre la sesión y comprueba que el portal devuelve 404 en la antigua ruta de proxy. El proveedor de pruebas usa el buzón JSONL. La prueba manual con Neon de desarrollo comprueba entrega a un buzón real y la cookie del proveedor.
 
 [Volver al mapa del backend](README.md)
+
+## Funciones JSX que consumen Auth
+
+Estas funciones devuelven JSX para que App Router lo renderice. Pasar una Server Action a un formulario conecta la vista con el servidor cuando la persona confirma el envío.
+
+| Función | Parámetros | Qué hace y a quién llama |
+| --- | --- | --- |
+| `RootLayout` | `children`, la ruta renderizada por Next | Obtiene `currentUser` y construye sus elementos de navegación y sesión alrededor de la página. |
+| `CommunityPage` | Sin parámetros | La portada obtiene `currentUser`. Envía a `/home` cuando hay sesión. En otro caso muestra la portada pública. |
+| `HomePage` | Sin parámetros | Exige sesión con retorno a `/home`. Usa las capacidades para mostrar el enlace al panel. |
+| `CommunityBar` | Propiedad `user`, usuario de Comunidad ya resuelto | Muestra su nombre y correo. Muestra Gestión según las capacidades y envía el formulario de cierre a `signOut`. |
+| `SignUpPage` | `searchParams`, con un error de alta opcional | Muestra el registro y asigna `signUp` al formulario. |
+| `SignInPage` | `searchParams` con error, destino y avisos de cuenta | Sanea el destino con `readOptionalNextPath` y presenta el formulario que llama a `signIn`. |
+| `VerifyEmailPage` | `searchParams` de la verificación | Obtiene el correo de la cookie con `readAccountCodeEmail` y pasa ambos valores a `VerifyEmailView`. |
+| `VerifyEmailView` | `params` con los avisos y destino, más el correo `email` | Presenta la verificación e invoca `verifyEmailAction` o `resendVerificationAction` según el formulario. |
+| `ForgotPasswordPage` | Sin parámetros | Presenta el formulario de correo que llama a `requestPasswordResetAction`. |
+| `ResetPasswordPage` | `searchParams` con aviso de envío o error | Lee el correo de recuperación y presenta el formulario de código y nueva contraseña con `resetPasswordAction`. |
+| `PrivacyNoticePage` | Sin parámetros | Muestra el aviso público con la versión de privacidad de `service.ts` y el enlace de regreso al registro. |

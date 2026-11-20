@@ -189,3 +189,10 @@ Las operaciones de datos usan `resolveDb` para obtener la conexión. Las pruebas
 | `card-data.test.ts` · `insertProfile` | Base de pruebas y campos opcionales | Crea el perfil que necesitan las pruebas de emisión, revocación y verificación. |
 
 Las pruebas de reservas ejecutan ambas solicitudes por la última plaza desde `Promise.all` sobre PGlite y verifican una sola participación y su auditoría. Las de QR comprueban firma, versión y elegibilidad de la cuenta. Las pruebas de navegador recorren los formularios y las respuestas de autorización de Next.js.
+
+## Helpers de presentación del panel
+
+| Función | Parámetros | Resultado y llamador |
+| --- | --- | --- |
+| `defaultDateTimeInput` | `offsetHours`, horas respecto a la hora local del servidor | La página administrativa de actividades la usa para proponer una hora de turno. Devuelve texto compatible con un campo `datetime-local`. Su helper `pad(value)` rellena mes, día y hora con dos dígitos. |
+| `formatAuditStatusSummary` | `entry`, un evento de participación | Resume el cambio de estado o el estado registrado. La página de asistencia lo presenta en el historial. |

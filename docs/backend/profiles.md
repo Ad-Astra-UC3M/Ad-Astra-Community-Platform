@@ -151,3 +151,15 @@ Estas funciones se ejecutan en el servidor. La página las llama directamente pa
 | `getTalentForConsultation` | `id` del perfil | Exige `talent_consultation` y llama a `getTalentAdminDetail`. Devuelve el detalle o `null`. |
 | `listDeletionRequestsForReview` | Sin parámetros | Exige `general_admin` y devuelve la cola de solicitudes consultada por `listDeletionRequests`. |
 | `getDeletionRequestForReview` | `id` de la solicitud | Exige `general_admin`, consulta la solicitud con `getDeletionRequest` y devuelve un detalle o `null`. |
+
+## Helpers de presentación de las páginas JSX
+
+Estos helpers se ejecutan al renderizar. Convierten datos del servidor en texto de formulario.
+
+| Función | Parámetros | Resultado y llamador |
+| --- | --- | --- |
+| `formatDateTime` | `timestamp` con la fecha de un evento | `ProfilePrivacyPage` usa la fecha formateada para el historial. |
+| `firstLinkByKind` | Colección `links` y su tipo `kind` | Devuelve el primer vínculo de ese tipo o `undefined`. `TalentProfilePage` lo usa para rellenar los campos de enlaces. |
+| `formatFeaturedProject` | Experiencias del perfil | Devuelve la descripción o el título de la experiencia destacada, o texto vacío. Rellena el campo de proyecto destacado. |
+| `formatExperiencesSummary` | Experiencias del perfil | Une en texto las experiencias ordinarias para el campo de resumen. |
+| `formatLanguages` | Lista de idiomas y niveles | Devuelve una lista en texto, con nivel si está indicado, para rellenar el campo del formulario. |

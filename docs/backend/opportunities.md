@@ -37,11 +37,11 @@ flowchart TD
 | `setAdminOpportunityStatus` | Identificador o slug, nuevo estado, actor y `db` opcional | Valida el estado, bloquea la fila, comprueba los requisitos de publicación y actualiza con auditoría. | Llamada por `changeOpportunityStatus` y las pruebas del repositorio. |
 | `mapCatalogOpportunity` | Fila y booleano `bookmarked` | Devuelve el modelo del catálogo con el estado del marcador de la persona. | Ayudante privado de `listOpportunities` y `getOpportunity`. |
 | `identifierWhere` | UUID o slug | Construye la condición Drizzle. Los UUID pueden coincidir con ID o slug. | Ayudante privado del detalle y las escrituras de marcadores. |
-| `listOpportunities` | Perfil, tipo opcional y `db` opcional | Devuelve oportunidades publicadas con sus marcadores para esa persona. | Lectura del componente servidor de `/opportunities`. |
-| `getOpportunity` | Identificador o slug, perfil y `db` opcional | Devuelve el detalle de una oportunidad publicada con su marcador, o `undefined`. | Lectura del componente servidor de `/opportunities/[id]`. |
+| `listOpportunities` | Perfil, tipo opcional y `db` opcional | Devuelve oportunidades publicadas con sus marcadores para esa persona. | `listVisibleOpportunities` la llama tras resolver la sesión del catálogo. |
+| `getOpportunity` | Identificador o slug, perfil y `db` opcional | Devuelve el detalle de una oportunidad publicada con su marcador, o `undefined`. | `getVisibleOpportunity` la llama tras resolver la sesión del detalle. |
 | `saveBookmark` | Perfil, identificador o slug y `db` opcional | Añade de forma idempotente un marcador de una oportunidad publicada. Devuelve `saved` o `missing`. | Llamada por `saveMyBookmark` con la identidad de sesión. |
 | `removeBookmark` | Perfil, identificador o slug y `db` opcional | Retira el marcador con cualquier estado de la oportunidad. Devuelve `removed` de forma idempotente. | Llamada por `removeMyBookmark` con la identidad de sesión. |
-| `listBookmarks` | Perfil y `db` opcional | Devuelve marcadores con datos de contacto para oportunidades publicadas y datos básicos para archivadas. | Lectura del componente servidor de `/bookmarks`. |
+| `listBookmarks` | Perfil y `db` opcional | Devuelve marcadores con datos de contacto para oportunidades publicadas y datos básicos para archivadas. | `listMyBookmarks` la llama tras resolver la sesión. |
 
 ## [`src/server/opportunities/operations.ts`](../../src/server/opportunities/operations.ts)
 

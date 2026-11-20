@@ -56,5 +56,5 @@ Estas funciones se ejecutan en el servidor. La página las llama directamente pa
 | Función | Parámetros | Uso y resultado |
 | --- | --- | --- |
 | `loadAdminDashboard` | Sin parámetros | Protege `/admin` con `requireAdminAny`. Devuelve las capacidades, las métricas para `general_admin` y los turnos para `attendance_validation`. `AdminPage` usa el resultado para renderizar el panel. |
-| `searchAdminAccounts` | `filters` de tipo `AccountSearchFilters` | La página de cuentas pasa los filtros de búsqueda y paginación. Exige `general_admin` antes de llamar a `searchAccounts`. |
+| `searchAdminAccounts` | `filters` de tipo `AccountSearchFilters` | La página de cuentas pasa los filtros de texto, titulación, curso, estado y participación. Exige `general_admin` antes de llamar a `searchAccounts`. |
 | `getAdminAccount` | `id` del perfil solicitado | La página de detalle obtiene la ficha con `getAccountAdminDetail` tras exigir `general_admin`. Devuelve la ficha o `null` para que la página muestre 404. |
