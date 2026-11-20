@@ -71,9 +71,10 @@ export function readMailboxEntries(): MailboxEntry[] {
  * tras enviar el formulario de Next.js.
  * @param email Correo que se normaliza antes de filtrar el buzón.
  * @param kind Propósito del código, verificación del alta o recuperación.
- * @param previousOtp Código anterior que debe ignorarse para comprobar el reenvío.
+ * @param previousOtp Código anterior. Con él se espera a que cambie la última entrada del buzón.
  * @param timeoutMs Tiempo máximo de espera en milisegundos.
- * @returns El código más reciente que cumple el filtro. Rechaza al agotar la espera.
+ * @returns Código de la última entrada para el correo y propósito, si difiere de previousOtp.
+ * Lanza un error al agotar la espera.
  */
 export async function waitForMailboxOtp(
   email: string,
