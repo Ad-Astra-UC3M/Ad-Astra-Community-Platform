@@ -1,9 +1,14 @@
 import { expect, test } from "@playwright/test";
+import { E2E_ACCOUNTS, registerVerifyAndSignIn, signInAs, signOut } from "./helpers/e2e-env";
 
-test("turno único con imágenes ordenadas, cambio atómico de turno y reemisión QR con revocación", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Entrar como estudiante" }).click();
-  await expect(page).toHaveURL(/\/home$/);
+test("turno único con imágenes ordenadas, cambio atómico de turno y reemisión QR con revocación", async ({ page }, info) => {
+  const email = `turnos.${info.project.name}@alumnos.uc3m.es`;
+  await registerVerifyAndSignIn(page, {
+    firstName: "Nora",
+    lastName: `Turnos ${info.project.name}`,
+    email,
+    password: "TurnosPassword2026!",
+  });
 
   await page.goto("/activities/propulsion-visit");
   await expect(page.getByText("Turno único seleccionado automáticamente")).toBeVisible();
@@ -36,9 +41,10 @@ test("turno único con imágenes ordenadas, cambio atómico de turno y reemisió
   const secondToken = await page.getByLabel("Código de la tarjeta").inputValue();
   expect(secondToken).not.toBe(firstToken);
 
-  await page.getByRole("button", { name: "Probar como organizador" }).click();
+  await signOut(page);
+  await signInAs(page, E2E_ACCOUNTS.admin);
   await expect(page).toHaveURL(/\/admin$/);
-  await page.goto("/admin/attendance/avionics-lab-b");
+  await page.getByRole("link", { name: /Validar Grupo B/i }).click();
 
   await page.getByLabel("Código de la tarjeta").fill(firstToken);
   await page.getByRole("button", { name: "Validar tarjeta" }).click();
@@ -49,10 +55,13 @@ test("turno único con imágenes ordenadas, cambio atómico de turno y reemisió
   await expect(page.getByRole("status")).toContainText("Asistencia registrada.");
 });
 
-test("oportunidades con filtro por tipo y marcadores idempotentes", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Entrar como estudiante" }).click();
-  await expect(page).toHaveURL(/\/home$/);
+test("oportunidades con filtro por tipo y marcadores idempotentes", async ({ page }, info) => {
+  await registerVerifyAndSignIn(page, {
+    firstName: "Inés",
+    lastName: `Oportunidades ${info.project.name}`,
+    email: `oportunidades.${info.project.name}@alumnos.uc3m.es`,
+    password: "OportPassword2026!",
+  });
 
   await page.getByRole("navigation", { name: "Accesos directos" }).locator('a[href="/opportunities"]').click();
   await expect(page).toHaveURL(/\/opportunities$/);
@@ -75,16 +84,19 @@ test("oportunidades con filtro por tipo y marcadores idempotentes", async ({ pag
   await expect(page.getByText("Todavía no tienes oportunidades guardadas.")).toBeVisible();
 });
 
-test("aviso de privacidad, perfil básico, talento voluntario, difusión y solicitud de supresión", async ({ page }) => {
+test("aviso de privacidad, perfil básico, talento voluntario, difusión y solicitud de supresión", async ({ page }, info) => {
   await page.goto("/sign-up");
   await page.getByRole("link", { name: "aviso de privacidad" }).click();
   await expect(page).toHaveURL(/\/privacy$/);
   await expect(page.getByRole("heading", { name: "Aviso de privacidad" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Volver al registro" })).toHaveAttribute("href", "/sign-up");
 
-  await page.goto("/");
-  await page.getByRole("button", { name: "Entrar como estudiante" }).click();
-  await expect(page).toHaveURL(/\/home$/);
+  await registerVerifyAndSignIn(page, {
+    firstName: "Clara",
+    lastName: `Perfil ${info.project.name}`,
+    email: `perfil.${info.project.name}@alumnos.uc3m.es`,
+    password: "PerfilPassword2026!",
+  });
 
   await page.getByRole("navigation", { name: "Accesos directos" }).locator('a[href="/profile"]').click();
   await expect(page).toHaveURL(/\/profile$/);
@@ -105,10 +117,10 @@ test("aviso de privacidad, perfil básico, talento voluntario, difusión y solic
   await page.getByLabel("Universidad", { exact: true }).fill("UC3M");
   await page.getByLabel("Año de graduación estimado", { exact: true }).fill("2027");
   await page.getByLabel("Habilidades", { exact: true }).fill("Aviónica, C++");
-  await page.getByLabel("GitHub", { exact: true }).fill("https://github.com/ad-astra-demo");
+  await page.getByLabel("GitHub", { exact: true }).fill("https://github.com/ad-astra-e2e");
   await page.getByRole("button", { name: "Guardar perfil de talento" }).click();
   await expect(page.getByRole("status")).toContainText("Has guardado tu perfil de talento voluntario.");
-  await expect(page.getByRole("link", { name: "https://github.com/ad-astra-demo" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "https://github.com/ad-astra-e2e" })).toBeVisible();
 
   await page.getByRole("link", { name: "Volver a mi perfil" }).click();
   await page.getByRole("link", { name: /Difusión y privacidad/i }).click();
@@ -121,7 +133,7 @@ test("aviso de privacidad, perfil básico, talento voluntario, difusión y solic
   await expect(page.getByRole("status")).toContainText("Tu perfil de talento permanece intacto");
   await expect(page.locator("section", { hasText: "Historial de decisiones" }).locator("li")).toHaveCount(2);
 
-  await page.getByLabel("Motivo (opcional)").fill("Prueba de cierre de cuenta demo");
+  await page.getByLabel("Motivo (opcional)").fill("Solicitud de baja en recorrido E2E");
   await page.getByRole("button", { name: "Solicitar supresión de cuenta" }).click();
   await expect(page.getByRole("status")).toContainText("No se ha ejecutado ningún borrado automático.");
   await expect(page.getByText("Pendiente de revisión")).toBeVisible();
