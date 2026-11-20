@@ -427,7 +427,11 @@ export type SetProfileCapabilityResult =
     }
   | {
       ok: false;
-      error: "invalid_capability" | "missing_profile" | "missing_actor";
+      error:
+        | "invalid_capability"
+        | "missing_profile"
+        | "missing_actor"
+        | "last_general_admin";
     };
 
 export type SetProfileStatusResult =
@@ -439,7 +443,11 @@ export type SetProfileStatusResult =
     }
   | {
       ok: false;
-      error: "invalid_status" | "missing_profile" | "missing_actor";
+      error:
+        | "invalid_status"
+        | "missing_profile"
+        | "missing_actor"
+        | "last_general_admin";
     };
 
 export interface AdminDeletionRequest {
@@ -2397,6 +2405,33 @@ export async function getAccountAdminDetail(
   };
 }
 
+async function isOnlyActiveGeneralAdminLocked(
+  tx: AppDbOrTx,
+  targetProfileId: string,
+): Promise<boolean> {
+  const generalAdminRows = await tx
+    .select({
+      profileId: accountCapabilities.profileId,
+      status: profiles.status,
+    })
+    .from(accountCapabilities)
+    .innerJoin(profiles, eq(profiles.id, accountCapabilities.profileId))
+    .where(eq(accountCapabilities.capabilityCode, "general_admin"))
+    .orderBy(asc(accountCapabilities.profileId))
+    .for("update");
+
+  const targetIsActiveGeneralAdmin = generalAdminRows.some(
+    (row) => row.profileId === targetProfileId && row.status === "active",
+  );
+  if (!targetIsActiveGeneralAdmin) {
+    return false;
+  }
+
+  return !generalAdminRows.some(
+    (row) => row.profileId !== targetProfileId && row.status === "active",
+  );
+}
+
 export async function setProfileCapability(
   targetProfileId: string,
   capability: CapabilityCode,
@@ -2418,6 +2453,11 @@ export async function setProfileCapability(
   const database = await resolveDb(db);
 
   return database.transaction(async (tx) => {
+    const onlyActiveGeneralAdmin =
+      parsedCapability.data === "general_admin" && !enabled
+        ? await isOnlyActiveGeneralAdminLocked(tx, targetProfileId)
+        : false;
+
     const [target] = await tx
       .select({ id: profiles.id })
       .from(profiles)
@@ -2427,6 +2467,10 @@ export async function setProfileCapability(
 
     if (!(await profileExists(tx, actorProfileId))) {
       return { ok: false, error: "missing_actor" };
+    }
+
+    if (onlyActiveGeneralAdmin) {
+      return { ok: false, error: "last_general_admin" };
     }
 
     if (enabled) {
@@ -2530,6 +2574,11 @@ export async function setProfileStatus(
   const now = new Date();
 
   const txResult = await database.transaction(async (tx) => {
+    const onlyActiveGeneralAdmin =
+      parsedStatus.data === "deactivated"
+        ? await isOnlyActiveGeneralAdminLocked(tx, targetProfileId)
+        : false;
+
     const [target] = await tx
       .select({
         id: profiles.id,
@@ -2545,6 +2594,10 @@ export async function setProfileStatus(
 
     if (!(await profileExists(tx, actorProfileId))) {
       return { ok: false as const, error: "missing_actor" as const };
+    }
+
+    if (onlyActiveGeneralAdmin) {
+      return { ok: false as const, error: "last_general_admin" as const };
     }
 
     if (target.status === parsedStatus.data) {

@@ -205,4 +205,34 @@ describe("attendance-card service (PostgreSQL + jose HS256)", () => {
       await db.close();
     }
   });
+
+  it("blocks the test QR secret fallback whenever NEON_AUTH_BASE_URL is configured", async () => {
+    const db = await createTestDb();
+    const prevSecret = process.env.ATTENDANCE_QR_SECRET;
+    const prevNeonAuth = process.env.NEON_AUTH_BASE_URL;
+    const prevTestAuth = process.env.AD_ASTRA_TEST_AUTH;
+    try {
+      const profile = await insertProfile(db);
+      // Issue a valid token using the test fallback before NEON_AUTH_BASE_URL is set.
+      delete process.env.ATTENDANCE_QR_SECRET;
+      delete process.env.NEON_AUTH_BASE_URL;
+      const fallbackCard = await issueCard(profile.id, db);
+      assert.equal(await verifyCard(fallbackCard.token, db), profile.id);
+
+      // Once NEON_AUTH_BASE_URL is configured, missing ATTENDANCE_QR_SECRET must throw
+      // for both issueCard and verifyCard even if AD_ASTRA_TEST_AUTH=1 and NODE_TEST_CONTEXT are set.
+      process.env.NEON_AUTH_BASE_URL = "https://ep-test.neonauth.eu-central-1.aws.neon.tech/neondb/auth";
+      process.env.AD_ASTRA_TEST_AUTH = "1";
+      await assert.rejects(() => issueCard(profile.id, db), /ATTENDANCE_QR_SECRET/);
+      await assert.rejects(() => verifyCard(fallbackCard.token, db), /ATTENDANCE_QR_SECRET/);
+    } finally {
+      if (prevSecret === undefined) delete process.env.ATTENDANCE_QR_SECRET;
+      else process.env.ATTENDANCE_QR_SECRET = prevSecret;
+      if (prevNeonAuth === undefined) delete process.env.NEON_AUTH_BASE_URL;
+      else process.env.NEON_AUTH_BASE_URL = prevNeonAuth;
+      if (prevTestAuth === undefined) delete process.env.AD_ASTRA_TEST_AUTH;
+      else process.env.AD_ASTRA_TEST_AUTH = prevTestAuth;
+      await db.close();
+    }
+  });
 });

@@ -111,6 +111,8 @@ export async function registerVerifyAndSignIn(
 
   const token = await waitForMailboxToken(account.email, "email-verification");
   await page.goto(`/verify-email?token=${encodeURIComponent(token)}`);
+  await page.getByRole("button", { name: "Confirmar correo electrónico" }).click();
+  await page.waitForURL(/\/verify-email\?verified=1$/);
   await page.getByRole("link", { name: "Acceder a la comunidad" }).click();
   await page.waitForURL(/\/sign-in$/);
 

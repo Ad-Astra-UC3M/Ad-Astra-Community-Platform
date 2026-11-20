@@ -8,7 +8,6 @@ import {
   revokeUserSessions,
 } from "../../../lib/auth/session";
 import {
-  searchAccounts,
   setProfileCapability,
   setProfileStatus,
 } from "../../../server/repositories/admin";
@@ -19,17 +18,6 @@ function readField(form: FormData, name: string): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-async function isOnlyActiveGeneralAdmin(targetProfileId: string): Promise<boolean> {
-  const activeAccounts = await searchAccounts({ status: "active" });
-  const activeGeneralAdmins = activeAccounts.filter((account) =>
-    account.capabilities.includes("general_admin"),
-  );
-  return (
-    activeGeneralAdmins.length === 1 &&
-    activeGeneralAdmins[0]?.id === targetProfileId
-  );
-}
-
 export async function toggleAccountCapabilityAction(form: FormData) {
   const admin = await requireCapability("general_admin");
   const targetAccountId = readField(form, "accountId");
@@ -38,12 +26,6 @@ export async function toggleAccountCapabilityAction(form: FormData) {
 
   if (!targetAccountId || !isCapabilityCode(capability)) {
     redirect("/admin/accounts");
-  }
-
-  if (capability === "general_admin" && !enabled) {
-    if (await isOnlyActiveGeneralAdmin(targetAccountId)) {
-      redirect(`/admin/accounts/${encodeURIComponent(targetAccountId)}?error=last_general_admin`);
-    }
   }
 
   const result = await setProfileCapability(
@@ -74,12 +56,6 @@ export async function setAccountStatusAction(form: FormData) {
 
   if (!targetAccountId) {
     redirect("/admin/accounts");
-  }
-
-  if (nextStatus === "deactivated") {
-    if (await isOnlyActiveGeneralAdmin(targetAccountId)) {
-      redirect(`/admin/accounts/${encodeURIComponent(targetAccountId)}?error=last_general_admin`);
-    }
   }
 
   const result = await setProfileStatus(

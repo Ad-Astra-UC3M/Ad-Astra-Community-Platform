@@ -13,6 +13,9 @@ const TEST_ONLY_QR_SECRET =
   "ad-astra-test-only-attendance-qr-secret-minimum-32-bytes";
 
 function isTestQrFallbackAllowed(): boolean {
+  if (process.env.NEON_AUTH_BASE_URL?.trim()) {
+    return false;
+  }
   return Boolean(
     process.env.NODE_TEST_CONTEXT || process.env.AD_ASTRA_TEST_AUTH === "1",
   );
@@ -148,16 +151,10 @@ export async function verifyCard(
   token: string,
   db?: AppDb,
 ): Promise<string | null> {
+  const key = getCardSecretKey();
   if (typeof token !== "string") return null;
   const trimmed = token.trim();
   if (!trimmed || trimmed.length > MAX_TOKEN_LENGTH) return null;
-
-  let key: Uint8Array;
-  try {
-    key = getCardSecretKey();
-  } catch {
-    return null;
-  }
 
   try {
     const { payload } = await jwtVerify(trimmed, key, {

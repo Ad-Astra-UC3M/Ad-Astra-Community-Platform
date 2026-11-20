@@ -151,6 +151,22 @@ export async function verifyEmailByToken(
   return verifyAccountEmail(db, authProvider, token);
 }
 
+export async function verifyEmailAction(formData: FormData): Promise<never> {
+  "use server";
+
+  const token = readFormString(formData, "token").trim();
+  if (!token) {
+    redirect("/verify-email?error=invalid");
+  }
+
+  const result = await verifyEmailByToken(token);
+  if (!result.ok) {
+    redirect("/verify-email?error=" + encodeURIComponent(result.error));
+  }
+
+  redirect("/verify-email?verified=1");
+}
+
 export async function resendVerificationAction(
   formData: FormData,
 ): Promise<never> {

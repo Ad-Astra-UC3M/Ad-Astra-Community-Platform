@@ -832,4 +832,106 @@ describe("admin repository (PostgreSQL)", () => {
       await db.close();
     }
   });
+
+  it("CA-01: protege transaccionalmente el último general_admin activo frente a revocación/desactivación directa y concurrente", async () => {
+    const db = await createTestDb();
+    try {
+      const adminA = await createProfile(db, {
+        authUserId: "neon-admin-a",
+        email: "admin.a@uc3m.es",
+        firstName: "Alicia",
+        lastName: "Admin",
+      });
+      const adminB = await createProfile(db, {
+        authUserId: "neon-admin-b",
+        email: "admin.b@uc3m.es",
+        firstName: "Bruno",
+        lastName: "Admin",
+      });
+
+      // Solo adminA tiene general_admin
+      const grantA = await setProfileCapability(adminA.id, "general_admin", true, adminA.id, db);
+      assert.equal(grantA.ok, true);
+
+      // (a) Llamada directa sobre el único general_admin activo -> last_general_admin
+      assert.deepEqual(
+        await setProfileCapability(adminA.id, "general_admin", false, adminA.id, db),
+        { ok: false, error: "last_general_admin" },
+      );
+
+      let revokedCalls = 0;
+      assert.deepEqual(
+        await setProfileStatus(
+          adminA.id,
+          "deactivated",
+          adminA.id,
+          async () => {
+            revokedCalls += 1;
+          },
+          db,
+        ),
+        { ok: false, error: "last_general_admin" },
+      );
+      assert.equal(revokedCalls, 0);
+
+      // Conceder general_admin a adminB -> ahora hay dos general_admin activos
+      const grantB = await setProfileCapability(adminB.id, "general_admin", true, adminA.id, db);
+      assert.equal(grantB.ok, true);
+
+      // (b1) Revocación mutua concurrente: exactamente una triunfa y otra falla con last_general_admin
+      const revokeRace = await Promise.all([
+        setProfileCapability(adminA.id, "general_admin", false, adminB.id, db),
+        setProfileCapability(adminB.id, "general_admin", false, adminA.id, db),
+      ]);
+      const revokeSuccesses = revokeRace.filter((r) => r.ok);
+      const revokeFailures = revokeRace.filter((r) => !r.ok);
+      assert.equal(revokeSuccesses.length, 1);
+      assert.equal(revokeFailures.length, 1);
+      assert.equal(revokeFailures[0].error, "last_general_admin");
+
+      const remainingAfterRevoke = (await searchAccounts({ status: "active" }, db)).filter((a) =>
+        a.capabilities.includes("general_admin"),
+      );
+      assert.equal(remainingAfterRevoke.length, 1);
+
+      // Volver a tener ambos activos con general_admin y probar desactivación mutua concurrente
+      await setProfileCapability(adminA.id, "general_admin", true, adminA.id, db);
+      await setProfileCapability(adminB.id, "general_admin", true, adminA.id, db);
+
+      const deactivateRace = await Promise.all([
+        setProfileStatus(adminA.id, "deactivated", adminB.id, undefined, db),
+        setProfileStatus(adminB.id, "deactivated", adminA.id, undefined, db),
+      ]);
+      const deactSuccesses = deactivateRace.filter((r) => r.ok);
+      const deactFailures = deactivateRace.filter((r) => !r.ok);
+      assert.equal(deactSuccesses.length, 1);
+      assert.equal(deactFailures.length, 1);
+      assert.equal(deactFailures[0].error, "last_general_admin");
+
+      const remainingAfterDeact = (await searchAccounts({ status: "active" }, db)).filter((a) =>
+        a.capabilities.includes("general_admin"),
+      );
+      assert.equal(remainingAfterDeact.length, 1);
+
+      // Volver a reactivar ambos y probar carrera mixta (uno revoca mientras el otro desactiva)
+      await setProfileStatus(adminA.id, "active", adminA.id, undefined, db);
+      await setProfileStatus(adminB.id, "active", adminA.id, undefined, db);
+
+      const mixedRace = await Promise.all([
+        setProfileCapability(adminA.id, "general_admin", false, adminB.id, db),
+        setProfileStatus(adminB.id, "deactivated", adminA.id, undefined, db),
+      ]);
+      assert.equal(mixedRace.filter((r) => r.ok).length, 1);
+      const mixedFailure = mixedRace.find((r) => !r.ok);
+      assert.ok(mixedFailure && !mixedFailure.ok);
+      assert.equal(mixedFailure.error, "last_general_admin");
+
+      const remainingAfterMixed = (await searchAccounts({ status: "active" }, db)).filter((a) =>
+        a.capabilities.includes("general_admin"),
+      );
+      assert.equal(remainingAfterMixed.length, 1);
+    } finally {
+      await db.close();
+    }
+  });
 });

@@ -35,12 +35,37 @@ test("CA-02 y CA-03: retorno a ruta protegida tras acceso y recuperación de con
   const initialPassword = "ClaveInicial2026!";
   const nextPassword = "ClaveNueva2026!";
 
-  await registerVerifyAndSignIn(page, {
-    firstName: "Marco",
-    lastName: `Acceso ${info.project.name}`,
-    email,
-    password: initialPassword,
-  });
+  await page.goto("/sign-up");
+  await page.getByLabel("Nombre", { exact: true }).fill("Marco");
+  await page.getByLabel("Apellidos", { exact: true }).fill(`Acceso ${info.project.name}`);
+  await page.getByLabel(/Correo institucional UC3M/i).fill(email);
+  await page.getByLabel("Titulación", { exact: true }).fill("Ingeniería Aeroespacial");
+  await page.getByLabel("Curso", { exact: true }).fill("2.º");
+  await page.getByLabel("Contraseña", { exact: true }).fill(initialPassword);
+  await page.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Crear cuenta", exact: true }).click();
+  await expect(page).toHaveURL(/\/verify-email\?sent=1$/);
+
+  const verifyToken = await waitForMailboxToken(email, "email-verification");
+  const verifyUrl = `/verify-email?token=${encodeURIComponent(verifyToken)}`;
+
+  // Abrir la URL en GET (como un escáner/prefetcher de enlaces) NO consume el token antes de pulsar el botón
+  await page.goto(verifyUrl);
+  await expect(page.getByRole("button", { name: "Confirmar correo electrónico" })).toBeVisible();
+  await expect(page.getByText(/verificado correctamente/i)).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Confirmar correo electrónico" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Confirmar correo electrónico" }).click();
+  await expect(page).toHaveURL(/\/verify-email\?verified=1$/);
+  await expect(page.getByRole("status")).toContainText("verificado correctamente");
+
+  await page.getByRole("link", { name: "Acceder a la comunidad" }).click();
+  await expect(page).toHaveURL(/\/sign-in$/);
+  await page.getByLabel(/Correo/i).fill(email);
+  await page.getByLabel(/Contraseña/i).fill(initialPassword);
+  await page.getByRole("button", { name: "Acceder", exact: true }).click();
+  await expect(page).toHaveURL(/\/home$/);
 
   await signOut(page);
 
