@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { sanitizeNextPath, signIn } from "../../lib/auth/session";
+import { readOptionalNextPath, signIn } from "../../lib/auth/session";
 
 export const metadata = { title: "Acceder a la comunidad" };
 
@@ -10,10 +10,8 @@ const inputClass =
   "min-h-12 w-full min-w-0 rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
 
 export default async function SignInPage({ searchParams }) {
-  const { error, next, reset } = await searchParams;
-  const rawNext = typeof next === "string" ? next.trim() : "";
-  const safeNext =
-    rawNext && sanitizeNextPath(rawNext, "/home") === rawNext ? rawNext : "";
+  const { error, next, reset, verified } = await searchParams;
+  const safeNext = readOptionalNextPath(next);
 
   return (
     <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
@@ -25,6 +23,12 @@ export default async function SignInPage({ searchParams }) {
         <p className="rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink">
           Inicia sesión con tu cuenta verificada de correo institucional UC3M.
         </p>
+        {verified === "1" && (
+          <p className="rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink" role="status">
+            Tu correo institucional UC3M ha sido verificado correctamente. Ya puedes acceder a la
+            comunidad.
+          </p>
+        )}
         {reset === "ok" && (
           <p className="rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink" role="status">
             Contraseña actualizada. Inicia sesión con tu nueva contraseña.
@@ -33,12 +37,6 @@ export default async function SignInPage({ searchParams }) {
         {error === "credentials" && (
           <p className="rounded-[4px] bg-brand-accent/35 px-4 py-3.5 text-brand-ink" role="alert">
             Comprueba tu correo institucional UC3M y tu contraseña.
-          </p>
-        )}
-        {error === "unverified" && (
-          <p className="rounded-[4px] bg-brand-accent/35 px-4 py-3.5 text-brand-ink" role="alert">
-            Tu correo institucional UC3M todavía no está verificado. Revisa tu bandeja de entrada o{" "}
-            <Link href="/verify-email">solicita un nuevo enlace de verificación</Link>.
           </p>
         )}
         <form action={signIn} className="grid min-w-0 gap-4">
@@ -72,6 +70,9 @@ export default async function SignInPage({ searchParams }) {
         <div className="flex flex-wrap items-center gap-4">
           <Link href="/forgot-password">¿Has olvidado tu contraseña?</Link>
           <Link href="/sign-up">Crear cuenta</Link>
+          <Link href={safeNext ? "/verify-email?next=" + encodeURIComponent(safeNext) : "/verify-email"}>
+            Verificar correo
+          </Link>
         </div>
       </div>
     </main>

@@ -1,13 +1,17 @@
 import Link from "next/link";
+import {
+  AccountCodeField,
+  InstitutionalEmailField,
+} from "../../components/account-code-fields";
 import { BackLink } from "../../components/back-link";
-import { resetPasswordAction } from "../../lib/auth/session";
+import { readAccountCodeEmail, resetPasswordAction } from "../../lib/auth/session";
 
 export const metadata = { title: "Restablecer contraseña" };
 
 const errors = {
   password: "Elige una nueva contraseña de entre 8 y 128 caracteres.",
   mismatch: "Las contraseñas introducidas no coinciden.",
-  invalid: "El enlace de recuperación no es válido, ya se ha utilizado o ha caducado.",
+  invalid: "El código de recuperación no es válido, ya se ha utilizado o ha caducado.",
 };
 
 const primaryButtonClass =
@@ -17,12 +21,10 @@ const inputClass =
   "min-h-12 w-full min-w-0 rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
 
 export default async function ResetPasswordPage({ searchParams }) {
-  const { token, error } = await searchParams;
-  const safeToken = typeof token === "string" ? token.trim() : "";
+  const { sent, error } = await searchParams;
+  const email = await readAccountCodeEmail("recovery");
   const message =
-    typeof error === "string" && Object.hasOwn(errors, error)
-      ? errors[error]
-      : null;
+    typeof error === "string" && Object.hasOwn(errors, error) ? errors[error] : null;
 
   return (
     <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
@@ -31,56 +33,54 @@ export default async function ResetPasswordPage({ searchParams }) {
         <h1>Restablecer contraseña</h1>
       </div>
       <div className="grid min-w-0 gap-4 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8">
+        {sent === "1" && (
+          <p className="rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink" role="status">
+            Si el correo corresponde a una cuenta verificada, recibirás un código de recuperación.
+            Revisa también la carpeta de correo no deseado.
+          </p>
+        )}
         {message && (
           <p className="rounded-[4px] bg-brand-accent/35 px-4 py-3.5 text-brand-ink" role="alert">
             {message}
           </p>
         )}
-        {safeToken ? (
-          <>
-            <p>
-              Define una nueva contraseña para tu cuenta. Al guardarla, este enlace quedará
-              invalidado y se cerrarán las sesiones previas.
-            </p>
-            <form action={resetPasswordAction} className="grid min-w-0 gap-4" autoComplete="off">
-              <input type="hidden" name="token" value={safeToken} />
-              <label className="grid min-w-0 gap-1.5 font-bold">
-                Nueva contraseña
-                <input
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={8}
-                  maxLength={128}
-                  required
-                  className={inputClass}
-                />
-              </label>
-              <label className="grid min-w-0 gap-1.5 font-bold">
-                Confirmar nueva contraseña
-                <input
-                  name="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={8}
-                  maxLength={128}
-                  required
-                  className={inputClass}
-                />
-              </label>
-              <button type="submit" className={primaryButtonClass}>Guardar nueva contraseña</button>
-            </form>
-          </>
-        ) : (
-          <>
-            <p>No se ha proporcionado un enlace de recuperación válido.</p>
-            <p>Si ya lo has usado o ha caducado, puedes solicitar uno nuevo desde tu correo UC3M.</p>
-            <div className="flex flex-wrap items-center gap-4">
-              <BackLink href="/forgot-password">Solicitar un nuevo enlace</BackLink>
-              <Link href="/sign-in">Acceder a la comunidad</Link>
-            </div>
-          </>
-        )}
+        <p>
+          Introduce el código de seis dígitos de tu correo institucional y elige una nueva
+          contraseña. Al guardarla, se cerrarán las sesiones previas.
+        </p>
+        <form action={resetPasswordAction} className="grid min-w-0 gap-4">
+          <InstitutionalEmailField defaultValue={email} />
+          <AccountCodeField label="Código de recuperación" />
+          <label className="grid min-w-0 gap-1.5 font-bold">
+            Nueva contraseña
+            <input
+              name="password"
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              maxLength={128}
+              required
+              className={inputClass}
+            />
+          </label>
+          <label className="grid min-w-0 gap-1.5 font-bold">
+            Confirmar nueva contraseña
+            <input
+              name="confirmPassword"
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              maxLength={128}
+              required
+              className={inputClass}
+            />
+          </label>
+          <button type="submit" className={primaryButtonClass}>Guardar nueva contraseña</button>
+        </form>
+        <div className="flex flex-wrap items-center gap-4">
+          <BackLink href="/forgot-password">Solicitar un nuevo código</BackLink>
+          <Link href="/sign-in">Acceder a la comunidad</Link>
+        </div>
       </div>
     </main>
   );

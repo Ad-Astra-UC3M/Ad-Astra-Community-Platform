@@ -35,7 +35,7 @@ export default async function SignUpPage({ searchParams }) {
       <div className="grid min-w-0 gap-4 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8">
         <p className="rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink">
           Regístrate con tu correo institucional UC3M (<code>@alumnos.uc3m.es</code> o{" "}
-          <code>@uc3m.es</code>). Te enviaremos un enlace para verificar tu dirección antes de acceder.
+          <code>@uc3m.es</code>). Te enviaremos un código para verificar tu dirección antes de acceder.
         </p>
         {message && (
           <p className="rounded-[4px] bg-brand-accent/35 px-4 py-3.5 text-brand-ink" role="alert">
@@ -45,7 +45,7 @@ export default async function SignUpPage({ searchParams }) {
         {error === "duplicate" && (
           <div className="flex flex-wrap items-center gap-4">
             <BackLink href="/sign-in">Acceder a la comunidad</BackLink>
-            <Link href="/verify-email">Reenviar correo de verificación</Link>
+            <Link href="/verify-email">Solicitar un código de verificación</Link>
           </div>
         )}
         <form action={signUp} className="grid min-w-0 gap-4">
@@ -116,9 +116,8 @@ export default async function SignUpPage({ searchParams }) {
             />
           </label>
           <div id="privacy-notice">
-            Recibirás un enlace de verificación en tu correo institucional UC3M. Tu cuenta quedará
-            activa al confirmar ese enlace y tu correo permanecerá fijo para conservar tu identidad e
-            historial en la comunidad.
+            Tu cuenta se activará cuando verifiques el correo. Después, la dirección quedará
+            vinculada a tu identidad e historial en la comunidad.
           </div>
           <label className="cursor-pointer">
             <input

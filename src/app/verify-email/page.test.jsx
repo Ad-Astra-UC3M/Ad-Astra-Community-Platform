@@ -1,39 +1,53 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import VerifyEmailPage from "./page";
+import SignInPage from "../sign-in/page";
+import { VerifyEmailView } from "./view";
 
-test("GET /verify-email?token=... muestra confirmación explícita sin consumir el token durante el render", async () => {
+test("la verificación pide correo y seis dígitos, sin reutilizar tokens de la URL", () => {
   const html = renderToStaticMarkup(
-    await VerifyEmailPage({
-      searchParams: Promise.resolve({ token: "sample-single-use-token" }),
-    }),
+    <VerifyEmailView
+      params={{ sent: "1", token: "sample-single-use-token" }}
+      email="sintetica@alumnos.uc3m.es"
+    />,
   );
 
+  assert.match(html, /name="email"/);
+  assert.match(html, /value="sintetica@alumnos.uc3m.es"/);
+  assert.match(html, /name="otp"/);
+  assert.match(html, /pattern="\[0-9\]\{6\}"/);
+  assert.match(html, /inputMode="numeric"/i);
+  assert.match(html, /autoComplete="one-time-code"/i);
   assert.match(html, /Confirmar correo electrónico/);
-  assert.match(html, /name="token"[^>]*value="sample-single-use-token"|value="sample-single-use-token"[^>]*name="token"/);
-  assert.doesNotMatch(html, /ha sido verificado correctamente/i);
+  assert.doesNotMatch(html, /sample-single-use-token|name="token"/);
 });
 
-test("GET /verify-email?verified=1 muestra la confirmación y accesos a la comunidad", async () => {
+test("la verificación pendiente conserva el destino del acceso y permite retomarlo", () => {
   const html = renderToStaticMarkup(
-    await VerifyEmailPage({
-      searchParams: Promise.resolve({ verified: "1" }),
-    }),
+    <VerifyEmailView params={{ pending: "1", next: "/bookmarks" }} />,
+  );
+
+  assert.match(html, /name="next"[^>]*value="\/bookmarks"/);
+  assert.match(html, /href="\/sign-in\?next=%2Fbookmarks"/);
+});
+
+test("el acceso tras verificar sin sesión muestra la confirmación y conserva el destino", async () => {
+  const html = renderToStaticMarkup(
+    await SignInPage({ searchParams: Promise.resolve({ verified: "1", next: "/bookmarks" }) }),
   );
 
   assert.match(html, /ha sido verificado correctamente/i);
-  assert.match(html, /href="\/sign-in"/);
-  assert.match(html, /href="\/home"/);
+  assert.match(html, /name="next"[^>]*value="\/bookmarks"/);
 });
 
-test("GET /verify-email?error=expired muestra alerta de enlace caducado y formulario de reenvío", async () => {
+test("un código caducado permite confirmar o solicitar otro y descarta destinos externos", () => {
   const html = renderToStaticMarkup(
-    await VerifyEmailPage({
-      searchParams: Promise.resolve({ error: "expired" }),
-    }),
+    <VerifyEmailView params={{ error: "expired", next: "//external.invalid" }} />,
   );
 
+  assert.match(html, /role="alert"/);
   assert.match(html, /ha caducado/i);
-  assert.match(html, /Reenviar correo de verificación/);
+  assert.match(html, /Solicitar un nuevo código/);
+  assert.match(html, /href="\/sign-in"/);
+  assert.doesNotMatch(html, /external\.invalid/);
 });

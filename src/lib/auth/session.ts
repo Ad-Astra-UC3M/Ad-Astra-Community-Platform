@@ -18,10 +18,14 @@ import {
   resolveCurrentUser,
   verifyAccountEmail,
   type AuthUser,
-  type VerifyAccountEmailResult,
 } from "../../server/auth/service";
 import { getAuthProvider } from "./neon-auth";
-import { isUc3mEmail, normalizeEmail, sanitizeNextPath } from "./uc3m";
+import {
+  isUc3mEmail,
+  normalizeEmail,
+  normalizeUc3mEmail,
+  sanitizeNextPath,
+} from "./uc3m";
 
 export {
   CAPABILITY_CODES,
@@ -35,16 +39,55 @@ export {
   type CapabilityCode,
 };
 
-function getAppOrigin(): string {
-  return (
-    process.env.APP_ORIGIN?.trim().replace(/\/+$/, "") ||
-    "https://comunidad.adastrauc3m.es"
-  );
+const accountCodeCookies = {
+  verification: { name: "ada-verification-email", path: "/verify-email" },
+  recovery: { name: "ada-recovery-email", path: "/reset-password" },
+};
+
+type AccountCodeFlow = keyof typeof accountCodeCookies;
+
+export async function readAccountCodeEmail(flow: AccountCodeFlow): Promise<string> {
+  const jar = await cookies();
+  return normalizeUc3mEmail(jar.get(accountCodeCookies[flow].name)?.value) ?? "";
+}
+
+async function setAccountCodeEmail(flow: AccountCodeFlow, rawEmail: string): Promise<void> {
+  const email = normalizeUc3mEmail(rawEmail);
+  const jar = await cookies();
+  jar.set({
+    ...accountCodeCookies[flow],
+    value: email ?? "",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: email ? 10 * 60 : 0,
+  });
 }
 
 function readFormString(formData: FormData, key: string): string {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
+}
+
+export function readOptionalNextPath(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const path = value.trim();
+  return sanitizeNextPath(path) === path ? path : "";
+}
+
+function redirectWithNext(
+  path: string,
+  params: Record<string, string>,
+  next?: string,
+): never {
+  const query = new URLSearchParams(params);
+  const safeNext = readOptionalNextPath(next);
+  if (safeNext) query.set("next", safeNext);
+  redirect(path + "?" + query.toString());
+}
+
+function accountDestination(user: AuthUser, next: string): string {
+  return next || (user.capabilities.length > 0 ? "/admin" : "/home");
 }
 
 export async function currentUser(): Promise<AuthUser | null> {
@@ -81,28 +124,27 @@ export async function signUp(formData: FormData): Promise<never> {
 
   const db = await getDb();
   const authProvider = await getAuthProvider(db);
-  const result = await registerAccount(
-    db,
-    authProvider,
-    {
-      firstName: readFormString(formData, "firstName"),
-      lastName: readFormString(formData, "lastName"),
-      email: readFormString(formData, "email"),
-      degree: readFormString(formData, "degree"),
-      course: readFormString(formData, "course"),
-      academicLevel: readFormString(formData, "academicLevel") || null,
-      languageModality: readFormString(formData, "languageModality") || null,
-      password: readFormString(formData, "password"),
-      privacyAccepted: formData.get("privacy") === "accepted",
-    },
-    { callbackURL: `${getAppOrigin()}/verify-email` },
-  );
+  const result = await registerAccount(db, authProvider, {
+    firstName: readFormString(formData, "firstName"),
+    lastName: readFormString(formData, "lastName"),
+    email: readFormString(formData, "email"),
+    degree: readFormString(formData, "degree"),
+    course: readFormString(formData, "course"),
+    academicLevel: readFormString(formData, "academicLevel") || null,
+    languageModality: readFormString(formData, "languageModality") || null,
+    password: readFormString(formData, "password"),
+    privacyAccepted: formData.get("privacy") === "accepted",
+  });
 
   if (!result.ok) {
     redirect("/sign-up?error=" + encodeURIComponent(result.error));
   }
+  if (!result.verificationRequired) {
+    redirect("/sign-in");
+  }
 
-  redirect("/verify-email?sent=1");
+  await setAccountCodeEmail("verification", result.email);
+  redirectWithNext("/verify-email", { sent: "1" });
 }
 
 export async function signIn(formData: FormData): Promise<never> {
@@ -110,28 +152,25 @@ export async function signIn(formData: FormData): Promise<never> {
 
   const db = await getDb();
   const authProvider = await getAuthProvider(db);
+  const email = readFormString(formData, "email");
   const result = await authenticateAccount(
     db,
     authProvider,
-    readFormString(formData, "email"),
+    email,
     readFormString(formData, "password"),
   );
-
-  const rawNext = readFormString(formData, "next").trim();
-  const preservedNext =
-    rawNext && sanitizeNextPath(rawNext, "/home") === rawNext ? rawNext : null;
+  const next = readOptionalNextPath(readFormString(formData, "next"));
 
   if (!result.ok) {
-    const errorParam = encodeURIComponent(result.error);
-    redirect(
-      preservedNext
-        ? `/sign-in?error=${errorParam}&next=${encodeURIComponent(preservedNext)}`
-        : `/sign-in?error=${errorParam}`,
-    );
+    if (result.error === "unverified") {
+      await setAccountCodeEmail("verification", email);
+      redirectWithNext("/verify-email", { pending: "1" }, next);
+    }
+
+    redirectWithNext("/sign-in", { error: result.error }, next);
   }
 
-  const defaultPath = result.user.capabilities.length > 0 ? "/admin" : "/home";
-  redirect(sanitizeNextPath(rawNext, defaultPath));
+  redirect(accountDestination(result.user, next));
 }
 
 export async function signOut(): Promise<never> {
@@ -143,28 +182,29 @@ export async function signOut(): Promise<never> {
   redirect("/");
 }
 
-export async function verifyEmailByToken(
-  token: string,
-): Promise<VerifyAccountEmailResult> {
-  const db = await getDb();
-  const authProvider = await getAuthProvider(db);
-  return verifyAccountEmail(db, authProvider, token);
-}
-
 export async function verifyEmailAction(formData: FormData): Promise<never> {
   "use server";
 
-  const token = readFormString(formData, "token").trim();
-  if (!token) {
-    redirect("/verify-email?error=invalid");
-  }
+  const db = await getDb();
+  const authProvider = await getAuthProvider(db);
+  const email = readFormString(formData, "email");
+  const next = readFormString(formData, "next");
+  const result = await verifyAccountEmail(db, authProvider, {
+    email,
+    otp: readFormString(formData, "otp"),
+  });
 
-  const result = await verifyEmailByToken(token);
   if (!result.ok) {
-    redirect("/verify-email?error=" + encodeURIComponent(result.error));
+    await setAccountCodeEmail("verification", email);
+    redirectWithNext("/verify-email", { error: result.error }, next);
   }
 
-  redirect("/verify-email?verified=1");
+  await setAccountCodeEmail("verification", "");
+  const user = await resolveCurrentUser(db, authProvider).catch(() => null);
+  if (user && user.authUserId === result.authUserId && user.email === result.email) {
+    redirect(accountDestination(user, readOptionalNextPath(next)));
+  }
+  redirectWithNext("/sign-in", { verified: "1" }, next);
 }
 
 export async function resendVerificationAction(
@@ -172,15 +212,18 @@ export async function resendVerificationAction(
 ): Promise<never> {
   "use server";
 
+  const next = readFormString(formData, "next");
+  const email = normalizeUc3mEmail(readFormString(formData, "email"));
+  if (!email) {
+    redirectWithNext("/verify-email", { error: "email" }, next);
+  }
+
   const db = await getDb();
   const authProvider = await getAuthProvider(db);
-  await resendAccountVerification(
-    db,
-    authProvider,
-    readFormString(formData, "email"),
-    { callbackURL: `${getAppOrigin()}/verify-email` },
-  );
-  redirect("/verify-email?resent=1");
+  await resendAccountVerification(db, authProvider, email);
+
+  await setAccountCodeEmail("verification", email);
+  redirectWithNext("/verify-email", { resent: "1" }, next);
 }
 
 export async function requestPasswordResetAction(
@@ -190,44 +233,32 @@ export async function requestPasswordResetAction(
 
   const db = await getDb();
   const authProvider = await getAuthProvider(db);
-  await requestPasswordReset(
-    db,
-    authProvider,
-    readFormString(formData, "email"),
-    { redirectTo: `${getAppOrigin()}/reset-password` },
-  );
-  redirect("/forgot-password?sent=1");
+  const email = readFormString(formData, "email");
+  await requestPasswordReset(db, authProvider, email);
+
+  await setAccountCodeEmail("recovery", email);
+  redirect("/reset-password?sent=1");
 }
 
 export async function resetPasswordAction(formData: FormData): Promise<never> {
   "use server";
 
-  const token = readFormString(formData, "token").trim();
-  const password = readFormString(formData, "password");
-  const confirmPassword = formData.has("confirmPassword")
-    ? readFormString(formData, "confirmPassword")
-    : undefined;
-
   const db = await getDb();
   const authProvider = await getAuthProvider(db);
+  const email = readFormString(formData, "email");
   const result = await completePasswordReset(db, authProvider, {
-    token,
-    password,
-    confirmPassword,
+    email,
+    otp: readFormString(formData, "otp"),
+    password: readFormString(formData, "password"),
+    confirmPassword: readFormString(formData, "confirmPassword"),
   });
 
   if (!result.ok) {
-    if (
-      token &&
-      (result.error === "password" || result.error === "mismatch")
-    ) {
-      redirect(
-        `/reset-password?token=${encodeURIComponent(token)}&error=${encodeURIComponent(result.error)}`,
-      );
-    }
+    await setAccountCodeEmail("recovery", email);
     redirect("/reset-password?error=" + encodeURIComponent(result.error));
   }
 
+  await setAccountCodeEmail("recovery", "");
   await authProvider.signOut().catch(() => undefined);
   redirect("/sign-in?reset=ok");
 }
