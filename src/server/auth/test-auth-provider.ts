@@ -1,3 +1,9 @@
+/**
+ * @file Proveedor de Auth exclusivo de pruebas. Implementa el contrato de Neon sobre una base temporal y un
+ * buzón JSONL opcional. El servicio de Comunidad ejecuta las mismas reglas para la prueba automatizada y
+ * para Neon real.
+ */
+
 import {
   createHash,
   randomBytes,
@@ -44,6 +50,12 @@ const OTP_PATTERN = /^\d{6}$/;
 
 const initializedDbs = new WeakMap<object, Promise<void>>();
 
+/**
+ * Comprueba si el entorno permite arrancar el proveedor de pruebas. Una URL de Neon configurada da
+ * prioridad al proveedor real.
+ *
+ * @returns true si la ejecución es de pruebas y no se configuró Neon Auth.
+ */
 export function isTestAuthEnabled(): boolean {
   if (process.env.NEON_AUTH_BASE_URL?.trim()) {
     return false;
@@ -53,6 +65,9 @@ export function isTestAuthEnabled(): boolean {
   );
 }
 
+/**
+ * Impide al proveedor o sus helpers inicializarse fuera del entorno de pruebas.
+ */
 function assertTestAuthAllowed(): void {
   if (!isTestAuthEnabled()) {
     throw new Error(
@@ -61,12 +76,25 @@ function assertTestAuthAllowed(): void {
   }
 }
 
+/**
+ * Genera el valor de contraseña que se guarda en las tablas de pruebas.
+ *
+ * @param password - Contraseña que la prueba pidió registrar o actualizar.
+ * @returns Valor con sal y hash derivado.
+ */
 function hashPassword(password: string): string {
   const salt = randomBytes(16).toString("hex");
   const derived = scryptSync(password, salt, 64).toString("hex");
   return `${salt}:${derived}`;
 }
 
+/**
+ * Comprueba la contraseña para las operaciones de acceso o reintento de alta del proveedor simulado.
+ *
+ * @param password - Contraseña aportada.
+ * @param stored - Valor con sal y hash almacenado para la identidad.
+ * @returns true si los valores coinciden.
+ */
 function verifyPassword(password: string, stored: string): boolean {
   const parts = stored.split(":");
   if (parts.length !== 2) return false;
@@ -79,31 +107,67 @@ function verifyPassword(password: string, stored: string): boolean {
   );
 }
 
+/**
+ * Genera el valor aleatorio que createSession entrega al almacén de cookies de pruebas.
+ *
+ * @returns Token opaco de sesión de prueba.
+ */
 function generateOpaqueToken(): string {
   return randomBytes(32).toString("base64url");
 }
 
+/**
+ * Deriva el valor almacenado en la tabla de sesiones de prueba. Se usa al crear, buscar o borrar una
+ * sesión.
+ *
+ * @param rawToken - Token de la cookie o recién generado.
+ * @returns Hash que se guarda o consulta.
+ */
 function hashSessionToken(rawToken: string): string {
   return createHash("sha256").update(rawToken).digest("hex");
 }
 
+/**
+ * Construye la clave de un OTP para que alta y recuperación tengan espacios separados.
+ *
+ * @param kind - Propósito del código.
+ * @param email - Dirección normalizada a la que se emitió.
+ * @returns Clave usada al emitir, consultar y consumir el código.
+ */
 function buildOtpIdentifier(kind: TestOtpKind, email: string): string {
   return `otp:${kind}:${email}`;
 }
 
+/**
+ * Simula las cookies para las suites que invocan el servicio sin una petición Next.js.
+ *
+ * @returns Almacén que lee, sustituye y borra el token de esa instancia.
+ */
 function createMemoryCookieStore(): TestSessionCookieStore {
   let currentToken: string | null = null;
   return {
+    /** Devuelve el token de la instancia para resolver la sesión simulada. */
     getToken: () => currentToken,
+    /**
+     * Simula la escritura de la cookie al iniciar sesión.
+     * @param token - Sesión que quedará asociada a esta instancia del almacén.
+     */
     setToken: (token) => {
       currentToken = token;
     },
+    /** Simula el borrado de la cookie al cerrar sesión. */
     clearToken: () => {
       currentToken = null;
     },
   };
 }
 
+/**
+ * Prepara las tablas de identidad, sesión y verificación que usa el proveedor de prueba. Comparte la
+ * inicialización entre llamadas sobre la misma base.
+ *
+ * @param db - Base temporal que necesita las tablas de prueba.
+ */
 export async function ensureTestNeonAuthSchema(db: AppDb): Promise<void> {
   assertTestAuthAllowed();
   const existing = initializedDbs.get(db);
@@ -170,6 +234,15 @@ export async function ensureTestNeonAuthSchema(db: AppDb): Promise<void> {
   }
 }
 
+/**
+ * Permite al seed y a las pruebas obtener el código vigente sin consultar un buzón real.
+ *
+ * @param db - Base temporal donde se guarda el código.
+ * @param email - Dirección a la que se emitió.
+ * @param kind - Propósito de verificación o recuperación.
+ * @param now - Reloj opcional para comprobar caducidad.
+ * @returns Código vigente o null.
+ */
 export async function getLatestTestOtp(
   db: AppDb,
   email: string,
@@ -200,6 +273,12 @@ type DbCredentialRow = DbUserRow & {
   password: string | null;
 };
 
+/**
+ * Convierte una fila de la base de prueba al contrato de identidad que usa el servicio.
+ *
+ * @param row - Fila de la identidad simulada.
+ * @returns AuthProviderUser.
+ */
 function toAuthUser(row: DbUserRow): AuthProviderUser {
   return {
     id: row.id,
@@ -211,6 +290,13 @@ function toAuthUser(row: DbUserRow): AuthProviderUser {
 
 type TestOtp = { kind: TestOtpKind; email: string; otp: string; createdAt: string };
 
+/**
+ * Serializa cambios de códigos para una identidad durante una transacción.
+ *
+ * @param tx - Transacción que mantiene el bloqueo.
+ * @param email - Correo de la identidad que se quiere bloquear.
+ * @returns Fila de identidad o undefined.
+ */
 async function lockOtpUser(tx: AppTransaction, email: string): Promise<DbUserRow | undefined> {
   const result = await tx.execute<DbUserRow>(sql`
     SELECT id, email, name, email_verified
@@ -221,6 +307,15 @@ async function lockOtpUser(tx: AppTransaction, email: string): Promise<DbUserRow
   return result.rows[0];
 }
 
+/**
+ * Emite el código de prueba y sustituye el anterior del mismo propósito.
+ *
+ * @param tx - Transacción que guarda el código.
+ * @param kind - Propósito que lo separa del resto.
+ * @param email - Dirección normalizada que determina el destinatario.
+ * @param now - Hora que fija la emisión y el vencimiento.
+ * @returns Mensaje que puede enviar writeTestMailbox al buzón.
+ */
 async function issueOtp(
   tx: AppTransaction,
   kind: TestOtpKind,
@@ -247,6 +342,16 @@ async function issueOtp(
   return { kind, email, otp, createdAt };
 }
 
+/**
+ * Comprueba, contabiliza o consume un OTP de prueba dentro de la misma transacción que su uso.
+ *
+ * @param tx - Transacción que consulta y actualiza el registro.
+ * @param kind - Propósito esperado para ese flujo.
+ * @param email - Dirección a la que debía pertenecer.
+ * @param otp - Código aportado en el formulario de la prueba.
+ * @param now - Hora con la que se comprueba el vencimiento.
+ * @returns Éxito, código inválido o código vencido.
+ */
 async function consumeOtp(
   tx: AppTransaction,
   kind: TestOtpKind,
@@ -285,6 +390,11 @@ async function consumeOtp(
   return { ok: true };
 }
 
+/**
+ * Entrega los códigos de prueba de Playwright a un archivo JSONL cuando el buzón está configurado.
+ *
+ * @param message - Código, correo, propósito y fecha generados por el proveedor simulado.
+ */
 function writeTestMailbox(message: TestOtp): void {
   const mailboxFile = process.env.AD_ASTRA_TEST_MAILBOX_FILE?.trim();
   if (isTestAuthEnabled() && mailboxFile) {
@@ -293,6 +403,14 @@ function writeTestMailbox(message: TestOtp): void {
   }
 }
 
+/**
+ * Inserta una sesión temporal en la base y entrega al caller el token para la cookie de prueba.
+ *
+ * @param tx - Transacción en la que se inserta la sesión.
+ * @param userId - Identidad de prueba asociada a la sesión.
+ * @param now - Hora usada para calcular el vencimiento.
+ * @returns Token de sesión.
+ */
 async function createSession(
   tx: AppTransaction,
   userId: string,
@@ -307,6 +425,13 @@ async function createSession(
   return token;
 }
 
+/**
+ * Construye el sustituto de Neon que usan las pruebas unitarias, el seed y Next.js durante Playwright.
+ *
+ * @param db - Base temporal con las tablas del proveedor.
+ * @param options - Almacén de cookies y reloj opcionales para simular múltiples sesiones y caducidad.
+ * @returns Implementación de AuthProvider para pruebas.
+ */
 export function createTestAuthProvider(
   db: AppDb,
   options: TestAuthProviderOptions = {},
@@ -315,6 +440,13 @@ export function createTestAuthProvider(
   const cookieStore = options.cookieStore ?? createMemoryCookieStore();
   const getNow = options.now ?? (() => new Date());
 
+  /**
+   * Implementación interna que comparten las solicitudes de verificación y recuperación.
+   *
+   * @param emailInput - Dirección que se normaliza antes de buscar la identidad.
+   * @param kind - Determina qué OTP se expide y su destino en el buzón.
+   * @returns Resultado de solicitud del proveedor de pruebas.
+   */
   async function sendOtp(emailInput: string, kind: TestOtpKind): Promise<AuthActionResult> {
     const email = normalizeEmail(emailInput);
     if (!email) return { ok: true };
@@ -332,6 +464,12 @@ export function createTestAuthProvider(
   }
 
   return {
+    /**
+     * Simula el alta de Neon, almacena la identidad y emite su código inicial para las pruebas.
+     *
+     * @param input - Nombre, correo y contraseña de la cuenta sintética.
+     * @returns Identidad pendiente de verificación o error.
+     */
     async signUp(input): Promise<AuthSignUpResult> {
       await ensureTestNeonAuthSchema(db);
       const email = normalizeEmail(input.email);
@@ -411,10 +549,22 @@ export function createTestAuthProvider(
       };
     },
 
+    /**
+     * Solicita a sendOtp un código nuevo de verificación para la prueba del reenvío.
+     *
+     * @param email - Dirección de la cuenta de prueba.
+     * @returns Resultado del reenvío.
+     */
     sendVerificationOtp({ email }) {
       return sendOtp(email, "email-verification");
     },
 
+    /**
+     * Simula la verificación de Neon. Consume el código y crea la sesión para la identidad verificada.
+     *
+     * @param input - Correo y código de verificación que se comprueban juntos.
+     * @returns Identidad verificada y estado de sesión, o error.
+     */
     async verifyEmailOtp(input): Promise<AuthVerifyEmailResult> {
       const email = normalizeEmail(input.email);
       if (!email || !OTP_PATTERN.test(input.otp)) {
@@ -448,6 +598,12 @@ export function createTestAuthProvider(
       return { ok: true, user: result.user, sessionCreated: true };
     },
 
+    /**
+     * Comprueba credenciales de prueba y persiste una sesión si el correo está verificado.
+     *
+     * @param input - Correo y contraseña de la prueba.
+     * @returns Identidad verificada que inició sesión o error.
+     */
     async signIn(input): Promise<AuthSignInResult> {
       await ensureTestNeonAuthSchema(db);
       const email = normalizeEmail(input.email);
@@ -481,6 +637,9 @@ export function createTestAuthProvider(
       return { ok: true, user: result.user };
     },
 
+    /**
+     * Elimina la sesión de prueba de la base y borra el token del almacén actual.
+     */
     async signOut(): Promise<void> {
       await ensureTestNeonAuthSchema(db);
       const rawToken = await cookieStore.getToken();
@@ -493,6 +652,11 @@ export function createTestAuthProvider(
       await cookieStore.clearToken();
     },
 
+    /**
+     * Resuelve una sesión de prueba desde la cookie y su registro en la base temporal.
+     *
+     * @returns Sesión vigente e identidad, o null.
+     */
     async getSession(): Promise<AuthProviderSession | null> {
       await ensureTestNeonAuthSchema(db);
       const rawToken = await cookieStore.getToken();
@@ -541,10 +705,22 @@ export function createTestAuthProvider(
       };
     },
 
+    /**
+     * Delega en sendOtp para emitir el código exclusivo de recuperación.
+     *
+     * @param email - Dirección de la cuenta sintética que se recupera.
+     * @returns Resultado de solicitud.
+     */
     requestPasswordResetOtp({ email }) {
       return sendOtp(email, "password-reset");
     },
 
+    /**
+     * Consume el código de recuperación, cambia el hash y borra las sesiones de esa identidad de prueba.
+     *
+     * @param input - Correo, OTP y contraseña nueva.
+     * @returns Éxito o error.
+     */
     async resetPasswordWithOtp(input): Promise<AuthActionResult> {
       const email = normalizeEmail(input.email);
       if (!email || !OTP_PATTERN.test(input.otp)) {
@@ -580,6 +756,11 @@ export function createTestAuthProvider(
       });
     },
 
+    /**
+     * Borra las sesiones de la identidad de prueba, como se comprueba al desactivar una cuenta.
+     *
+     * @param authUserId - Identidad ficticia cuyas sesiones se eliminan.
+     */
     async revokeUserSessions(authUserId: string): Promise<void> {
       await ensureTestNeonAuthSchema(db);
       if (!authUserId) return;
@@ -588,6 +769,12 @@ export function createTestAuthProvider(
       `);
     },
 
+    /**
+     * Comprueba las credenciales para simular el reintento del alta con una identidad ya creada.
+     *
+     * @param input - Correo y contraseña de la identidad que se quiere recuperar.
+     * @returns Identidad concordante o null.
+     */
     async recoverUnlinkedUser(input): Promise<AuthProviderUser | null> {
       await ensureTestNeonAuthSchema(db);
       const email = normalizeEmail(input.email);

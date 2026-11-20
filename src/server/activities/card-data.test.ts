@@ -1,3 +1,8 @@
+/**
+ * @file Pruebas de integración de emisión, revocación y verificación de tarjetas HS256 con perfiles en
+ * PGlite.
+ */
+
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -14,6 +19,13 @@ import {
   verifyCard,
 } from "./card-data";
 
+/**
+ * Prepara un perfil sintético para las pruebas de emisión, reemisión y verificación de tarjetas.
+ * @param db Base PGlite del caso de prueba.
+ * @param overrides Campos opcionales que permiten simular perfiles desactivados, sin vincular o sin
+ * verificar.
+ * @returns La fila del perfil insertado.
+ */
 async function insertProfile(
   db: AppDb,
   overrides: Partial<typeof profiles.$inferInsert> = {},

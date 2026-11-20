@@ -1,3 +1,8 @@
+/**
+ * @file Página de App Router para `/activities`. Renderiza en el servidor el catálogo de actividades
+ * publicado para la persona conectada.
+ */
+
 import Link from "next/link";
 import { listMyVisibleActivities } from "../../server/activities/portal";
 
@@ -7,6 +12,11 @@ const primaryButtonClass =
 const panelClass =
   "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
 
+/**
+ * Next.js llama a esta página para abrir el catálogo. `listMyVisibleActivities` comprueba la sesión y
+ * carga las actividades publicadas.
+ * @returns El catálogo con enlaces al detalle y un mensaje cuando no hay actividades.
+ */
 export default async function ActivitiesPage() {
   const activities = await listMyVisibleActivities();
 

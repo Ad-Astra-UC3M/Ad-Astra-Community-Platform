@@ -2,6 +2,12 @@
 
 Comunidad usa el App Router de Next.js 16.4.6. Las pantallas React propias son archivos `.jsx` y la lógica de servidor está principalmente en TypeScript. La aplicación consulta PostgreSQL con Drizzle y usa Neon Auth para identificar al usuario. Las pruebas locales usan PGlite y un proveedor de autenticación de pruebas.
 
+## Cómo leer el código
+
+Cada fichero del backend empieza con su responsabilidad y sus dependencias. Encima de las funciones, el JSDoc describe qué problema resuelven, el uso de cada parámetro, el resultado o efecto y la siguiente llamada del flujo. Puedes leerlo en el código o consultar la firma desde el editor. Las guías de abajo permiten ubicar primero la ruta y el módulo.
+
+Ejemplo de navegación. Abre la [acción de reserva](../../src/app/activities/%5Bid%5D/actions.ts), sigue su llamada a `reserveMyShift` en el [módulo del portal](../../src/server/activities/portal.ts) y termina en `allocateShiftPlace`, en [la asignación de plazas](../../src/server/activities/booking.ts). La cabecera y la ficha de cada función indican dónde debe cambiarse la interfaz, el permiso o la regla de aforo.
+
 ## Por dónde empezar
 
 | Quiero entender… | Leer |
@@ -11,6 +17,8 @@ Comunidad usa el App Router de Next.js 16.4.6. Las pantallas React propias son a
 | Catálogo, publicación y marcadores | [Oportunidades](opportunities.md) |
 | Perfil básico, talento y privacidad | [Perfiles](profiles.md) |
 | Alta UC3M, sesión, verificación y recuperación por código | [Autenticación](auth.md) |
+| Conexión a Neon y PGlite, definición de tablas y SQL inicial | [Cliente de base de datos](../../src/db/client.ts) · [Esquemas](../../src/db/schema/index.ts) · [Migraciones](../../src/db/migrate.ts) |
+| Datos de prueba, ejecución E2E y primer administrador | [Seed de Playwright](../../e2e/seed-e2e-db.ts) · [Configuración E2E](../../playwright.config.ts) · [Bootstrap de administración](../../scripts/bootstrap-admin.ts) |
 
 ## Una lectura empieza en `page.jsx`
 
@@ -56,6 +64,13 @@ En administración, `requireCapability("content_editing")` exige una cuenta acti
 - Un turno lleno o un formulario incompleto son resultados previstos. La acción puede usar un `status` o `error` conocido y la vista traducirlo a un mensaje en español. El lector QR usa otra variante. `validateCard` devuelve un mensaje y el componente lo recibe con `useActionState` sin cambiar de página. Una excepción inesperada sigue el manejo de errores de Next.js. `notFound()` activa la vista 404 cuando no existe el recurso o se aplica el criterio de acceso administrativo.
 
 [Acciones administrativas de actividades](../../src/app/admin/activities/actions.ts) · [Acciones de asistencia](../../src/app/admin/attendance/%5BshiftId%5D/actions.ts) · [Página 404 de Comunidad](../../src/app/not-found.jsx) · [Mutaciones · Next.js](https://nextjs.org/docs/app/getting-started/mutating-data) · [Gestión de errores · Next.js](https://nextjs.org/docs/app/getting-started/error-handling)
+
+## Decisiones que explican la estructura
+
+- **Un solo Next.js.** Las páginas de servidor consultan el módulo de la funcionalidad. Las Server Actions permiten reutilizar las operaciones y la sesión desde el portal y el panel. Se puede añadir un Route Handler explícito cuando aparezca un consumidor HTTP. [Server Actions](https://nextjs.org/docs/app/guides/server-actions)
+- **Autorización cerca de la operación.** El nombre de la pantalla solo indica dónde se inicia el flujo. La operación comprueba la sesión y, cuando corresponde, la capacidad. La transacción comprueba reglas como el aforo con los datos actuales. [Acceso a datos](https://nextjs.org/docs/app/guides/data-security#data-access-layer) · [Reserva en PostgreSQL](../../src/server/activities/booking.ts)
+- **Identidad gestionada por Neon.** El proveedor gestiona la sesión y los códigos de alta y recuperación. La aplicación decide el dominio UC3M, el perfil local y las capacidades. Los formularios llaman al adaptador desde el servidor. [Acceso](../../src/server/auth/access.ts) · [Adaptador](../../src/server/auth/neon-auth.ts)
+- **PostgreSQL en desarrollo y producción, PGlite para pruebas.** El código de Drizzle y el SQL inicial permiten probar reglas de datos sin tocar el entorno de despliegue. [Cliente](../../src/db/client.ts) · [Guía de migraciones en el código](../../drizzle.config.ts)
 
 ## Qué archivo tocar
 

@@ -134,3 +134,10 @@ La revisión de Sol 6.2 con razonamiento `xhigh` señaló dos ajustes que se inc
 - La [guía de incorporación](backend/README.md) enlaza cinco guías por módulo con funciones, parámetros, resultados, llamadores y diagramas. Se cotejaron 266 declaraciones en archivos nuevos o modificados y se comprobaron los enlaces locales.
 - Integración comprobó 56 pruebas unitarias y de integración, el chequeo de tipos, la compilación de producción y los 22 recorridos Chrome de escritorio y móvil con cuatro workers. Tras incorporar el POST de OTP a la regresión del proxy, la prueba focalizada volvió a pasar en ambos dispositivos. Las pruebas de aforo usan PGlite.
 - La revisión independiente inspeccionó el diff completo y comprobó las 56 pruebas. Los hallazgos sobre documentación y cobertura del POST se corrigieron. La segunda revisión de las guías cerró sin hallazgos pendientes.
+
+## 2026-11-20 · Documentación junto al código del backend
+
+- Jorge pidió que las explicaciones se puedan consultar en los ficheros y en cada función. Se documentaron cabeceras, funciones, parámetros, efectos y llamadores en los módulos de servidor, acciones y páginas relacionadas, base de datos, configuración y pruebas.
+- El mapa del backend señala dónde leer el código para seguir una reserva y dónde se documentan las decisiones de App Router, permisos, Neon y pruebas PGlite. AGENTS.md recoge el criterio para nuevos cambios.
+- La comprobación estática cotejó 102 ficheros y 374 funciones y métodos, preservando el código ejecutable de 67654d3. Pasaron 56 pruebas unitarias y de integración, el chequeo de tipos, la compilación y 22 pruebas Playwright en Chrome de escritorio y móvil.
+- La revisión verificó el uso de sesión o credenciales al recuperar una identidad de Neon, el límite de una reserva por persona y turno y la reutilización de layouts durante la navegación cliente. Se corrigieron las fichas correspondientes.

@@ -1,3 +1,8 @@
+/**
+ * @file Página de App Router para `/admin/attendance/[shiftId]`. Reúne el escáner, las inscripciones,
+ * las operaciones manuales y el historial del turno.
+ */
+
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../../components/back-link";
 import { getAttendanceShift } from "../../../../server/activities/attendance";
@@ -59,6 +64,12 @@ const statusLabels = {
   attended: "Asistido",
 };
 
+/**
+ * Prepara el texto de estado que `AttendancePage` añade a cada entrada del historial.
+ * @param entry Evento de participación, con su tipo y estados anterior y nuevo cuando estén
+ * registrados.
+ * @returns El resumen de la transición o del estado deducido del evento, o una cadena vacía.
+ */
 function formatAuditStatusSummary(entry) {
   if (entry.previousStatus && entry.newStatus) {
     return ` (${statusLabels[entry.previousStatus]} → ${statusLabels[entry.newStatus]})`;
@@ -85,6 +96,15 @@ const primaryButtonClass =
 const secondaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
+/**
+ * Next.js llama a esta página de servidor. Consulta `getAttendanceShift`, llama a `notFound` si falta
+ * el turno y vincula `validateCard` al turno antes de pasarla al escáner cliente.
+ * @param props Propiedades de la ruta que proporciona Next.js.
+ * @param props.params Promesa que contiene el identificador `shiftId` del turno.
+ * @param props.searchParams Promesa con `q` y `accountQuery` para las búsquedas y `door` y `manual`
+ * para los avisos.
+ * @returns Los controles de asistencia, los inscritos, las cuentas candidatas y la auditoría del turno.
+ */
 export default async function AttendancePage({ params, searchParams }) {
   const { shiftId } = await params;
   const resolvedSearch = await searchParams;

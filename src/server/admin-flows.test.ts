@@ -1,3 +1,10 @@
+/**
+ * Pruebas de integración con Node y PGlite de los casos administrativos que
+ * exponen las páginas y Server Actions de Next.js. Inyectan una base Drizzle
+ * aislada por caso y llaman a los módulos de servidor para verificar reglas,
+ * efectos persistidos y auditoría.
+ */
+
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { describe, it } from "node:test";
@@ -55,6 +62,13 @@ import {
   searchTalentProfiles,
 } from "./profiles/talent-consultation";
 
+/**
+ * Inserta el perfil base que usan los casos de administración. Simula los
+ * campos locales de una cuenta ya verificada por Auth.
+ * @param db Cliente Drizzle de la base PGlite aislada del caso.
+ * @param overrides Campos que sustituyen los valores sintéticos para el rol o estado que se prueba.
+ * @returns La fila de profiles persistida y devuelta por PostgreSQL.
+ */
 async function createProfile(
   db: AppDb,
   overrides: Partial<typeof profiles.$inferInsert> = {},
@@ -82,6 +96,10 @@ async function createProfile(
 }
 
 describe("administrative flows (PostgreSQL)", () => {
+  /**
+   * Comprueba las transiciones de puerta y asistencia, sus motivos, el aforo y
+   * el historial de una participación tras corregir el estado.
+   */
   it("CA-10: alta en puerta -> booked, confirmación manual, rectificación attended -> booked conservando plaza y auditoría cronológica", async () => {
     const db = await createTestDb();
     try {
@@ -343,6 +361,10 @@ describe("administrative flows (PostgreSQL)", () => {
     }
   });
 
+  /**
+   * Prueba las reglas de edición de turnos, imágenes y oportunidades. La
+   * conservación de turnos con participación o historial se verifica en la base.
+   */
   it("CA-06 y CA-05: actividades con turno normal, imágenes HTTPS, borrado protegido por participaciones/eventos, y oportunidades admin", async () => {
     const db = await createTestDb();
     try {
@@ -557,6 +579,10 @@ describe("administrative flows (PostgreSQL)", () => {
     }
   });
 
+  /**
+   * Verifica concesiones y revocaciones idempotentes, actividad de las cuentas,
+   * revocación de sesión mediante un colaborador de prueba y consulta de talento.
+   */
   it("CA-01 y CA-04: auditoría de capacidades sin duplicar, desactivación revocando sesiones, aislamiento de talento y búsqueda GIN por etiquetas", async () => {
     const db = await createTestDb();
     try {
@@ -718,6 +744,10 @@ describe("administrative flows (PostgreSQL)", () => {
     }
   });
 
+  /**
+   * Sigue el paso a revisión y la resolución motivada de una solicitud a través
+   * del servicio, comprobando el detalle, métricas y auditoría persistida.
+   */
   it("CA-11: tramitación y resolución motivada de solicitudes de supresión con auditoría", async () => {
     const db = await createTestDb();
     try {
@@ -840,6 +870,10 @@ describe("administrative flows (PostgreSQL)", () => {
     }
   });
 
+  /**
+   * Enfrenta dos operaciones concurrentes de revocación, desactivación o una de
+   * cada clase. Comprueba que queda un general_admin activo en cada disputa.
+   */
   it("CA-01: protege transaccionalmente el último general_admin activo frente a revocación/desactivación directa y concurrente", async () => {
     const db = await createTestDb();
     try {

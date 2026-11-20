@@ -1,3 +1,8 @@
+/**
+ * Ruta /admin/accounts del App Router. Muestra la búsqueda de cuentas para administración
+ * general y enlaza cada resultado con su ficha.
+ */
+
 import Link from "next/link";
 import { BackLink } from "../../../components/back-link";
 import { searchAdminAccounts } from "../../../server/accounts/operations";
@@ -26,6 +31,15 @@ const primaryButtonClass =
 const secondaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
+/**
+ * Next.js ejecuta este Server Component para traducir los filtros de la URL y consultar
+ * searchAdminAccounts.
+ *
+ * @param props - Propiedades de ruta suministradas por Next.js.
+ * @param props.searchParams - Promesa con query, degree, course, status y hasParticipation para
+ *   filtrar cuentas.
+ * @returns Listado de cuentas en JSX con los filtros activos y los enlaces a sus fichas.
+ */
 export default async function AdminAccountsPage({ searchParams }) {
   const resolved = await searchParams;
   const query = typeof resolved?.query === "string" ? resolved.query : "";

@@ -1,3 +1,8 @@
+/**
+ * @file Pruebas del proveedor de autenticación aislado. Comprueban el reenvío, la caducidad y la separación
+ * de códigos que reutiliza Playwright.
+ */
+
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -62,6 +67,7 @@ test("test auth expires codes and keeps password reset separate from verificatio
   let now = new Date("2026-11-20T12:00:00Z");
 
   try {
+    /** Usa el reloj de la prueba para emitir y caducar los códigos. */
     const provider = createTestAuthProvider(db, { now: () => now });
     await provider.signUp({ email, name: "Alumna", password });
     const expiredOtp = await getLatestTestOtp(db, email, "email-verification", now);
@@ -75,6 +81,7 @@ test("test auth expires codes and keeps password reset separate from verificatio
     assert.deepEqual(await provider.resetPasswordWithOtp({ email, otp: verifyOtp, newPassword }), { ok: false, errorCode: "INVALID_TOKEN" });
     assert.equal((await provider.verifyEmailOtp({ email, otp: verifyOtp })).ok, true);
 
+    /** Usa la misma hora con una segunda sesión que debe revocarse. */
     const anotherDevice = createTestAuthProvider(db, { now: () => now });
     assert.equal((await anotherDevice.signIn({ email, password })).ok, true);
     assert.deepEqual(await provider.requestPasswordResetOtp({ email }), { ok: true });
@@ -82,6 +89,7 @@ test("test auth expires codes and keeps password reset separate from verificatio
     assert.ok(resetOtp);
     assert.deepEqual(await provider.verifyEmailOtp({ email, otp: resetOtp }), { ok: false, errorCode: "INVALID_TOKEN" });
 
+    /** Comparte la hora en el acceso concurrente con el cambio de contraseña. */
     const racingDevice = createTestAuthProvider(db, { now: () => now });
     const [, reset] = await Promise.all([
       racingDevice.signIn({ email, password }),

@@ -1,3 +1,8 @@
+/**
+ * @file Firma, reemisión y verificación de tarjetas QR. La versión vigente y la elegibilidad se leen
+ * del perfil. La reemisión invalida los tokens de versiones anteriores.
+ */
+
 import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { jwtVerify, SignJWT } from "jose";
 
@@ -12,6 +17,10 @@ const MAX_TOKEN_LENGTH = 2048;
 const TEST_ONLY_QR_SECRET =
   "ad-astra-test-only-attendance-qr-secret-minimum-32-bytes";
 
+/**
+ * Decide si `getCardSecretKey` puede usar la clave de pruebas según el entorno del proceso.
+ * @returns `true` en el modo de pruebas reconocido cuando Neon Auth no está configurado.
+ */
 function isTestQrFallbackAllowed(): boolean {
   if (process.env.NEON_AUTH_BASE_URL?.trim()) {
     return false;
@@ -21,6 +30,13 @@ function isTestQrFallbackAllowed(): boolean {
   );
 }
 
+/**
+ * Lee la clave que comparten `issueCard`, `reissueCard` y `verifyCard`. Usa la clave de pruebas cuando
+ * `isTestQrFallbackAllowed` lo permite y falta la configurada.
+ * @returns La clave codificada en bytes UTF-8.
+ * @throws Si la clave configurada tiene menos de 32 caracteres o falta fuera del modo de pruebas
+ * permitido.
+ */
 function getCardSecretKey(): Uint8Array {
   const configured = process.env.ATTENDANCE_QR_SECRET?.trim();
   if (configured) {
@@ -41,10 +57,21 @@ function getCardSecretKey(): Uint8Array {
   );
 }
 
+/**
+ * Obtiene el emisor que usan `signCardToken` y `verifyCard` para el JWT.
+ * @returns El `APP_ORIGIN` configurado o el origen público predeterminado.
+ */
 function getCardIssuer(): string {
   return process.env.APP_ORIGIN?.trim() || DEFAULT_ISSUER;
 }
 
+/**
+ * Firma el token de `issueCard` y `reissueCard` con HS256, emisor y audiencia `attendance`.
+ * @param key Clave HMAC en bytes que se entrega a `jose`.
+ * @param personId UUID del perfil que se escribe como sujeto del JWT.
+ * @param version Versión que se incluye para poder revocar tarjetas anteriores.
+ * @returns El JWT firmado que se codifica en el QR.
+ */
 function signCardToken(
   key: Uint8Array,
   personId: string,
@@ -58,6 +85,12 @@ function signCardToken(
     .sign(key);
 }
 
+/**
+ * Lee la versión almacenada. Las pruebas la usan para comprobar el incremento de versión al reemitir.
+ * @param personId UUID del perfil cuya versión se consulta.
+ * @param db Conexión opcional para pruebas.
+ * @returns La versión vigente o `null` si el ID es inválido o el perfil no existe.
+ */
 export async function getCardVersion(
   personId: string,
   db?: AppDb,
@@ -72,6 +105,14 @@ export async function getCardVersion(
   return row?.qrVersion ?? null;
 }
 
+/**
+ * Emite para `issueMyCard` un token de la versión vigente del perfil activo, vinculado a una cuenta y
+ * con correo verificado.
+ * @param personId UUID del perfil titular de la tarjeta.
+ * @param db Conexión opcional para pruebas.
+ * @returns El token firmado y su versión.
+ * @throws Si no se puede obtener la clave o el perfil carece de los requisitos de emisión.
+ */
 export async function issueCard(
   personId: string,
   db?: AppDb,
@@ -107,6 +148,14 @@ export async function issueCard(
   return { token, version: profile.qrVersion };
 }
 
+/**
+ * Reemite para `reissueMyCard`. Incrementa la versión mediante una sola actualización condicionada al
+ * estado del perfil y firma con la nueva versión.
+ * @param personId UUID del perfil titular cuya versión se incrementa.
+ * @param db Conexión opcional para pruebas.
+ * @returns El token firmado y la nueva versión.
+ * @throws Si no se puede obtener la clave o el perfil carece de los requisitos de reemisión.
+ */
 export async function reissueCard(
   personId: string,
   db?: AppDb,
@@ -143,6 +192,14 @@ export async function reissueCard(
   return { token, version: updated.qrVersion };
 }
 
+/**
+ * Verifica para `validateAttendanceCard` la firma HS256, el emisor, la audiencia, los campos del token
+ * y su correspondencia con un perfil habilitado y su versión vigente.
+ * @param token Texto escaneado o pegado en el formulario. Se recorta antes de verificar.
+ * @param db Conexión opcional para pruebas.
+ * @returns El UUID del titular si la tarjeta supera la verificación, o `null`.
+ * @throws Si falla la configuración de la clave.
+ */
 export async function verifyCard(
   token: string,
   db?: AppDb,
@@ -198,4 +255,10 @@ export async function verifyCard(
   }
 }
 
+/**
+ * Alias de `verifyCard`. Las pruebas comprueban que ambas entradas aceptan la tarjeta vigente.
+ * @param token Texto del JWT que se verifica.
+ * @param db Conexión opcional para pruebas.
+ * @returns El UUID del titular si la tarjeta supera la verificación, o `null`.
+ */
 export const readCard = verifyCard;

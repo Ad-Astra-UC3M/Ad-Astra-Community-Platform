@@ -1,3 +1,8 @@
+/**
+ * @file Adjudicación de plazas compartida por el portal y el alta en puerta. Las comprobaciones de
+ * ocupación se ejecutan con el turno bloqueado.
+ */
+
 import { and, eq, sql } from "drizzle-orm";
 
 import type { AppDb, AppTransaction } from "../../db/client";
@@ -26,6 +31,14 @@ type AllocationResult =
   | { ok: true; participationId: string; firstName: string; lastName: string }
   | { ok: false; error: AllocationError };
 
+/**
+ * Comprueba duplicados y aforo para `allocateShiftPlace` y `changeReservation`.
+ * @param tx Transacción en la que el llamador ya bloqueó el turno de destino.
+ * @param shiftId Turno cuya ocupación se cuenta.
+ * @param personId Persona que solicita la plaza, usada para detectar una reserva duplicada.
+ * @param capacity Aforo del turno bloqueado. `null` permite plazas ilimitadas.
+ * @returns `duplicate`, `full` o `available`, en ese orden de comprobación.
+ */
 export async function checkSeatAvailability(
   tx: AppTransaction,
   shiftId: string,
@@ -47,6 +60,16 @@ export async function checkSeatAvailability(
   return count >= capacity ? "full" : "available";
 }
 
+/**
+ * Adjudica plazas para `reserveShift` y `registerAtDoor`. Bloquea el turno con `FOR UPDATE` y guarda la
+ * participación `booked` y su evento en la misma transacción.
+ * @param input Persona, turno y origen. Portal comprueba la actividad indicada. Puerta exige cuenta
+ * verificada y guarda actor y motivo.
+ * @param now Instante de la reserva y del evento. Portal comprueba el inicio y puerta comprueba el fin
+ * del turno.
+ * @param db Conexión opcional para pruebas.
+ * @returns El ID de participación y el nombre de la persona, o el error concreto de adjudicación.
+ */
 export async function allocateShiftPlace(
   input: AllocationInput,
   now: Date,

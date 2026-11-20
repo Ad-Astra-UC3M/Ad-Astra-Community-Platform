@@ -1,3 +1,8 @@
+/**
+ * @file Vista JSX de los formularios OTP de alta. VerifyEmailPage le pasa los valores ya leídos en el
+ * servidor y las pruebas de render pueden pasar datos propios.
+ */
+
 import Link from "next/link";
 import {
   AccountCodeField,
@@ -19,6 +24,13 @@ const errors = {
   invalid: "El código de verificación no es válido o ya se ha utilizado. Comprueba el correo y usa el código más reciente.",
 };
 
+/**
+ * Renderiza los formularios de confirmación y reenvío. Conecta verifyEmailAction y resendVerificationAction
+ * y conserva el destino seguro.
+ *
+ * @param props.params - Avisos de consulta y destino interno ya leídos por la página.
+ * @param props.email - Correo sugerido para los campos de los formularios.
+ */
 export function VerifyEmailView({ params, email }) {
   const { sent, resent, pending, error } = params;
   const next = readOptionalNextPath(params.next);

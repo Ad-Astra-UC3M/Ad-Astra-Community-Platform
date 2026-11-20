@@ -1,3 +1,8 @@
+/**
+ * @file Consultas Drizzle para las vistas del catálogo y Mis actividades. Las funciones de `portal.ts`
+ * proporcionan el identificador de la persona conectada.
+ */
+
 import { and, asc, eq, inArray, or, sql } from "drizzle-orm";
 
 import type { AppDb, AppDbOrTx } from "../../db/client";
@@ -79,6 +84,13 @@ export type ShiftListItem = {
   locationOverride: string | null;
 };
 
+/**
+ * Carga en lote las galerías para `listActivities` y `getActivity`. La primera imagen por posición se
+ * usa como portada.
+ * @param conn Conexión o transacción usada para la consulta.
+ * @param activityIds IDs de las actividades cuyas imágenes se agrupan.
+ * @returns Un mapa de imágenes ordenadas por posición, agrupadas por actividad.
+ */
 async function loadImagesByActivityIds(
   conn: AppDbOrTx,
   activityIds: string[],
@@ -112,6 +124,13 @@ async function loadImagesByActivityIds(
   return byActivity;
 }
 
+/**
+ * Agrupa los turnos para catálogo, detalle y posibles cambios de reserva.
+ * @param conn Conexión o transacción usada para consultar turnos y participaciones.
+ * @param activityIds IDs de las actividades solicitadas.
+ * @param personId Perfil cuyo estado de reserva se incorpora a cada turno.
+ * @returns Un mapa por actividad con turnos, ocupación, plazas libres y reserva propia.
+ */
 async function loadShiftsByActivityIds(
   conn: AppDbOrTx,
   activityIds: string[],
@@ -191,6 +210,13 @@ async function loadShiftsByActivityIds(
   return byActivity;
 }
 
+/**
+ * Prepara el catálogo publicado que solicita `listMyVisibleActivities`, con turnos y galerías cargados
+ * en paralelo.
+ * @param personId Perfil usado para marcar la reserva propia en cada turno.
+ * @param db Conexión opcional para pruebas.
+ * @returns Las actividades publicadas por título, con portada, imágenes y turnos.
+ */
 export async function listActivities(
   personId: string,
   db?: AppDb,
@@ -230,6 +256,13 @@ export async function listActivities(
   });
 }
 
+/**
+ * Prepara el detalle que solicita `getMyVisibleActivity`, con turnos y galería cargados en paralelo.
+ * @param activityIdOrSlug ID o slug recibido de la ruta de la actividad.
+ * @param personId Perfil usado para indicar sus reservas en los turnos.
+ * @param db Conexión opcional para pruebas.
+ * @returns Una actividad publicada completa o `undefined` si no se encuentra.
+ */
 export async function getActivity(
   activityIdOrSlug: string,
   personId: string,
@@ -273,6 +306,12 @@ export async function getActivity(
   };
 }
 
+/**
+ * Sirve el acceso directo a turnos que el módulo `accounts/operations.ts` muestra en el panel a quien
+ * puede validar asistencia.
+ * @param db Conexión opcional para pruebas.
+ * @returns Los turnos con los datos de sus actividades, ordenados por inicio e ID.
+ */
 export async function listShifts(db?: AppDb): Promise<ShiftListItem[]> {
   const conn = await resolveDb(db);
 
@@ -293,6 +332,15 @@ export async function listShifts(db?: AppDb): Promise<ShiftListItem[]> {
     .orderBy(asc(shifts.startsAt), asc(shifts.id));
 }
 
+/**
+ * Prepara los datos que `listMyReservations` presenta en Mis actividades, incluidas las opciones de
+ * cancelación y cambio.
+ * @param personId UUID de la persona cuyas participaciones se consultan.
+ * @param db Conexión opcional para pruebas.
+ * @param now Instante opcional que determina qué turnos siguen abiertos a cambios o cancelaciones.
+ * @returns Las reservas ordenadas por inicio y los posibles destinos libres y futuros en la misma
+ * actividad publicada.
+ */
 export async function listReservations(
   personId: string,
   db?: AppDb,

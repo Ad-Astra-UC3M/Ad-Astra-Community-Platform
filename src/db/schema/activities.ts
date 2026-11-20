@@ -1,3 +1,10 @@
+/**
+ * Esquema Drizzle de publicación de actividades, imágenes, turnos, reservas y
+ * asistencia. Las operaciones de src/server/activities aplican las reglas de
+ * negocio sobre estas tablas PostgreSQL. El estado editorial se comparte con el
+ * catálogo de oportunidades.
+ */
+
 import { sql } from "drizzle-orm";
 import {
   check,
@@ -43,6 +50,10 @@ export const attendanceMethodEnum = pgEnum(
   ATTENDANCE_METHODS,
 );
 
+/**
+ * Ficha y estado de publicación de una actividad identificada por slug. Si hay
+ * un enlace de inscripción externa, PostgreSQL exige que empiece por HTTPS.
+ */
 export const activities = pgTable(
   "activities",
   {
@@ -70,6 +81,10 @@ export const activities = pgTable(
   ],
 );
 
+/**
+ * Galería de una actividad. Cada posición positiva es única dentro de la
+ * galería. Exige URL HTTPS y texto alternativo y se borra junto con la actividad.
+ */
 export const activityImages = pgTable(
   "activity_images",
   {
@@ -101,6 +116,11 @@ export const activityImages = pgTable(
   ],
 );
 
+/**
+ * Horario y aforo de una convocatoria de la actividad. La base comprueba el
+ * orden de las fechas y la capacidad positiva. Un aforo nulo indica que no se
+ * ha fijado un límite.
+ */
 export const shifts = pgTable(
   "shifts",
   {
@@ -127,6 +147,11 @@ export const shifts = pgTable(
   ],
 );
 
+/**
+ * Reserva de una persona en un turno, con su estado y datos de asistencia.
+ * La clave única persona–turno impide duplicados en ese turno. El servicio de
+ * participación comprueba el aforo del turno antes de adjudicar la plaza.
+ */
 export const participations = pgTable(
   "participations",
   {
@@ -161,6 +186,12 @@ export const participations = pgTable(
   ],
 );
 
+/**
+ * Historial de reservas, cambios, cancelaciones y asistencia. El identificador
+ * de participación se conserva como dato histórico aunque se borre la reserva.
+ * Los CHECK exigen turno de origen para cambios, transición para rectificaciones
+ * y motivo para altas en puerta, confirmaciones manuales y rectificaciones.
+ */
 export const participationEvents = pgTable(
   "participation_events",
   {

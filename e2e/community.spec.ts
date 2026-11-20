@@ -1,6 +1,17 @@
+/**
+ * Recorrido Playwright desde el alta UC3M hasta la validación de asistencia.
+ * Cruza la interfaz de Next.js, el buzón de Auth de pruebas, las reservas
+ * persistidas en PGlite y el lector de la tarjeta QR.
+ */
+
 import { expect, test } from "@playwright/test";
 import { E2E_ACCOUNTS, registerVerifyAndSignIn, signInAs, signOut } from "./helpers/e2e-env";
 
+/**
+ * Prueba la reserva con un turno lleno, la tarjeta y el rechazo en un turno
+ * equivocado. Simula la cámara con la imagen emitida por la propia app. Comprueba
+ * la validación repetida y el estado de asistencia al volver como miembro.
+ */
 test("alta UC3M verificada, reserva, tarjeta digital y control de asistencia", async ({ page }, info) => {
   const email = `alta.${info.project.name}@alumnos.uc3m.es`;
   const password = "ComunidadAlta2026!";
@@ -65,6 +76,10 @@ test("alta UC3M verificada, reserva, tarjeta digital y control de asistencia", a
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 480;
     const ctx = canvas.getContext("2d")!;
+    /**
+     * Dibuja un fotograma con fondo blanco y el QR emitido. Se ejecuta antes de
+     * capturar el stream y en el temporizador que alimenta al lector de prueba.
+     */
     const paint = () => {
       ctx.fillStyle = "white";
       ctx.fillRect(0, 0, 480, 480);
@@ -91,6 +106,10 @@ test("alta UC3M verificada, reserva, tarjeta digital y control de asistencia", a
   await expect(page.getByRole("button", { name: /Cancelar reserva/ })).toHaveCount(0);
 });
 
+/**
+ * Hace peticiones HTTP sin sesión al panel y a un detalle de asistencia y
+ * comprueba el 404 con el mensaje de error en español.
+ */
 test("un visitante recibe 404 en el panel y sus subrutas", async ({ request }) => {
   for (const url of ["/admin", "/admin/attendance/cubesat-lab-early"]) {
     const response = await request.get(url);

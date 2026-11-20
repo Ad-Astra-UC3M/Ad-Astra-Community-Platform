@@ -1,3 +1,9 @@
+/**
+ * Esquema Drizzle de identidad local, capacidades, auditoría y supresión. El
+ * servicio de Auth enlaza el identificador de Neon Auth con profiles. Los
+ * módulos de cuentas y perfiles operan sobre estas tablas desde el servidor.
+ */
+
 import { sql } from "drizzle-orm";
 import {
   boolean,
@@ -33,6 +39,11 @@ export const capabilityCodeEnum = pgEnum("capability_code", CAPABILITY_CODES);
 export const accountStatusEnum = pgEnum("account_status", ACCOUNT_STATUSES);
 export const deletionStatusEnum = pgEnum("deletion_status", DELETION_STATUSES);
 
+/**
+ * Perfil de Comunidad, enlazable con Neon Auth mediante authUserId único.
+ * PostgreSQL exige correo UC3M normalizado, aceptación de privacidad y versión QR
+ * positiva. Los módulos de Auth y perfil usan los datos y las fechas de esta fila.
+ */
 export const profiles = pgTable(
   "profiles",
   {
@@ -79,6 +90,11 @@ export const profiles = pgTable(
   ],
 );
 
+/**
+ * Capacidades independientes de un perfil. La clave compuesta evita duplicados.
+ * La aplicación las consulta al autorizar operaciones y el bootstrap puede
+ * conceder general_admin sin un concedente registrado.
+ */
 export const accountCapabilities = pgTable(
   "account_capabilities",
   {
@@ -99,6 +115,11 @@ export const accountCapabilities = pgTable(
   ],
 );
 
+/**
+ * Auditoría administrativa consultable por tipo de destino, identificador y fecha.
+ * Valida el objeto de metadatos y las entradas de concesión y revocación. El actor
+ * solo puede faltar en entradas identificadas como bootstrap.
+ */
 export const adminAuditLogs = pgTable(
   "admin_audit_logs",
   {
@@ -137,6 +158,10 @@ export const adminAuditLogs = pgTable(
   ],
 );
 
+/**
+ * Solicitudes de supresión de cuenta. El índice parcial limita cada persona a
+ * una solicitud pendiente o en revisión. Resolver exige nota, autor y fecha.
+ */
 export const deletionRequests = pgTable(
   "deletion_requests",
   {

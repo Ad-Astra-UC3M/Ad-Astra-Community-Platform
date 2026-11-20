@@ -1,6 +1,19 @@
+/**
+ * Prueba Playwright del layout institucional compartido por visitantes, miembros
+ * y administradores. Cambia de sesión con las cuentas sembradas en PGlite y
+ * verifica enlaces, foco de teclado, anchura e impresión.
+ */
+
 import { expect, test, type Locator } from "@playwright/test";
 import { E2E_ACCOUNTS, signInAs, signOut } from "./helpers/e2e-env";
 
+/**
+ * Comprueba los destinos visibles del encabezado para el rol bajo prueba.
+ * Abre y vuelve a cerrar el menú en móvil para evaluar los mismos enlaces.
+ * @param header Localizador del encabezado institucional.
+ * @param expected Destino del logotipo, CTA y lista exacta de enlaces del rol por comprobar.
+ * @returns Una promesa que finaliza al completar las aserciones y cerrar el menú si se abrió.
+ */
 async function expectHeaderNav(
   header: Locator,
   expected: { homeHref: string; cta: { label: string; href: string }; links: { label: string; href: string }[] },

@@ -1,3 +1,8 @@
+/**
+ * @file Layout raíz de App Router. Envuelve todas las rutas con la navegación institucional y resuelve la
+ * sesión en el servidor antes de mostrar sus controles.
+ */
+
 import { Navbar, Footer } from "../components/original-layout";
 import { CommunityBar } from "../components/community-bar";
 import { currentUser } from "../server/auth/access";
@@ -8,6 +13,13 @@ export const metadata = {
   description: "Actividades, reservas, oportunidades y tarjeta de asistencia de Comunidad Ad Astra UC3M.",
 };
 
+/**
+ * Al renderizar el layout, Next.js ejecuta este Server Component. Usa currentUser para Navbar y CommunityBar.
+ * App Router puede conservar el layout al navegar entre páginas que lo comparten.
+ *
+ * @param props.children - Contenido de la ruta que Next.js inserta en el layout.
+ * @returns Documento HTML con navegación, contenido y pie.
+ */
 export default async function RootLayout({ children }) {
   const user = await currentUser();
   const hasAdmin = Boolean(user && user.capabilities.length > 0);

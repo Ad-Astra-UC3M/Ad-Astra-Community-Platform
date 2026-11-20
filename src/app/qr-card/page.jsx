@@ -1,3 +1,8 @@
+/**
+ * @file Página de App Router para `/qr-card`. Genera en servidor la imagen QR de la tarjeta personal y
+ * ofrece reemisión e impresión.
+ */
+
 import QRCode from "qrcode";
 import { issueMyCard } from "../../server/activities/card";
 import { reissueMyCard } from "./actions";
@@ -6,6 +11,13 @@ import { CardTools } from "./tools";
 const primaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
+/**
+ * Next.js llama a la página. `issueMyCard` obtiene el JWT vigente y `QRCode.toDataURL` lo convierte en
+ * imagen. `CardTools` permite imprimir o consultar el código manual.
+ * @param props Propiedades de la página que proporciona Next.js.
+ * @param props.searchParams Promesa con la consulta. `status=reissued` activa el aviso de reemisión.
+ * @returns La tarjeta con su titular, versión y formulario de reemisión.
+ */
 export default async function CardPage({ searchParams }) {
   const { status } = await searchParams;
   const { token, version, holderName } = await issueMyCard();

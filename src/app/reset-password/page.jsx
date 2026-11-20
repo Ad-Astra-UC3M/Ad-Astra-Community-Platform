@@ -1,3 +1,8 @@
+/**
+ * @file Segundo paso de recuperación. La página de servidor lee el contexto de correo temporal y la acción
+ * verifica el código y la nueva contraseña.
+ */
+
 import Link from "next/link";
 import {
   AccountCodeField,
@@ -21,6 +26,11 @@ const primaryButtonClass =
 const inputClass =
   "min-h-12 w-full min-w-0 rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
 
+/**
+ * Renderiza el formulario conectado a resetPasswordAction. Lee el correo sugerido con readAccountCodeEmail.
+ *
+ * @param props.searchParams - Promesa con el aviso de envío y el error de recuperación, si los hay.
+ */
 export default async function ResetPasswordPage({ searchParams }) {
   const { sent, error } = await searchParams;
   const email = await readAccountCodeEmail("recovery");

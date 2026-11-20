@@ -1,3 +1,8 @@
+/**
+ * @file Pruebas del adaptador de Neon. Sustituyen el transporte del SDK para comprobar rutas y respuestas
+ * OTP con el contrato de Comunidad.
+ */
+
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createNeonAuth, type NeonAuth } from "@neondatabase/auth/next/server";
@@ -15,10 +20,12 @@ test("Neon uses the verification OTP endpoints and returns the verified identity
 
   const neonAuth = {
     emailOtp: {
+      /** Registra input para comprobar el propósito enviado por el adaptador. */
       async sendVerificationOtp(input: unknown) {
         sends.push(input);
         return { data: { success: true }, error: null };
       },
+      /** Registra input y alterna la presencia de token para comprobar sessionCreated. */
       async verifyEmail(input: unknown) {
         verifications.push(input);
         return { data: { status: true, token: tokens.shift(), user }, error: null };
@@ -48,6 +55,7 @@ test("Neon maps OTP errors without trusting an unrelated or unverified identity"
     { data: { status: true, user: { id: "unverified", email, emailVerified: false } } },
   ];
   const neonAuth = {
+    /** Proporciona a verifyEmail el siguiente fallo o identidad simulada que debe interpretar el adaptador. */
     emailOtp: { verifyEmail: async () => replies.shift() },
   } as unknown as NeonAuth;
 

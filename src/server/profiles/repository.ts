@@ -1,3 +1,9 @@
+/**
+ * Persistencia del perfil básico, el talento voluntario y las decisiones de difusión. Las
+ * operaciones aportan el titular autenticado y este módulo valida, transforma y guarda los
+ * datos. Véase docs/backend/profiles.md.
+ */
+
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb, type AppDb, type AppDbOrTx } from "../../db/client";
@@ -248,10 +254,23 @@ const optionalHeadlineSchema = z
   .nullable()
   .optional();
 
+/**
+ * Elige la conexión de las lecturas y escrituras de perfil y difusión.
+ *
+ * @param db - Conexión opcional, como PGlite en una prueba.
+ * @returns La conexión inyectada o la configurada en la aplicación.
+ */
 async function resolveDb(db?: AppDb): Promise<AppDb> {
   return db ?? getDb();
 }
 
+/**
+ * Proyecta campos de perfil básico tras leer o escribir una fila en getBasicProfile y
+ * updateBasicProfile.
+ *
+ * @param row - Registro de profiles que sirve de origen.
+ * @returns Perfil básico con null para los campos opcionales sin valor.
+ */
 function toBasicProfile(row: ProfileRow): BasicProfile {
   return {
     id: row.id,
@@ -269,6 +288,14 @@ function toBasicProfile(row: ProfileRow): BasicProfile {
   };
 }
 
+/**
+ * Convierte las experiencias JSONB al modelo que consumen readTalentProfileRow y el detalle
+ * interno.
+ *
+ * @param item - Experiencia almacenada con claves como is_featured y sort_order.
+ * @returns Experiencia con sus claves de aplicación y null para organización y descripción
+ *   ausentes.
+ */
 export function mapExperienceFromDb(item: TalentExperience): TalentExperienceItem {
   return {
     kind: item.kind,
@@ -280,6 +307,12 @@ export function mapExperienceFromDb(item: TalentExperience): TalentExperienceIte
   };
 }
 
+/**
+ * Adapta una experiencia validada antes de insertarla en saveTalentProfile.
+ *
+ * @param item - Experiencia con las claves isFeatured y sortOrder de la aplicación.
+ * @returns Experiencia con las claves del formato JSONB persistido.
+ */
 function mapExperienceToDb(item: TalentExperienceItem): TalentExperience {
   return {
     kind: item.kind,
@@ -291,6 +324,13 @@ function mapExperienceToDb(item: TalentExperienceItem): TalentExperience {
   };
 }
 
+/**
+ * Aplica las reglas de formato de enlace al guardar el perfil de talento.
+ *
+ * @param raw - URL recortada que se valida.
+ * @returns Si es absoluta, usa HTTP o HTTPS, tiene host y respeta el máximo de 2048 caracteres
+ *   sin espacios ni controles.
+ */
 function isSafeHttpUrl(raw: string): boolean {
   if (!raw || raw.length > 2048 || /[\s\u0000-\u001f]/.test(raw)) {
     return false;
@@ -306,6 +346,12 @@ function isSafeHttpUrl(raw: string): boolean {
   }
 }
 
+/**
+ * Normaliza las etiquetas de los formularios y de la búsqueda de talento.
+ *
+ * @param tags - Lista opcional cuyos elementos se recortan y pasan a minúsculas.
+ * @returns Etiquetas sin vacíos ni duplicados en orden de primera aparición.
+ */
 export function normalizeTagList(tags: readonly string[] | undefined): string[] {
   if (!tags) return [];
   const seen = new Set<string>();
@@ -321,11 +367,24 @@ export function normalizeTagList(tags: readonly string[] | undefined): string[] 
   return normalized;
 }
 
+/**
+ * Interpreta los campos de etiquetas que lee saveTalentProfileAction.
+ *
+ * @param raw - Texto que se divide por comas o saltos de línea.
+ * @returns Etiquetas normalizadas para enviarlas a la operación de guardado.
+ */
 export function parseTagList(raw: string): string[] {
   if (!raw) return [];
   return normalizeTagList(raw.split(/[,\n]/));
 }
 
+/**
+ * Valida una categoría de etiquetas antes de guardarla en saveTalentProfile.
+ *
+ * @param tags - Etiquetas opcionales que se normalizan y deduplican.
+ * @returns Lista válida o null si un valor no es texto, supera 60 caracteres o hay más de 20
+ *   etiquetas distintas.
+ */
 function validateTagCategory(
   tags: readonly string[] | undefined,
 ): string[] | null {
@@ -347,6 +406,14 @@ function validateTagCategory(
   return normalized;
 }
 
+/**
+ * Interpreta el texto de idiomas de saveTalentProfileAction y las entradas textuales
+ * compatibles del repositorio.
+ *
+ * @param raw - Texto separado por comas o saltos de línea, o lista de textos. El nivel puede ir
+ *   entre paréntesis o separado por guion o dos puntos.
+ * @returns Pares de idioma y nivel con «No especificado» cuando falta el nivel.
+ */
 export function parseLanguageList(
   raw: string | readonly string[],
 ): TalentLanguage[] {
@@ -387,6 +454,13 @@ export function parseLanguageList(
   return parsed;
 }
 
+/**
+ * Convierte los campos de texto del formulario en el formato estructurado de saveTalentProfile.
+ *
+ * @param input - Resumen libre y proyecto destacado opcionales. Se recortan y se usan como
+ *   descripciones.
+ * @returns Experiencias en orden, con el proyecto marcado como destacado si se indicó.
+ */
 export function parseExperiencesFromText(input: {
   experiencesSummary?: string | null;
   featuredProject?: string | null;
@@ -418,6 +492,13 @@ export function parseExperiencesFromText(input: {
   return items;
 }
 
+/**
+ * Valida el año de graduación que se guarda en el perfil de talento.
+ *
+ * @param value - Número, texto de cuatro dígitos o valor opcional.
+ * @returns Resultado válido con un entero entre 1950 y 2100 o null para un valor vacío, o
+ *   resultado inválido.
+ */
 function parseExpectedGraduationYear(
   value: number | string | null | undefined,
 ): { ok: true; value: number | null } | { ok: false } {
@@ -437,6 +518,14 @@ function parseExpectedGraduationYear(
   return { ok: true, value };
 }
 
+/**
+ * Proyecta la fila de talento para getTalentProfile y la relee tras saveTalentProfile.
+ *
+ * @param db - Conexión de lectura o transacción que acaba de guardar la fila.
+ * @param personId - UUID del titular con el que se busca la fila de talento.
+ * @returns Perfil con experiencias ordenadas o modelo vacío si el usuario todavía no guardó su
+ *   perfil.
+ */
 async function readTalentProfileRow(
   db: AppDbOrTx,
   personId: string,
@@ -486,6 +575,13 @@ async function readTalentProfileRow(
   };
 }
 
+/**
+ * Recupera los datos básicos que usa getMyProfile para la página.
+ *
+ * @param personId - UUID consultado en profiles.
+ * @param db - Conexión opcional de lectura.
+ * @returns Perfil básico o null si el UUID es inválido o falta la fila.
+ */
 export async function getBasicProfile(
   personId: string,
   db?: AppDb,
@@ -500,6 +596,17 @@ export async function getBasicProfile(
   return row ? toBasicProfile(row) : null;
 }
 
+/**
+ * Valida y actualiza el perfil básico que recibe de updateMyProfile. Bloquea la fila para
+ * mantener identidad y correo, y conserva los datos académicos opcionales omitidos.
+ *
+ * @param personId - UUID del perfil que se bloquea y modifica.
+ * @param input - Campos editables y campos de identidad opcionales que se contrastan con el
+ *   registro existente.
+ * @param db - Conexión opcional para la transacción.
+ * @returns Perfil actualizado o un error por ausencia del perfil, cambio de identidad o correo,
+ *   o datos inválidos.
+ */
 export async function updateBasicProfile(
   personId: string,
   input: BasicProfileUpdateInput,
@@ -571,6 +678,16 @@ export async function updateBasicProfile(
   });
 }
 
+/**
+ * Lee el perfil propio que solicita getMyTalentProfile tras comprobar la coincidencia de
+ * identificadores y la existencia del titular.
+ *
+ * @param requesterId - UUID de quien solicita la lectura.
+ * @param targetPersonId - UUID del titular cuyo perfil se lee si coincide con requesterId.
+ * @param db - Conexión opcional de lectura.
+ * @returns Datos de talento, vacíos antes del primer guardado, o null si el titular no existe o
+ *   no coincide con el solicitante.
+ */
 export async function getTalentProfile(
   requesterId: string,
   targetPersonId: string,
@@ -583,6 +700,16 @@ export async function getTalentProfile(
   return readTalentProfileRow(database, targetPersonId);
 }
 
+/**
+ * Guarda el perfil enviado por saveMyTalentProfile. Valida los datos y crea o actualiza una
+ * única fila por titular dentro de una transacción.
+ *
+ * @param personId - UUID del titular del perfil básico que se comprueba antes de escribir.
+ * @param input - Formación, etiquetas, experiencias, idiomas y enlaces. Admite los formatos
+ *   textuales de año, experiencias e idiomas.
+ * @param db - Conexión opcional para guardar y releer el perfil en la misma transacción.
+ * @returns Perfil guardado o un error de campos, formato o ausencia del titular.
+ */
 export async function saveTalentProfile(
   personId: string,
   input: TalentProfileInput,
@@ -767,6 +894,14 @@ export async function saveTalentProfile(
   });
 }
 
+/**
+ * Calcula la difusión vigente que usan getDisseminationStatus y setDisseminationDecision.
+ *
+ * @param db - Conexión o transacción que consulta las decisiones del propósito de difusión.
+ * @param personId - UUID del titular de las decisiones.
+ * @param now - Instante con el que se compara la vigencia de la última concesión.
+ * @returns Estado efectivo, caducidad e historial de decisiones de más reciente a más antigua.
+ */
 async function readDisseminationStatus(
   db: AppDbOrTx,
   personId: string,
@@ -827,6 +962,14 @@ async function readDisseminationStatus(
   };
 }
 
+/**
+ * Lee el estado de difusión que getMyPrivacySettings entrega a la página de privacidad.
+ *
+ * @param personId - UUID de la persona cuyas decisiones se consultan.
+ * @param now - Instante de referencia para evaluar si la última concesión ha caducado.
+ * @param db - Conexión opcional para la lectura.
+ * @returns Estado de difusión e historial del titular.
+ */
 export async function getDisseminationStatus(
   personId: string,
   now: Date = new Date(),
@@ -836,6 +979,19 @@ export async function getDisseminationStatus(
   return readDisseminationStatus(database, personId, now);
 }
 
+/**
+ * Registra la decisión solicitada por updateMyDissemination. Bloquea el perfil y añade al
+ * historial solo si cambia la decisión efectiva, la última decisión, la vigencia o la versión
+ * de política.
+ *
+ * @param personId - UUID del titular de la decisión y de la fila bloqueada.
+ * @param granted - Indica si se autoriza la difusión. Una negativa se guarda sin vencimiento.
+ * @param options - Origen, instante de decisión y vigencia opcionales. El origen predeterminado
+ *   es portal.
+ * @param db - Conexión opcional para leer y escribir en una transacción.
+ * @returns Estado e historial actualizados, o null si el titular no existe o su UUID es
+ *   inválido.
+ */
 export async function setDisseminationDecision(
   personId: string,
   granted: boolean,

@@ -1,3 +1,8 @@
+/**
+ * Ruta /admin/talent del App Router. Permite consultar internamente perfiles de talento con
+ * filtros de texto y etiquetas, e indica si su difusión está autorizada.
+ */
+
 import Link from "next/link";
 import { BackLink } from "../../../components/back-link";
 import { searchTalentForConsultation } from "../../../server/profiles/operations";
@@ -11,6 +16,15 @@ const primaryButtonClass =
 const secondaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
+/**
+ * Next.js ejecuta este Server Component para consultar searchTalentForConsultation con los
+ * filtros de la URL.
+ *
+ * @param props - Propiedades de ruta suministradas por Next.js.
+ * @param props.searchParams - Promesa con q para texto libre y tags para etiquetas separadas
+ *   por comas.
+ * @returns Buscador y resultados en JSX con enlaces a los perfiles de talento disponibles.
+ */
 export default async function AdminTalentPage({ searchParams }) {
   const resolved = await searchParams;
   const query = typeof resolved?.q === "string" ? resolved.q : "";

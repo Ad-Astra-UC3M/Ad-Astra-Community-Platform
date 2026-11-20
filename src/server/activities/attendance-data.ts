@@ -1,3 +1,8 @@
+/**
+ * @file Lecturas y transacciones del control de asistencia. Reúne turnos, participantes, candidatos y
+ * auditoría. El alta en puerta comparte la adjudicación de plazas con el portal.
+ */
+
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
@@ -127,6 +132,13 @@ export interface AttendanceAuditEntry {
   createdAt: Date;
 }
 
+/**
+ * Calcula los conteos que usan `listShiftSummaries` y `getShiftDetail` a partir de una misma consulta
+ * Drizzle.
+ * @param db Conexión con la que se consultan actividades, turnos y participaciones.
+ * @param shiftId UUID opcional para restringir la consulta a un turno.
+ * @returns Los turnos por fecha de inicio, con ocupación, plazas libres y asistencias.
+ */
 async function queryShiftSummaries(db: AppDb, shiftId?: string): Promise<ShiftDetail[]> {
   const rows = await db
     .select({
@@ -156,10 +168,21 @@ async function queryShiftSummaries(db: AppDb, shiftId?: string): Promise<ShiftDe
   }));
 }
 
+/**
+ * Carga para `attendance.ts` los turnos que presenta el índice del control de asistencia.
+ * @param db Conexión opcional para pruebas.
+ * @returns Las filas de `queryShiftSummaries` para todos los turnos.
+ */
 export async function listShiftSummaries(db?: AppDb): Promise<ShiftDetail[]> {
   return queryShiftSummaries(await resolveDb(db));
 }
 
+/**
+ * Localiza el turno que `getAttendanceShift` usa para preparar el detalle de asistencia.
+ * @param shiftId UUID del turno que filtra la consulta.
+ * @param db Conexión opcional para pruebas.
+ * @returns El turno con sus conteos, o `null` si no se encuentra o el ID es inválido.
+ */
 export async function getShiftDetail(
   shiftId: string,
   db?: AppDb,
@@ -169,6 +192,14 @@ export async function getShiftDetail(
   return shift ?? null;
 }
 
+/**
+ * Carga para `getAttendanceShift` las participaciones del turno con los datos que usa la lista de
+ * inscritos.
+ * @param shiftId UUID del turno cuyas participaciones se consultan.
+ * @param query Búsqueda opcional por nombre, correo o ID de persona.
+ * @param db Conexión opcional para pruebas.
+ * @returns Los inscritos que coinciden con la búsqueda, con estado, origen y datos de asistencia.
+ */
 export async function listShiftAttendeesDetailed(
   shiftId: string,
   query = "",
@@ -218,6 +249,14 @@ export async function listShiftAttendeesDetailed(
     });
 }
 
+/**
+ * Busca para `getAttendanceShift` las cuentas que pueden figurar como candidatas a un alta en puerta.
+ * @param shiftId UUID del turno para marcar las cuentas que ya tienen plaza.
+ * @param query Búsqueda opcional por nombre, correo o titulación.
+ * @param db Conexión opcional para pruebas.
+ * @returns Las cuentas activas con correo verificado que coinciden y su indicador de reserva en el
+ * turno.
+ */
 export async function listActiveAccountsForDoor(
   shiftId: string,
   query = "",
@@ -272,6 +311,17 @@ export async function listActiveAccountsForDoor(
     });
 }
 
+/**
+ * Atiende el alta solicitada por `attendance.ts`. Valida el motivo y delega la reserva en
+ * `allocateShiftPlace` con origen `door`. La asistencia requiere una confirmación separada.
+ * @param shiftId UUID del turno al que se inscribe a la cuenta.
+ * @param targetPersonId UUID del perfil verificado elegido para la plaza.
+ * @param actorProfileId UUID del organizador que queda registrado como actor.
+ * @param reason Motivo obligatorio que se incluye en el evento de alta.
+ * @param now Instante opcional para comprobar el fin del turno y fechar la participación y el evento.
+ * @param db Conexión opcional para pruebas.
+ * @returns La participación `booked` y su titular, o un código de error.
+ */
 export async function registerAtDoor(
   shiftId: string,
   targetPersonId: string,
@@ -316,6 +366,17 @@ export async function registerAtDoor(
   }
 }
 
+/**
+ * Atiende la confirmación solicitada por `attendance.ts`. Bloquea la participación, comprueba la cuenta
+ * y el actor y registra el método `manual` y `attendance_manual` en una transacción.
+ * @param shiftId UUID del turno en el que se confirma la asistencia.
+ * @param personId UUID de la persona cuya reserva se confirma.
+ * @param actorProfileId UUID de quien confirma y queda registrado en auditoría.
+ * @param reason Motivo obligatorio de la confirmación.
+ * @param now Instante opcional que se almacena en la asistencia y su evento.
+ * @param db Conexión opcional para pruebas.
+ * @returns La transición confirmada o un código de error, incluido `already_attended`.
+ */
 export async function manualConfirmAttendance(
   shiftId: string,
   personId: string,
@@ -400,6 +461,19 @@ export async function manualConfirmAttendance(
   });
 }
 
+/**
+ * Atiende la rectificación solicitada por `attendance.ts`. Bloquea la participación, conserva su plaza
+ * y guarda el cambio de estado y su motivo en `attendance_corrected`.
+ * @param shiftId UUID del turno de la participación.
+ * @param personId UUID de la persona a la que se corrige el estado.
+ * @param targetStatus Estado solicitado. `attended` confirma manualmente y `booked` limpia la marca de
+ * asistencia.
+ * @param actorProfileId UUID de quien rectifica, registrado en auditoría.
+ * @param reason Motivo obligatorio de la rectificación.
+ * @param now Instante opcional para fechar el evento y la asistencia si se confirma.
+ * @param db Conexión opcional para pruebas.
+ * @returns Los estados anterior y nuevo, o un código de error si se rechaza la rectificación.
+ */
 export async function correctAttendance(
   shiftId: string,
   personId: string,
@@ -505,6 +579,13 @@ export async function correctAttendance(
   });
 }
 
+/**
+ * Carga para `getAttendanceShift` el historial de altas en puerta, validaciones, cambios y
+ * cancelaciones que muestra el panel.
+ * @param shiftId UUID del turno por el que se filtran los eventos.
+ * @param db Conexión opcional para pruebas.
+ * @returns Los eventos por fecha e ID, con los nombres de la persona y de quien actuó.
+ */
 export async function listAttendanceAudit(
   shiftId: string,
   db?: AppDb,

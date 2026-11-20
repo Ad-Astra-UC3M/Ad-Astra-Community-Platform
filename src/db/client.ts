@@ -1,3 +1,10 @@
+/**
+ * Conexión a PostgreSQL para la capa de servidor de Next.js. Expone el mismo
+ * contrato Drizzle con Neon en la aplicación y PGlite en pruebas. Los repositorios
+ * pueden recibir una conexión o transacción inyectada para compartir la unidad
+ * de trabajo. Neon Auth gestiona la identidad mediante su propio proveedor.
+ */
+
 import { mkdirSync } from "node:fs";
 import type { PGlite } from "@electric-sql/pglite";
 import { Pool } from "@neondatabase/serverless";
@@ -26,6 +33,10 @@ export type AppTransaction = PgTransaction<
   AppSchema,
   ExtractTablesWithRelations<AppSchema>
 >;
+/**
+ * Tipo de conexión o transacción que aceptan las operaciones que pueden componer
+ * consultas dentro de una transacción abierta por el llamador.
+ */
 export type AppDbOrTx = AppDb | AppTransaction;
 
 export type TestDb = AppDb & {
@@ -47,18 +58,33 @@ type GlobalWithDbCache = typeof globalThis & {
   [DB_CACHE_SYMBOL]?: CachedDbEntry;
 };
 
+/**
+ * Detecta si la ejecución debe usar PostgreSQL embebido. Lo consulta getDb.
+ * @returns Si hay un directorio de pruebas configurado o está activo el runner de Node.
+ */
 export function isPgliteMode(): boolean {
   return Boolean(
     process.env.AD_ASTRA_PG_TEST_DIR?.trim() || process.env.NODE_TEST_CONTEXT,
   );
 }
 
+/**
+ * Carga el constructor de PGlite bajo demanda en initPgliteDb. La importación
+ * dinámica mantiene el motor de pruebas fuera de la resolución estática del bundle.
+ * @returns El constructor del motor PostgreSQL embebido.
+ */
 async function loadPgliteClass(): Promise<typeof PGlite> {
   const pkg = ["@electric-sql", "pglite"].join("/");
   const mod = (await import(/* webpackIgnore: true */ pkg)) as { PGlite: typeof PGlite };
   return mod.PGlite;
 }
 
+/**
+ * Prepara PGlite para getDb y createTestDb. Espera a que arranque, aplica el
+ * SQL inicial y lo conecta con el mismo esquema Drizzle que usa Neon.
+ * @param dataDir Directorio persistente para el seed y el servidor E2E. Si se omite, usa memoria.
+ * @returns El cliente Drizzle y el motor PGlite para poder cerrarlo.
+ */
 async function initPgliteDb(dataDir?: string): Promise<{
   db: AppDb;
   pglite: PGlite;
@@ -74,6 +100,11 @@ async function initPgliteDb(dataDir?: string): Promise<{
   return { db, pglite };
 }
 
+/**
+ * Construye el cliente Drizzle para getDb con un pool de Neon Serverless.
+ * @param connectionString URL de PostgreSQL de DATABASE_URL, usada por el pool al conectar.
+ * @returns El cliente Drizzle tipado y el pool que cierra closeDb.
+ */
 function initNeonDb(connectionString: string): {
   db: AppDb;
   pool: Pool;
@@ -83,6 +114,12 @@ function initNeonDb(connectionString: string): {
   return { db, pool };
 }
 
+/**
+ * Devuelve la conexión que usan repositorios y servicios de Next.js por defecto.
+ * Comparte su promesa en el proceso mientras se mantenga la configuración. En
+ * pruebas migra PGlite al abrirlo. En Neon, db:migrate prepara el esquema por separado.
+ * @returns El cliente Drizzle del entorno actual. Falla si falta la URL de Neon en modo normal.
+ */
 export async function getDb(): Promise<AppDb> {
   const globalCache = globalThis as GlobalWithDbCache;
   const pgliteDir = process.env.AD_ASTRA_PG_TEST_DIR?.trim();
@@ -111,6 +148,7 @@ export async function getDb(): Promise<AppDb> {
     const entry: CachedDbEntry = {
       key,
       promise,
+      /** Cierra la instancia PGlite de la caché cuando terminó de iniciarse. */
       close: async () => {
         if (pgliteRef) {
           await pgliteRef.close();
@@ -139,6 +177,7 @@ export async function getDb(): Promise<AppDb> {
   const entry: CachedDbEntry = {
     key,
     promise: Promise.resolve(db),
+    /** Cierra el pool Neon que pertenece a esta entrada de getDb. */
     close: async () => {
       await pool.end();
     },
@@ -147,14 +186,25 @@ export async function getDb(): Promise<AppDb> {
   return db;
 }
 
+/**
+ * Crea una instancia en memoria y aplica el SQL inicial para las pruebas
+ * de integración, que la inyectan en los servicios y repositorios.
+ * @returns El cliente aislado, el motor PGlite y el método close para el bloque finally.
+ */
 export async function createTestDb(): Promise<TestDb> {
   const { db, pglite } = await initPgliteDb();
   return Object.assign(db, {
     pglite,
+    /** Libera la instancia aislada que createTestDb entrega a esta prueba. */
     close: () => pglite.close(),
   });
 }
 
+/**
+ * Retira la conexión global y cierra su pool Neon o instancia PGlite. El seed
+ * E2E, las pruebas que usan getDb y el bootstrap CLI la llaman al terminar.
+ * @returns Una promesa que finaliza tras el cierre o de inmediato si no hay conexión registrada.
+ */
 export async function closeDb(): Promise<void> {
   const globalCache = globalThis as GlobalWithDbCache;
   const existing = globalCache[DB_CACHE_SYMBOL];

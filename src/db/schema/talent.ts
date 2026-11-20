@@ -1,3 +1,9 @@
+/**
+ * Esquema Drizzle de talento voluntario y decisiones de difusión. Los módulos
+ * de perfiles usan estas tablas para editar el perfil propio, consultar talento
+ * con la capacidad correspondiente y conservar el historial de autorizaciones.
+ */
+
 import { sql } from "drizzle-orm";
 import {
   boolean,
@@ -45,6 +51,11 @@ export interface TalentLink {
   url: string;
 }
 
+/**
+ * Un perfil de talento por persona. Los índices GIN respaldan el filtro por
+ * etiquetas de los campos de tipo array. Los CHECK delegan la validación de
+ * experiencias, idiomas y enlaces JSONB en funciones definidas en el SQL inicial.
+ */
 export const talentProfiles = pgTable(
   "talent_profiles",
   {
@@ -121,6 +132,11 @@ export const talentProfiles = pgTable(
   ],
 );
 
+/**
+ * Historial de concesiones y retiradas de difusión por persona y finalidad.
+ * Cada fila registra la decisión, su origen, la versión de política y su posible
+ * caducidad. El índice facilita consultar las decisiones de una finalidad.
+ */
 export const talentDisseminationDecisions = pgTable(
   "talent_dissemination_decisions",
   {

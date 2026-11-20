@@ -1,3 +1,9 @@
+/**
+ * Recorridos Playwright de acceso, recuperación por OTP y gestión por
+ * capacidades. Ejercitan páginas y Server Actions del build de Next.js con las
+ * cuentas y datos sintéticos preparados en PGlite.
+ */
+
 import { expect, test } from "@playwright/test";
 import {
   E2E_ACCOUNTS,
@@ -7,6 +13,10 @@ import {
   waitForMailboxOtp,
 } from "./helpers/e2e-env";
 
+/**
+ * Comprueba los 404 y los accesos autorizados al cambiar de una cuenta con
+ * general_admin a otra con consulta de talento y a un miembro sin capacidades.
+ */
 test("CA-01: capacidades independientes en /admin con 404 al carecer de permiso", async ({ page }) => {
   // Cuenta con solo general_admin: acceso a /admin y /admin/accounts, 404 en /admin/talent
   await signInAs(page, E2E_ACCOUNTS.generalAdminOnly);
@@ -30,6 +40,10 @@ test("CA-01: capacidades independientes en /admin con 404 al carecer de permiso"
   expect((await page.request.get("/admin/talent")).status()).toBe(404);
 });
 
+/**
+ * Prueba el retorno a un destino protegido, el reintento con el mismo código
+ * ante un error de formulario y el consumo del OTP tras el cambio de contraseña.
+ */
 test("CA-02 y CA-03: retorno a ruta protegida tras acceso y recuperación de contraseña", async ({ page }, info) => {
   const email = `recuperacion.${info.project.name}@alumnos.uc3m.es`;
   const initialPassword = "ClaveInicial2026!";
@@ -66,6 +80,12 @@ test("CA-02 y CA-03: retorno a ruta protegida tras acceso y recuperación de con
 
   const otp = await waitForMailboxOtp(email, "password-reset");
   expect(otp).toMatch(/^\d{6}$/);
+  /**
+   * Envía el formulario con el OTP ya leído por el caso de recuperación.
+   * @param password Contraseña nueva que se prueba en este intento.
+   * @param confirmation Confirmación, igual por defecto. Un valor distinto provoca el error de formulario.
+   * @returns Una promesa que finaliza al pulsar Guardar nueva contraseña. El caso comprueba el resultado.
+   */
   const submitPasswordReset = async (password: string, confirmation = password) => {
     await main.getByLabel("Código de recuperación").fill(otp);
     await main.getByLabel("Nueva contraseña", { exact: true }).fill(password);
@@ -102,6 +122,11 @@ test("CA-02 y CA-03: retorno a ruta protegida tras acceso y recuperación de con
   await expect(page).toHaveURL(/\/home$/);
 });
 
+/**
+ * Sigue tres tareas del panel iniciadas con datos del mismo recorrido. Verifica
+ * el turno normal, la separación entre inscripción en puerta y asistencia con
+ * auditoría, y el cierre motivado de la solicitud de supresión.
+ */
 test("CA-06, CA-10 y CA-11: alta en puerta, confirmación manual, actividad con turno normal y resolución de supresión", async ({ page }, info) => {
   const email = `puerta.${info.project.name}@alumnos.uc3m.es`;
   await registerVerifyAndSignIn(page, {

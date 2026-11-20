@@ -1,3 +1,8 @@
+/**
+ * @file Reservas personales y confirmación por QR. El alta comparte la adjudicación con puerta. Los
+ * cambios, cancelaciones y asistencias registran su evento en la misma transacción.
+ */
+
 import { and, asc, eq, inArray } from "drizzle-orm";
 
 import type { AppDb } from "../../db/client";
@@ -32,6 +37,16 @@ export type ChangeReservationResult =
 
 export type CheckInResult = "recorded" | "already" | "deactivated" | "missing";
 
+/**
+ * Valida la solicitud de `reserveMyShift` y de los seeds. Delega el alta a `allocateShiftPlace` con
+ * origen `portal`.
+ * @param activityIdOrSlug Actividad publicada esperada del turno solicitado.
+ * @param shiftId UUID del turno que se quiere reservar.
+ * @param personId UUID de la persona que solicita la plaza.
+ * @param now Instante opcional de referencia para el inicio del turno y el evento de reserva.
+ * @param db Conexión opcional para pruebas.
+ * @returns `reserved` o el código del portal que corresponde al fallo de adjudicación.
+ */
 export async function reserveShift(
   activityIdOrSlug: string,
   shiftId: string,
@@ -59,6 +74,15 @@ export async function reserveShift(
   }
 }
 
+/**
+ * Atiende a `cancelMyReservation`. Bloquea turno y participación, elimina la plaza antes del inicio si
+ * sigue `booked` y conserva el evento `cancelled`.
+ * @param personId UUID de la persona cuya plaza se libera.
+ * @param shiftId UUID del turno de la reserva.
+ * @param now Instante opcional para comprobar el inicio y fechar el evento de cancelación.
+ * @param db Conexión opcional para pruebas.
+ * @returns `cancelled`, `attended`, `closed` o `missing`.
+ */
 export async function cancelReservation(
   personId: string,
   shiftId: string,
@@ -121,6 +145,16 @@ export async function cancelReservation(
   });
 }
 
+/**
+ * Atiende a `changeMyReservation`. Bloquea ambos turnos por ID antes de comprobar disponibilidad.
+ * Conserva el ID de participación y audita los dos turnos al moverla.
+ * @param personId UUID de la persona cuya reserva se cambia.
+ * @param fromShiftId UUID del turno actual, del que se bloquea la reserva propia.
+ * @param toShiftId UUID del turno destino, que debe corresponder a la misma actividad publicada.
+ * @param now Instante opcional para comprobar el inicio de ambos turnos y fechar el evento.
+ * @param db Conexión opcional para pruebas.
+ * @returns `changed` o un código de rechazo. Ante un rechazo se conserva la reserva original.
+ */
 export async function changeReservation(
   personId: string,
   fromShiftId: string,
@@ -209,6 +243,17 @@ export async function changeReservation(
   });
 }
 
+/**
+ * Confirma la asistencia de una tarjeta que `validateAttendanceCard` ya verificó. Bloquea la
+ * participación para que un escaneo repetido no duplique el evento `attendance_qr`.
+ * @param shiftId UUID del turno donde se busca la reserva.
+ * @param personId UUID de la persona que presenta la tarjeta. El perfil debe estar activo.
+ * @param organizerProfileId UUID del organizador que queda registrado como validador y actor.
+ * @param now Instante opcional de asistencia y del evento de auditoría.
+ * @param db Conexión opcional para pruebas.
+ * @returns `recorded` si se actualizó la reserva con método `qr`, o `already`, `deactivated` o
+ * `missing`.
+ */
 export async function checkIn(
   shiftId: string,
   personId: string,

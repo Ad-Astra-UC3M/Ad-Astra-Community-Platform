@@ -1,3 +1,9 @@
+/**
+ * @file Reglas de registro, sesión y recuperación de Comunidad. Las acciones y access.ts inyectan la base
+ * de Drizzle y el adaptador AuthProvider. La identidad de Neon se vincula con el perfil y las capacidades
+ * de la aplicación.
+ */
+
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -15,6 +21,7 @@ import { normalizeUc3mEmail } from "./uc3m";
 
 export const PRIVACY_VERSION = "v1";
 
+/** Sesión de Comunidad. personId enlaza reservas y permisos. authUserId identifica la cuenta en Neon. */
 export type AuthUser = {
   id: string;
   personId: string;
@@ -81,12 +88,24 @@ const passwordSchema = z
   .max(128)
   .refine((val) => val.trim().length > 0);
 
+/**
+ * Construye un esquema Zod de texto obligatorio para los datos de alta.
+ *
+ * @param max - Longitud máxima tras recortar espacios.
+ * @returns Esquema que valida y normaliza el texto.
+ */
 const trimmedField = (max: number) =>
   z
     .string()
     .transform((val) => val.trim())
     .pipe(z.string().min(1).max(max));
 
+/**
+ * Construye un esquema Zod para un campo de alta que puede omitirse.
+ *
+ * @param max - Longitud máxima de texto tras recortarlo.
+ * @returns Esquema que normaliza valores ausentes o vacíos a null.
+ */
 const optionalTrimmedField = (max: number) =>
   z
     .union([z.string(), z.null(), z.undefined()])
@@ -121,6 +140,12 @@ const emailOtpSchema = z.object({
   otp: z.string().trim().regex(/^\d{6}$/),
 });
 
+/**
+ * Valida códigos de capacidad en las operaciones del módulo accounts.
+ *
+ * @param value - Valor recibido desde un formulario u otra entrada sin validar.
+ * @returns Predicado que indica si el valor es un CapabilityCode.
+ */
 export function isCapabilityCode(value: unknown): value is CapabilityCode {
   return (
     typeof value === "string" &&
@@ -128,6 +153,12 @@ export function isCapabilityCode(value: unknown): value is CapabilityCode {
   );
 }
 
+/**
+ * Traduce la restricción de unicidad en el registro a un resultado de cuenta duplicada.
+ *
+ * @param error - Error de Drizzle o PostgreSQL. Se revisan el error y su causa.
+ * @returns true cuando el código PostgreSQL es 23505.
+ */
 function isPgUniqueViolation(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
   const candidate = error as { code?: unknown; cause?: unknown };
@@ -138,6 +169,13 @@ function isPgUniqueViolation(error: unknown): boolean {
   return false;
 }
 
+/**
+ * Consulta los permisos de una cuenta al resolver o abrir una sesión.
+ *
+ * @param db - Conexión que permite consultar accountCapabilities.
+ * @param profileId - Identificador del perfil titular de las capacidades.
+ * @returns Códigos de capacidad del perfil en el orden definido por la aplicación.
+ */
 async function loadCapabilities(
   db: AppDb,
   profileId: string,
@@ -151,6 +189,14 @@ async function loadCapabilities(
   return CAPABILITY_CODES.filter((code) => granted.has(code));
 }
 
+/**
+ * Construye el valor de identidad de sesión que consumen las páginas y las operaciones.
+ *
+ * @param profile - Fila local que aporta identificador, nombre, correo y estado.
+ * @param authUserId - Identidad de Neon que se enlazó con el perfil.
+ * @param capabilities - Permisos leídos de PostgreSQL.
+ * @returns Usuario de Comunidad listo para el control de acceso.
+ */
 function buildAuthUser(
   profile: ProfileRow,
   authUserId: string,
@@ -167,6 +213,16 @@ function buildAuthUser(
   };
 }
 
+/**
+ * Aplica las reglas de alta UC3M y consentimiento. Crea la identidad con el proveedor y la vincula al
+ * perfil. Atiende el reintento de un enlace incompleto.
+ *
+ * @param db - Conexión para leer, crear o vincular el perfil local.
+ * @param authProvider - Proveedor que registra o recupera una identidad válida.
+ * @param input - Datos académicos, nombre, correo, contraseña y aceptación que entrega signUp.
+ * @param options - Reloj opcional para fechar el registro en pruebas.
+ * @returns Resultado de alta con vínculo y requisito de verificación, o código de error.
+ */
 export async function registerAccount(
   db: AppDb,
   authProvider: AuthProvider,
@@ -342,6 +398,16 @@ export async function registerAccount(
   }
 }
 
+/**
+ * Verifica el código con el proveedor, valida el vínculo con el perfil activo y marca su correo como
+ * confirmado. Lo llama verifyEmailAction.
+ *
+ * @param db - Conexión que permite verificar y actualizar el perfil.
+ * @param authProvider - Proveedor que valida el código y puede iniciar la sesión.
+ * @param input - Correo y OTP de verificación.
+ * @param options - Reloj opcional para fechar la verificación.
+ * @returns Estado de la verificación y usuario si se creó sesión, o código de error.
+ */
 export async function verifyAccountEmail(
   db: AppDb,
   authProvider: AuthProvider,
@@ -393,6 +459,15 @@ export async function verifyAccountEmail(
   };
 }
 
+/**
+ * Pide otro código de alta para un perfil pendiente. La respuesta uniforme evita que el formulario revele
+ * si existe la cuenta.
+ *
+ * @param db - Conexión para comprobar el perfil de Comunidad.
+ * @param authProvider - Proveedor que entrega el OTP cuando el perfil puede recibirlo.
+ * @param rawEmail - Dirección que se normaliza para buscar el perfil.
+ * @returns Confirmación genérica.
+ */
 export async function resendAccountVerification(
   db: AppDb,
   authProvider: AuthProvider,
@@ -427,6 +502,16 @@ export async function resendAccountVerification(
   return { ok: true };
 }
 
+/**
+ * Autentica al usuario desde signIn y comprueba que el proveedor y el perfil local correspondan a una
+ * cuenta habilitada.
+ *
+ * @param db - Conexión que permite leer el perfil y sus capacidades.
+ * @param authProvider - Proveedor que valida la contraseña y abre sesión.
+ * @param rawEmail - Correo del formulario que se normaliza a la dirección UC3M.
+ * @param rawPassword - Contraseña aportada para que la compruebe el proveedor.
+ * @returns Usuario de Comunidad o estado de credenciales inválidas o verificación pendiente.
+ */
 export async function authenticateAccount(
   db: AppDb,
   authProvider: AuthProvider,
@@ -505,6 +590,13 @@ export async function authenticateAccount(
   };
 }
 
+/**
+ * Determina si un perfil puede usar los flujos de solicitud y confirmación de contraseña.
+ *
+ * @param db - Conexión para leer el perfil en PostgreSQL.
+ * @param email - Correo normalizado que identifica el perfil.
+ * @returns true si el perfil está vinculado, activo y verificado.
+ */
 async function canResetPassword(db: AppDb, email: string): Promise<boolean> {
   const [profile] = await db
     .select({
@@ -524,6 +616,15 @@ async function canResetPassword(db: AppDb, email: string): Promise<boolean> {
   );
 }
 
+/**
+ * Solicita un código de recuperación para una cuenta elegible. requestPasswordResetAction usa su respuesta
+ * uniforme.
+ *
+ * @param db - Conexión para comprobar elegibilidad con canResetPassword.
+ * @param authProvider - Proveedor que envía el código de recuperación.
+ * @param rawEmail - Dirección recibida del formulario.
+ * @returns Confirmación genérica aunque no proceda enviar el correo.
+ */
 export async function requestPasswordReset(
   db: AppDb,
   authProvider: AuthProvider,
@@ -543,6 +644,15 @@ export async function requestPasswordReset(
   return { ok: true };
 }
 
+/**
+ * Valida el formulario de recuperación y pide al proveedor cambiar la contraseña. La rama de Neon gestiona
+ * la revocación de las sesiones previas.
+ *
+ * @param db - Conexión para comprobar que la cuenta puede recuperar la contraseña.
+ * @param authProvider - Proveedor que valida y consume el OTP.
+ * @param input - Correo, código de recuperación, nueva contraseña y confirmación opcional.
+ * @returns Éxito o motivo de error que usa resetPasswordAction.
+ */
 export async function completePasswordReset(
   db: AppDb,
   authProvider: AuthProvider,
@@ -580,6 +690,14 @@ export async function completePasswordReset(
   return { ok: true };
 }
 
+/**
+ * Convierte una sesión del proveedor en un usuario activo de Comunidad. currentUser llama aquí antes de que
+ * los módulos comprueben capacidades.
+ *
+ * @param db - Conexión para leer el perfil y sus capacidades.
+ * @param authProvider - Proveedor que consulta la sesión asociada a la petición.
+ * @returns Usuario verificado y vinculado al perfil activo o null.
+ */
 export async function resolveCurrentUser(
   db: AppDb,
   authProvider: AuthProvider,

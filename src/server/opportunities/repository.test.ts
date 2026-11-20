@@ -1,3 +1,9 @@
+/**
+ * Pruebas de integración del catálogo, la edición y los marcadores con node:test y PGlite.
+ * Crean sus propios perfiles y verifican invariantes de publicación, visibilidad, marcadores y
+ * auditoría.
+ */
+
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { describe, it } from "node:test";
@@ -17,6 +23,13 @@ import {
 
 const BASE_NOW = new Date("2026-11-20T10:00:00Z");
 
+/**
+ * Crea los perfiles de editor y estudiante que usan los casos de integración.
+ *
+ * @param db - Base de prueba donde se inserta el perfil.
+ * @param overrides - Campos que sustituyen los valores de prueba, como el correo del editor.
+ * @returns Fila insertada con el UUID que usan las operaciones del repositorio.
+ */
 async function createProfile(
   db: AppDb,
   overrides: Partial<typeof profiles.$inferInsert> = {},

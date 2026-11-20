@@ -1,3 +1,8 @@
+/**
+ * Ruta dinámica /admin/deletion-requests/[id]. Muestra el caso de supresión, su trazabilidad y
+ * el formulario que lo pone en revisión o lo resuelve.
+ */
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../../components/back-link";
@@ -45,6 +50,16 @@ const primaryButtonClass =
 const secondaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
+/**
+ * Next.js ejecuta este Server Component para leer getDeletionRequestForReview y preparar el
+ * formulario de resolveDeletionRequestAction. Usa notFound si la solicitud falta.
+ *
+ * @param props - Propiedades de ruta suministradas por Next.js.
+ * @param props.params - Promesa con el UUID de la solicitud que se consulta.
+ * @param props.searchParams - Promesa con status y error del último intento de tramitación.
+ * @returns Ficha de supresión en JSX con el formulario cuando procede, o la vista 404 si falta
+ *   la solicitud.
+ */
 export default async function AdminDeletionRequestDetailPage({ params, searchParams }) {
   const { id } = await params;
   const resolvedSearch = await searchParams;

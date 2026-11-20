@@ -1,3 +1,8 @@
+/**
+ * @file Pruebas de las reglas de cuenta con PGlite y un AuthProvider controlado. Invocan service.ts sin
+ * cargar una página de Next.js.
+ */
+
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
@@ -71,6 +76,7 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
       const baseProvider = createTestAuthProvider(db);
       const spyProvider: AuthProvider = {
         ...baseProvider,
+        /** Cuenta el intento antes de delegar input al proveedor de prueba. */
         async signUp(input) {
           signUpCalls += 1;
           return baseProvider.signUp(input);
@@ -427,6 +433,7 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
       // Defense in depth: tampered session with unverified email is rejected.
       const unverifiedSessionProvider: AuthProvider = {
         ...authProvider,
+        /** Devuelve la sesión con correo sin verificar para comprobar su rechazo. */
         async getSession() {
           const real = await authProvider.getSession();
           return real
@@ -439,6 +446,7 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
       // Defense in depth: tampered session with mismatched or non-UC3M email is rejected.
       const mismatchedEmailProvider: AuthProvider = {
         ...authProvider,
+        /** Devuelve la sesión con otro correo para comprobar el vínculo con el perfil. */
         async getSession() {
           const real = await authProvider.getSession();
           return real
@@ -473,6 +481,7 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
     try {
       let currentTime = new Date("2026-11-19T12:00:00Z");
       const authProvider = createTestAuthProvider(db, {
+        /** Usa el reloj de la prueba para adelantar el vencimiento del código. */
         now: () => currentTime,
       });
 

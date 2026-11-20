@@ -1,3 +1,8 @@
+/**
+ * @file Consultas y escrituras Drizzle para la edición de actividades, turnos e imágenes. `admin.ts`
+ * comprueba la capacidad de edición antes de invocar este módulo.
+ */
+
 import { randomUUID } from "node:crypto";
 import { and, asc, eq, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -130,12 +135,24 @@ export type AddActivityImageResult =
   | "duplicate_position"
   | "missing_activity";
 
+/**
+ * Normaliza las fechas de `createAdminActivity` y `addActivityShift` para que puedan comprobar el orden
+ * del horario.
+ * @param value Fecha o marca de tiempo en milisegundos. Puede faltar.
+ * @returns La fecha válida o `null` si falta o no se puede interpretar.
+ */
 function toValidDate(value: Date | number | undefined | null): Date | null {
   if (value === undefined || value === null) return null;
   const date = value instanceof Date ? value : new Date(value);
   return Number.isFinite(date.getTime()) ? date : null;
 }
 
+/**
+ * Normaliza campos opcionales de edición y el texto previo a validar la URL externa.
+ * @param value Texto al que se quitan los espacios de los extremos.
+ * @param maxLength Longitud máxima opcional aplicada tras recortar los espacios.
+ * @returns El texto recortado o `null` si está vacío.
+ */
 function cleanOptionalText(
   value: string | null | undefined,
   maxLength?: number,
@@ -148,6 +165,12 @@ function cleanOptionalText(
   return trimmed;
 }
 
+/**
+ * Valida URLs de imágenes al crear una actividad y de inscripción externa mediante
+ * `parseOptionalHttpsUrl`.
+ * @param raw Texto candidato a URL. Se comprueban protocolo, host, longitud y caracteres permitidos.
+ * @returns Si la URL cumple el formato HTTPS exigido.
+ */
 function isValidHttpsUrl(raw: string): boolean {
   if (!raw || raw.length > 2048 || /[\s\u0000-\u001f]/.test(raw)) {
     return false;
@@ -160,6 +183,11 @@ function isValidHttpsUrl(raw: string): boolean {
   }
 }
 
+/**
+ * Prepara para `createAdminActivity` la URL externa de inscripción.
+ * @param value URL opcional recibida con los datos de la actividad.
+ * @returns Un resultado válido con la URL recortada o `null` si está vacía, o un resultado inválido.
+ */
 function parseOptionalHttpsUrl(
   value: string | null | undefined,
 ): { valid: true; url: string | null } | { valid: false } {
@@ -170,6 +198,11 @@ function parseOptionalHttpsUrl(
     : { valid: false };
 }
 
+/**
+ * Genera el identificador público cuando `createAdminActivity` no recibe un slug explícito.
+ * @param title Título del que se obtienen los caracteres base del slug.
+ * @returns El slug normalizado con un sufijo aleatorio.
+ */
 function generateSlug(title: string): string {
   const base = title
     .normalize("NFD")
@@ -182,6 +215,11 @@ function generateSlug(title: string): string {
   return `${prefix}-${randomUUID().slice(0, 8)}`;
 }
 
+/**
+ * Valida un slug aportado a `createAdminActivity` antes de consultar si está ocupado.
+ * @param raw Slug solicitado, que se recorta y se pasa a minúsculas.
+ * @returns El slug válido o `null` si incumple el formato o la longitud.
+ */
 function normalizeExplicitSlug(raw: string): string | null {
   const normalized = raw.trim().toLowerCase();
   if (!normalized || normalized.length > 100 || !SLUG_REGEX.test(normalized)) {
@@ -190,6 +228,12 @@ function normalizeExplicitSlug(raw: string): string | null {
   return normalized;
 }
 
+/**
+ * Permite a `addActivityImage` traducir un conflicto de unicidad ocurrido durante la inserción.
+ * @param error Excepción de la consulta que puede envolver un error de PostgreSQL.
+ * @param code Código SQLSTATE cuya presencia se comprueba.
+ * @returns Si el código coincide en la excepción o en su causa directa.
+ */
 function isPgErrorCode(error: unknown, code: string): boolean {
   if (!error || typeof error !== "object") return false;
   const direct = (error as { code?: unknown }).code;
@@ -201,6 +245,13 @@ function isPgErrorCode(error: unknown, code: string): boolean {
   return false;
 }
 
+/**
+ * Agrupa los turnos y sus conteos para `listAdminActivities` y la relectura posterior a
+ * `createAdminActivity`.
+ * @param db Conexión de lectura o transacción donde se acaban de insertar los turnos.
+ * @param activityIds IDs de las actividades a las que se limita la consulta.
+ * @returns Un mapa de turnos por actividad, con ocupación, asistencias y plazas libres.
+ */
 async function readAdminActivityShifts(
   db: AppDbOrTx,
   activityIds: string[],
@@ -245,6 +296,12 @@ async function readAdminActivityShifts(
   return byActivity;
 }
 
+/**
+ * Carga las galerías para `listAdminActivities` y la relectura posterior a `createAdminActivity`.
+ * @param db Conexión de lectura o transacción que contiene las nuevas imágenes.
+ * @param activityIds IDs de actividad para agrupar las imágenes.
+ * @returns Un mapa de imágenes ordenadas por posición e ID para cada actividad.
+ */
 async function readAdminActivityImages(
   db: AppDbOrTx,
   activityIds: string[],
@@ -272,6 +329,12 @@ async function readAdminActivityImages(
   return byActivity;
 }
 
+/**
+ * Prepara el panel de edición que carga `admin.ts`. Consulta los turnos y las imágenes en paralelo para
+ * todas las actividades encontradas.
+ * @param db Conexión opcional para pruebas.
+ * @returns Las actividades de cualquier estado, con sus turnos e imágenes.
+ */
 export async function listAdminActivities(
   db?: AppDb,
 ): Promise<AdminActivity[]> {
@@ -307,6 +370,15 @@ export async function listAdminActivities(
   }));
 }
 
+/**
+ * Valida y crea una actividad para la entrada protegida de `admin.ts`. Guarda actividad, turnos,
+ * imágenes y auditoría en una transacción. Si se omite la lista de turnos, usa los campos de horario y
+ * aforo para crear el turno `normal`.
+ * @param input Campos de actividad, estado, identificador opcional, horario o turnos e imágenes.
+ * @param actorProfileId UUID del perfil editor, comprobado antes de escribir y guardado como actor.
+ * @param db Conexión opcional para pruebas.
+ * @returns La actividad creada con sus turnos e imágenes, o un código de error.
+ */
 export async function createAdminActivity(
   input: CreateAdminActivityInput,
   actorProfileId: string,
@@ -523,6 +595,13 @@ export async function createAdminActivity(
   });
 }
 
+/**
+ * Añade a petición de `admin.ts` un turno a una actividad existente tras validar horario y aforo.
+ * @param activityId UUID de la actividad que recibe el turno.
+ * @param input Horario y aforo del turno, con nombre y ubicación opcionales.
+ * @param db Conexión opcional para pruebas.
+ * @returns El turno creado con los conteos iniciales o un código de error.
+ */
 export async function addActivityShift(
   activityId: string,
   input: AdminShiftInput,
@@ -590,6 +669,14 @@ export async function addActivityShift(
   });
 }
 
+/**
+ * Cambia el aforo para `admin.ts`. Bloquea el turno antes de contar participaciones y rechaza un límite
+ * inferior a la ocupación.
+ * @param shiftId UUID del turno cuyo aforo se actualiza.
+ * @param newCapacity Nuevo aforo de entero positivo, o `null` para aforo ilimitado.
+ * @param db Conexión opcional para pruebas.
+ * @returns El aforo aplicado y la ocupación existente, o un código de error.
+ */
 export async function updateShiftCapacity(
   shiftId: string,
   newCapacity: number | null,
@@ -642,6 +729,13 @@ export async function updateShiftCapacity(
   });
 }
 
+/**
+ * Atiende la eliminación solicitada por `admin.ts`. Bloquea el turno y comprueba que no tenga
+ * participaciones ni aparezca como origen o destino en eventos.
+ * @param shiftId UUID del turno que se quiere eliminar.
+ * @param db Conexión opcional para pruebas.
+ * @returns El ID eliminado o el motivo del rechazo. Si hay historial, incluye los conteos.
+ */
 export async function deleteShift(
   shiftId: string,
   db?: AppDb,
@@ -698,6 +792,15 @@ export async function deleteShift(
   });
 }
 
+/**
+ * Atiende el cambio de estado solicitado por `admin.ts`. Publicar exige un turno válido. La
+ * actualización y su auditoría forman parte de la misma transacción.
+ * @param activityId UUID de la actividad que se bloquea y se modifica.
+ * @param status Estado de publicación solicitado.
+ * @param actorProfileId UUID de quien cambia el estado, registrado en la auditoría.
+ * @param db Conexión opcional para pruebas.
+ * @returns El ID y estado aplicado o un código de error.
+ */
 export async function setActivityStatus(
   activityId: string,
   status: PublishStatus,
@@ -784,6 +887,14 @@ export async function setActivityStatus(
   });
 }
 
+/**
+ * Valida e incorpora una imagen a la galería para `admin.ts`. Traduce el conflicto de unicidad a
+ * `duplicate_position` incluso si otra inserción ocupa la posición en paralelo.
+ * @param activityId ID o slug con el que se resuelve la actividad.
+ * @param input URL HTTPS, texto alternativo y posición que debe estar libre.
+ * @param db Conexión opcional para pruebas.
+ * @returns `saved` o un código de validación o conflicto.
+ */
 export async function addActivityImage(
   activityId: string,
   input: AddActivityImageInput,

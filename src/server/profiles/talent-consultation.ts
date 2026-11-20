@@ -1,3 +1,9 @@
+/**
+ * Lecturas de talento para consulta interna. Las operaciones comprueban talent_consultation y
+ * el repositorio incorpora la vigencia de la difusión como dato de cada perfil. Véase
+ * docs/backend/profiles.md.
+ */
+
 import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { getDb, type AppDb, type AppDbOrTx } from "../../db/client";
 import { profiles, talentDisseminationDecisions, talentProfiles, type AccountStatus, type TalentLanguage, type TalentLink } from "../../db/schema";
@@ -39,10 +45,26 @@ export interface TalentAdminDetail extends TalentProfileSummary {
   disseminationPolicyVersion: string | null;
 }
 
+/**
+ * Elige la conexión que usan la búsqueda y el detalle interno de talento.
+ *
+ * @param db - Conexión alternativa para las consultas, como PGlite.
+ * @returns La conexión recibida o la configurada por getDb.
+ */
 async function resolveDb(db?: AppDb): Promise<AppDb> {
   return db ?? getDb();
 }
 
+/**
+ * Calcula la decisión efectiva de difusión para searchTalentProfiles y getTalentAdminDetail en
+ * una consulta en bloque.
+ *
+ * @param db - Conexión o transacción donde se leen las decisiones.
+ * @param personIds - UUID de las personas cuyas decisiones se buscan.
+ * @param now - Instante con el que se compara la fecha de vencimiento.
+ * @returns Mapa por UUID con la última decisión disponible por persona, vigencia y versión de
+ *   política.
+ */
 async function readLatestDisseminationMap(
   db: AppDbOrTx,
   personIds: string[],
@@ -100,6 +122,15 @@ async function readLatestDisseminationMap(
   return result;
 }
 
+/**
+ * Realiza la búsqueda de searchTalentForConsultation. Comprueba el solapamiento entre etiquetas
+ * en SQL y busca el texto libre en los campos de perfil y talento.
+ *
+ * @param filters - Texto, etiquetas y fecha opcional para evaluar vigencia de difusión.
+ * @param db - Conexión opcional para las consultas de perfiles y difusión.
+ * @returns Resúmenes con indicador de difusión y recuento de enlaces, ordenados por última
+ *   actualización y nombre.
+ */
 export async function searchTalentProfiles(
   filters: TalentSearchFilters = {},
   db?: AppDb,
@@ -224,6 +255,15 @@ export async function searchTalentProfiles(
     .map((entry) => entry.summary);
 }
 
+/**
+ * Recupera los datos que getTalentForConsultation entrega a la ficha interna.
+ *
+ * @param personId - UUID del titular cuyo perfil básico y talento se unen.
+ * @param db - Conexión opcional para las consultas del detalle.
+ * @param now - Instante de referencia para calcular la vigencia de difusión.
+ * @returns Ficha con experiencias ordenadas, enlaces y decisión de difusión, o null si falta el
+ *   talento o el UUID es inválido.
+ */
 export async function getTalentAdminDetail(
   personId: string,
   db?: AppDb,

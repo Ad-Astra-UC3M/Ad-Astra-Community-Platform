@@ -1,3 +1,9 @@
+/**
+ * Consultas, permisos y estados de cuenta en PostgreSQL. Las operaciones de administración
+ * aportan el actor autenticado y el repositorio aplica los cambios con auditoría y protege al
+ * último administrador general activo. Véase docs/backend/accounts.md.
+ */
+
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
@@ -136,10 +142,23 @@ export type SetProfileStatusResult =
         | "last_general_admin";
     };
 
+/**
+ * Elige la conexión que usan las consultas y transacciones de cuentas.
+ *
+ * @param db - Conexión alternativa, como la base PGlite de una prueba.
+ * @returns La conexión recibida o la configurada por getDb.
+ */
 async function resolveDb(db?: AppDb): Promise<AppDb> {
   return db ?? getDb();
 }
 
+/**
+ * Prepara los indicadores que carga loadAdminDashboard para general_admin.
+ *
+ * @param db - Conexión opcional para las tres consultas de métricas.
+ * @returns Totales de perfiles por estado, número de solicitudes de supresión abiertas y
+ *   reservas y asistencias por turno.
+ */
 export async function getAdminMetrics(db?: AppDb): Promise<AdminMetrics> {
   const database = await resolveDb(db);
 
@@ -186,6 +205,16 @@ export async function getAdminMetrics(db?: AppDb): Promise<AdminMetrics> {
   };
 }
 
+/**
+ * Busca cuentas para searchAdminAccounts y reúne en una segunda consulta las capacidades de los
+ * perfiles.
+ *
+ * @param filters - Criterios opcionales. El texto compara nombre y correo, y la participación
+ *   indica si hay alguna reserva.
+ * @param db - Conexión opcional para leer perfiles, participaciones y capacidades.
+ * @returns Resúmenes que cumplen los filtros, con capacidades y recuentos de reservas y
+ *   asistencias.
+ */
 export async function searchAccounts(
   filters: AccountSearchFilters = {},
   db?: AppDb,
@@ -295,6 +324,14 @@ export async function searchAccounts(
     });
 }
 
+/**
+ * Reúne la información que getAdminAccount entrega a la ficha administrativa.
+ *
+ * @param profileId - UUID del perfil del que se consultan datos básicos, permisos, reservas,
+ *   auditoría y supresiones.
+ * @param db - Conexión opcional para las consultas de la ficha.
+ * @returns Ficha completa o null si el UUID es inválido o falta el perfil.
+ */
 export async function getAccountAdminDetail(
   profileId: string,
   db?: AppDb,
@@ -427,6 +464,15 @@ export async function getAccountAdminDetail(
   };
 }
 
+/**
+ * Bloquea en orden de perfil las filas de administradores generales para serializar las
+ * revocaciones y desactivaciones concurrentes.
+ *
+ * @param tx - Transacción abierta por setProfileCapability o setProfileStatus que mantiene los
+ *   bloqueos hasta resolver la escritura.
+ * @param targetProfileId - Perfil que perdería la capacidad o pasaría a estar desactivado.
+ * @returns Si el perfil objetivo es el único general_admin activo.
+ */
 async function isOnlyActiveGeneralAdminLocked(
   tx: AppDbOrTx,
   targetProfileId: string,
@@ -454,6 +500,18 @@ async function isOnlyActiveGeneralAdminLocked(
   );
 }
 
+/**
+ * Concede o revoca una capacidad para changeAccountCapability. Persiste el cambio efectivo y su
+ * auditoría en la misma transacción.
+ *
+ * @param targetProfileId - UUID de la cuenta que se modifica.
+ * @param capability - Código que se valida y se busca en los permisos del perfil.
+ * @param enabled - true concede y false revoca.
+ * @param actorProfileId - UUID del administrador que se registra como autor.
+ * @param db - Conexión opcional para la transacción.
+ * @returns Estado solicitado e indicador de cambio, o un error como last_general_admin si la
+ *   revocación dejaría el sistema sin administración general activa.
+ */
 export async function setProfileCapability(
   targetProfileId: string,
   capability: CapabilityCode,
@@ -574,6 +632,19 @@ export async function setProfileCapability(
   });
 }
 
+/**
+ * Cambia y audita el estado de cuenta en una transacción para changeAccountStatus. Protege al
+ * último administrador general activo.
+ *
+ * @param targetProfileId - UUID del perfil que se activa o desactiva.
+ * @param status - Estado deseado, que también determina la fecha de desactivación.
+ * @param actorProfileId - UUID del autor de auditoría.
+ * @param onDeactivateAuthUser - Revoca sesiones con el ID de autenticación tras confirmar un
+ *   cambio real a deactivated, cuando el perfil tiene ese ID.
+ * @param db - Conexión opcional para ejecutar la transacción.
+ * @returns Identificador, estado e indicador de cambio, o el error de validación o de último
+ *   administrador.
+ */
 export async function setProfileStatus(
   targetProfileId: string,
   status: AccountStatus,

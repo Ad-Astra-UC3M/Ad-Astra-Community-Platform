@@ -1,3 +1,8 @@
+/**
+ * Ruta dinámica /opportunities/[id]. Muestra la información de una oportunidad publicada y
+ * permite gestionar su marcador desde el detalle.
+ */
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../components/back-link";
@@ -36,6 +41,17 @@ const secondaryButtonClass =
 const inlineLinkClass =
   "text-brand-primary underline underline-offset-[0.22em] transition-colors hover:text-brand-ink";
 
+/**
+ * Next.js ejecuta este Server Component en la ruta de detalle. Usa getVisibleOpportunity y
+ * llama a notFound si la oportunidad no está disponible.
+ *
+ * @param props - Propiedades de ruta suministradas por Next.js.
+ * @param props.params - Promesa con el ID o slug de la oportunidad.
+ * @param props.searchParams - Promesa con status para mostrar el resultado de la acción de
+ *   marcador.
+ * @returns Detalle en JSX con su contacto y formulario de marcador, o la vista 404 de Next.js
+ *   si falta.
+ */
 export default async function OpportunityDetailPage({ params, searchParams }) {
   const [{ id }, { status }] = await Promise.all([params, searchParams]);
   const opportunity = await getVisibleOpportunity(id);

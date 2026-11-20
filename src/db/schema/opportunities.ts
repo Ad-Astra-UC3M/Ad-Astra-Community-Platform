@@ -1,3 +1,9 @@
+/**
+ * Esquema Drizzle del catálogo de prácticas e investigación y su relación con
+ * los marcadores de cada perfil. El módulo src/server/opportunities consulta
+ * estas tablas en el catálogo de miembros y en el flujo editorial.
+ */
+
 import { sql } from "drizzle-orm";
 import {
   check,
@@ -17,6 +23,11 @@ export type OpportunityType = (typeof OPPORTUNITY_TYPES)[number];
 
 export const opportunityTypeEnum = pgEnum("opportunity_type", OPPORTUNITY_TYPES);
 
+/**
+ * Oportunidad con slug único y el estado editorial compartido con actividades.
+ * Las restricciones exigen HTTPS en los enlaces indicados, texto alternativo
+ * si existe imagen y una vía de contacto o candidatura para publicar.
+ */
 export const opportunities = pgTable(
   "opportunities",
   {
@@ -70,6 +81,10 @@ export const opportunities = pgTable(
   ],
 );
 
+/**
+ * Marcador personal, con fecha de guardado. La clave compuesta por persona y
+ * oportunidad permite que el repositorio guarde el mismo marcador sin duplicarlo.
+ */
 export const bookmarks = pgTable(
   "bookmarks",
   {

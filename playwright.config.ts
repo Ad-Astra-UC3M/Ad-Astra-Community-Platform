@@ -1,3 +1,11 @@
+/**
+ * Prepara los recorridos E2E de Next.js en escritorio y móvil. El webServer
+ * ejecuta el seed y arranca el build de producción en 127.0.0.1. Los workers y
+ * el servidor comparten el directorio PGlite y el buzón JSONL de la ejecución.
+ * El servidor recibe credenciales de Neon vacías y usa el proveedor de Auth de
+ * pruebas y una clave QR de prueba.
+ */
+
 import { defineConfig } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";

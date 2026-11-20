@@ -1,3 +1,8 @@
+/**
+ * @file Pruebas del JSX de acceso y verificación. Renderizan HTML con datos de prueba para comprobar los
+ * formularios y destinos de App Router sin abrir el navegador.
+ */
+
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";

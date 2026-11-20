@@ -1,3 +1,8 @@
+/**
+ * @file Pruebas de integración en PGlite para catálogo, reservas, adjudicación concurrente y registro
+ * de asistencia.
+ */
+
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { describe, it } from "node:test";
@@ -18,6 +23,13 @@ import { getActivity, listActivities, listReservations, listShifts } from "./por
 
 const BASE_NOW = new Date("2026-11-20T10:00:00Z");
 
+/**
+ * Inserta un perfil verificado sintético para los casos de reserva, cambio de turno y asistencia de
+ * este archivo.
+ * @param db Base PGlite del caso de prueba.
+ * @param overrides Campos opcionales que sustituyen los datos de ejemplo, como el estado del perfil.
+ * @returns La fila del perfil insertado.
+ */
 async function createProfile(
   db: AppDb,
   overrides: Partial<typeof profiles.$inferInsert> = {},
@@ -43,6 +55,12 @@ async function createProfile(
   return profile;
 }
 
+/**
+ * Prepara una actividad y sus turnos para los casos de catálogo, reservas y concurrencia.
+ * @param db Base PGlite del caso de prueba.
+ * @param options Campos opcionales de la actividad y lista de turnos con fechas, aforo y ubicación.
+ * @returns La fila de la actividad y las filas de los turnos insertados.
+ */
 async function seedActivityWithShifts(
   db: AppDb,
   options: {

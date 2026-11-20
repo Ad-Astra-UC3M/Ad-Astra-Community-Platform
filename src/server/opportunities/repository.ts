@@ -1,3 +1,9 @@
+/**
+ * Persistencia del catálogo, edición y marcadores en PostgreSQL. Las operaciones de servidor
+ * controlan el acceso y este repositorio valida los datos y audita las escrituras editoriales.
+ * Véase docs/backend/opportunities.md.
+ */
+
 import { randomUUID } from "node:crypto";
 import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -78,16 +84,35 @@ export type AdminOpportunityResult =
   | { ok: true; opportunity: AdminOpportunity }
   | { ok: false; error: AdminOpportunityError };
 
+/**
+ * Elige la conexión para las consultas y escrituras de oportunidades y marcadores.
+ *
+ * @param db - Conexión opcional, por ejemplo PGlite para las pruebas.
+ * @returns La conexión recibida o la conexión de la aplicación.
+ */
 async function resolveDb(db?: AppDb): Promise<AppDb> {
   return db ?? getDb();
 }
 
+/**
+ * Normaliza las fechas de publicación y cierre al crear una oportunidad.
+ *
+ * @param value - Date o número en milisegundos, con null o undefined si falta la fecha.
+ * @returns Date válida o null si está ausente o no representa un instante válido.
+ */
 function toValidDate(value: Date | number | undefined | null): Date | null {
   if (value === undefined || value === null) return null;
   const date = value instanceof Date ? value : new Date(value);
   return Number.isFinite(date.getTime()) ? date : null;
 }
 
+/**
+ * Normaliza los campos opcionales del alta editorial y de los analizadores de enlace y correo.
+ *
+ * @param value - Texto que se recorta antes de usarlo.
+ * @param maxLength - Límite opcional al que se trunca el resultado.
+ * @returns El texto recortado o null si queda vacío.
+ */
 function cleanOptionalText(
   value: string | null | undefined,
   maxLength?: number,
@@ -100,6 +125,13 @@ function cleanOptionalText(
   return trimmed;
 }
 
+/**
+ * Comprueba las reglas de enlaces de parseOptionalHttpsUrl.
+ *
+ * @param raw - URL absoluta que se comprueba.
+ * @returns Si usa HTTPS, tiene un host y respeta el máximo de 2048 caracteres sin espacios ni
+ *   caracteres de control.
+ */
 function isValidHttpsUrl(raw: string): boolean {
   if (!raw || raw.length > 2048 || /[\s\u0000-\u001f]/.test(raw)) {
     return false;
@@ -112,6 +144,12 @@ function isValidHttpsUrl(raw: string): boolean {
   }
 }
 
+/**
+ * Valida los campos de solicitud, información e imagen de createAdminOpportunity.
+ *
+ * @param value - Texto opcional que se recorta antes de validar la URL.
+ * @returns Resultado válido con la URL o null cuando está vacía, o resultado inválido.
+ */
 function parseOptionalHttpsUrl(
   value: string | null | undefined,
 ): { valid: true; url: string | null } | { valid: false } {
@@ -122,6 +160,12 @@ function parseOptionalHttpsUrl(
     : { valid: false };
 }
 
+/**
+ * Valida el correo de contacto de createAdminOpportunity.
+ *
+ * @param value - Texto opcional que se recorta, pasa a minúsculas y comprueba como correo.
+ * @returns Resultado válido con el correo o null si está vacío, o resultado inválido.
+ */
 function parseOptionalEmail(
   value: string | null | undefined,
 ): { valid: true; email: string | null } | { valid: false } {
@@ -132,6 +176,12 @@ function parseOptionalEmail(
   return parsed.success ? { valid: true, email: trimmed } : { valid: false };
 }
 
+/**
+ * Genera el identificador de URL que usa createAdminOpportunity cuando se omite el slug.
+ *
+ * @param title - Título del que se obtiene la parte legible del identificador.
+ * @returns Slug con prefijo normalizado y un sufijo aleatorio de ocho caracteres.
+ */
 function generateSlug(title: string): string {
   const base = title
     .normalize("NFD")
@@ -144,6 +194,12 @@ function generateSlug(title: string): string {
   return `${prefix}-${randomUUID().slice(0, 8)}`;
 }
 
+/**
+ * Comprueba el identificador de URL facilitado al crear una oportunidad.
+ *
+ * @param raw - Slug que se recorta y pasa a minúsculas.
+ * @returns Slug normalizado o null si está vacío, supera el límite o su formato es inválido.
+ */
 function normalizeExplicitSlug(raw: string): string | null {
   const normalized = raw.trim().toLowerCase();
   if (!normalized || normalized.length > 100 || !SLUG_REGEX.test(normalized)) {
@@ -152,6 +208,12 @@ function normalizeExplicitSlug(raw: string): string | null {
   return normalized;
 }
 
+/**
+ * Proyecta las lecturas y los resultados de alta o cambio de estado al modelo editorial.
+ *
+ * @param row - Fila de PostgreSQL con los campos de oportunidad.
+ * @returns Oportunidad con datos de edición, fechas, estado y autor de creación.
+ */
 function mapAdminOpportunity(row: OpportunityRow): AdminOpportunity {
   return {
     id: row.id,
@@ -178,6 +240,13 @@ function mapAdminOpportunity(row: OpportunityRow): AdminOpportunity {
   };
 }
 
+/**
+ * Recupera el catálogo editorial que solicita listOpportunitiesForEditing.
+ *
+ * @param db - Conexión opcional para leer el listado.
+ * @returns Oportunidades publicadas primero, seguidas de borradores y archivadas, con orden por
+ *   fechas e ID dentro de cada grupo.
+ */
 export async function listAdminOpportunities(
   db?: AppDb,
 ): Promise<AdminOpportunity[]> {
@@ -194,6 +263,17 @@ export async function listAdminOpportunities(
   return rows.map(mapAdminOpportunity);
 }
 
+/**
+ * Valida y crea una oportunidad. La inserción y la auditoría ocurren en una transacción.
+ *
+ * @param input - Datos de alta incluidos slug opcional, fecha, estado y contacto, obligatorio
+ *   para publicar.
+ * @param actorProfileId - UUID del editor que debe existir y figura como creador y autor de
+ *   auditoría.
+ * @param db - Conexión opcional que usan las pruebas y el seed de E2E.
+ * @returns Oportunidad creada o un error de validación, ausencia de actor o slug duplicado. La
+ *   llama createOpportunityForEditing y se usa en pruebas y E2E.
+ */
 export async function createAdminOpportunity(
   input: CreateAdminOpportunityInput,
   actorProfileId: string,
@@ -346,6 +426,17 @@ export async function createAdminOpportunity(
   });
 }
 
+/**
+ * Aplica el estado pedido por changeOpportunityStatus. Bloquea la oportunidad, valida los
+ * requisitos para publicar y guarda el cambio y su auditoría juntos.
+ *
+ * @param opportunityIdOrSlug - UUID o slug que localiza la fila que se bloquea.
+ * @param status - Estado que se valida y persiste.
+ * @param actorProfileId - UUID del editor que debe existir y se registra en auditoría.
+ * @param db - Conexión opcional para ejecutar la transacción.
+ * @returns Oportunidad actualizada o un error de validación, perfil actor ausente o registro no
+ *   encontrado.
+ */
 export async function setAdminOpportunityStatus(
   opportunityIdOrSlug: string,
   status: PublishStatus,
@@ -478,6 +569,13 @@ export type ArchivedBookmark = {
 
 export type OpportunityBookmark = ActiveBookmark | ArchivedBookmark;
 
+/**
+ * Construye el modelo compartido por las consultas de catálogo y detalle.
+ *
+ * @param row - Fila de la oportunidad con sus datos de catálogo.
+ * @param bookmarked - Indica si la persona que consulta la tiene guardada.
+ * @returns Oportunidad con datos de presentación y estado del marcador.
+ */
 function mapCatalogOpportunity(row: OpportunityRow, bookmarked: boolean): Opportunity {
   return {
     id: row.id,
@@ -502,12 +600,28 @@ function mapCatalogOpportunity(row: OpportunityRow, bookmarked: boolean): Opport
   };
 }
 
+/**
+ * Construye el predicado Drizzle de las consultas de detalle y de las escrituras de marcadores.
+ *
+ * @param opportunityIdOrSlug - Identificador sin espacios exteriores que se compara por ID o
+ *   slug si es UUID, y por slug en otro caso.
+ * @returns Condición para localizar la oportunidad.
+ */
 function identifierWhere(opportunityIdOrSlug: string) {
   return isUuid(opportunityIdOrSlug)
     ? or(eq(opportunities.id, opportunityIdOrSlug), eq(opportunities.slug, opportunityIdOrSlug))
     : eq(opportunities.slug, opportunityIdOrSlug);
 }
 
+/**
+ * Lee el catálogo publicado que listVisibleOpportunities entrega a la página.
+ *
+ * @param personId - Identificador de la persona con el que se leen sus marcadores.
+ * @param typeFilter - Tipo opcional que restringe el conjunto si es válido.
+ * @param db - Conexión opcional para consultar oportunidades y marcadores.
+ * @returns Oportunidades publicadas ordenadas por fecha de publicación descendente, con el
+ *   marcador asociado a la persona.
+ */
 export async function listOpportunities(
   personId: string,
   typeFilter?: OpportunityType,
@@ -557,6 +671,15 @@ export async function listOpportunities(
   return rows.map((row) => mapCatalogOpportunity(row, bookmarkedIds.has(row.id)));
 }
 
+/**
+ * Lee el detalle publicado que usa getVisibleOpportunity.
+ *
+ * @param opportunityIdOrSlug - ID o slug que localiza la oportunidad tras recortar el texto.
+ * @param personId - Identificador de la persona que permite comprobar si tiene el marcador.
+ * @param db - Conexión opcional para las lecturas.
+ * @returns Oportunidad publicada con su marcador, o undefined cuando el identificador está
+ *   vacío o el detalle no existe.
+ */
 export async function getOpportunity(
   opportunityIdOrSlug: string,
   personId: string,
@@ -593,6 +716,15 @@ export async function getOpportunity(
   return mapCatalogOpportunity(row, bookmarked);
 }
 
+/**
+ * Guarda de forma idempotente una oportunidad publicada para saveMyBookmark.
+ *
+ * @param personId - UUID del titular del marcador, que debe corresponder a un perfil existente.
+ * @param opportunityIdOrSlug - ID o slug de la oportunidad publicada.
+ * @param db - Conexión opcional para comprobar las filas e insertar en una transacción.
+ * @returns saved aunque el marcador ya existiera, o missing si faltan identificadores válidos,
+ *   el perfil o la oportunidad publicada.
+ */
 export async function saveBookmark(
   personId: string,
   opportunityIdOrSlug: string,
@@ -628,6 +760,15 @@ export async function saveBookmark(
   });
 }
 
+/**
+ * Retira de forma idempotente el marcador solicitado por removeMyBookmark, con independencia
+ * del estado editorial de la oportunidad.
+ *
+ * @param personId - UUID del titular cuyo marcador se retira.
+ * @param opportunityIdOrSlug - ID o slug de la oportunidad del marcador.
+ * @param db - Conexión opcional para la búsqueda y el borrado.
+ * @returns removed también cuando el marcador ya está ausente.
+ */
 export async function removeBookmark(
   personId: string,
   opportunityIdOrSlug: string,
@@ -658,6 +799,15 @@ export async function removeBookmark(
   return "removed";
 }
 
+/**
+ * Consulta la lista personal que devuelve listMyBookmarks, con los marcadores más recientes
+ * primero.
+ *
+ * @param personId - UUID del titular que restringe la consulta.
+ * @param db - Conexión opcional para leer los marcadores y sus oportunidades.
+ * @returns Marcadores publicados con datos de contacto y archivados con datos básicos. Los
+ *   borradores quedan fuera de la consulta.
+ */
 export async function listBookmarks(
   personId: string,
   db?: AppDb,

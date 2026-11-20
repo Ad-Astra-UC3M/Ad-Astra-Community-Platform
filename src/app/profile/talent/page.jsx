@@ -1,3 +1,8 @@
+/**
+ * Ruta /profile/talent del App Router. Muestra el formulario voluntario de talento del usuario
+ * y adapta las listas persistidas a controles de texto editables.
+ */
+
 import { BackLink } from "../../../components/back-link";
 import { getMyTalentProfile } from "../../../server/profiles/operations";
 import { saveTalentProfileAction } from "../actions";
@@ -15,16 +20,35 @@ const errorMessages = new Map([
   ["missing", "No se ha encontrado la cuenta asociada a esta sesión."],
 ]);
 
+/**
+ * Busca el primer enlace de un tipo para rellenar su campo en TalentProfilePage.
+ *
+ * @param links - Enlaces del perfil en su orden guardado.
+ * @param kind - Tipo de enlace que corresponde al control del formulario.
+ * @returns Primer enlace con ese tipo o undefined si no existe.
+ */
 function firstLinkByKind(links, kind) {
   return links.find((link) => link.kind === kind);
 }
 
+/**
+ * Prepara el valor inicial del proyecto destacado para TalentProfilePage.
+ *
+ * @param experiences - Experiencias entre las que se busca la primera marcada como destacada.
+ * @returns Descripción o título de la experiencia destacada, o cadena vacía si falta.
+ */
 function formatFeaturedProject(experiences) {
   const featured = experiences.find((item) => item.isFeatured);
   if (!featured) return "";
   return featured.description ?? featured.title;
 }
 
+/**
+ * Prepara el valor inicial del resumen libre para TalentProfilePage.
+ *
+ * @param experiences - Experiencias del perfil de las que se toman las que no están destacadas.
+ * @returns Texto de experiencias ordinarias separado por líneas en blanco.
+ */
 function formatExperiencesSummary(experiences) {
   return experiences
     .filter((item) => !item.isFeatured)
@@ -38,6 +62,12 @@ function formatExperiencesSummary(experiences) {
     .join("\n\n");
 }
 
+/**
+ * Prepara el campo de idiomas que renderiza TalentProfilePage.
+ *
+ * @param languages - Pares de idioma y nivel guardados en el perfil.
+ * @returns Idiomas separados por comas, con el nivel entre paréntesis cuando es específico.
+ */
 function formatLanguages(languages) {
   return languages
     .map((entry) =>
@@ -69,6 +99,14 @@ const sectionHeadingClass = "font-display text-[1.25rem] leading-[1.22] font-nor
 
 const codeClass = "rounded bg-brand-soft/20 px-1.5 py-0.5 font-mono text-[0.9em]";
 
+/**
+ * Next.js ejecuta este Server Component para leer getMyTalentProfile y rellenar el formulario
+ * de saveTalentProfileAction.
+ *
+ * @param props - Propiedades de ruta suministradas por Next.js.
+ * @param props.searchParams - Promesa con status y error para el mensaje del guardado.
+ * @returns Formulario de talento en JSX, o aviso cuando falta el perfil básico.
+ */
 export default async function TalentProfilePage({ searchParams }) {
   const profile = await getMyTalentProfile();
   const { status, error } = await searchParams;

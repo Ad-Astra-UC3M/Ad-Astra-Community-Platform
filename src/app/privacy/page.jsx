@@ -1,3 +1,8 @@
+/**
+ * @file Ruta pública con el aviso de privacidad. Usa la misma versión que el servicio registra al aceptar
+ * el aviso durante el alta.
+ */
+
 import Link from "next/link";
 import { BackLink } from "../../components/back-link";
 import { PRIVACY_VERSION } from "../../server/auth/service";
@@ -7,6 +12,9 @@ export const metadata = { title: "Aviso de privacidad" };
 const panelClass =
   "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
 
+/**
+ * Next.js renderiza el aviso y el enlace de vuelta al registro. Lee PRIVACY_VERSION del servicio de cuenta.
+ */
 export default function PrivacyNoticePage() {
   return (
     <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">

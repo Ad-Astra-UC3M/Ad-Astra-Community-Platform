@@ -1,3 +1,8 @@
+/**
+ * Pruebas de integración de los perfiles y la privacidad con node:test y PGlite. Cubren la
+ * identidad inmutable, la validación de talento, la difusión y las solicitudes de supresión.
+ */
+
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { describe, it } from "node:test";
@@ -21,6 +26,14 @@ import {
 } from "./repository";
 import { getMyDeletionRequest, requestAccountDeletion } from "./deletion-requests";
 
+/**
+ * Inserta el perfil básico que necesitan los casos de prueba para representar a titulares y a
+ * otras personas.
+ *
+ * @param db - Conexión a la base PGlite aislada del caso de prueba.
+ * @param overrides - Campos de prueba que sustituyen los valores predeterminados de la fila.
+ * @returns Fila de perfil insertada para consultar sus datos y su UUID.
+ */
 async function createProfile(
   db: AppDb,
   overrides: Partial<typeof profiles.$inferInsert> = {},

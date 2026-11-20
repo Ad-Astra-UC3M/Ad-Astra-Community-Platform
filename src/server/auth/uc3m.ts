@@ -1,3 +1,9 @@
+/**
+ * @file Validación compartida de correos UC3M y destinos internos. El servicio comprueba las direcciones
+ * antes de operar con el proveedor. Las acciones y las páginas usan estos helpers al guardar el destino de
+ * acceso.
+ */
+
 const LOCAL_PART_REGEX =
   /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*$/;
 
@@ -9,6 +15,12 @@ const UC3M_DOMAIN_REGEX =
 
 const CONTROL_CHARS_REGEX = /[\u0000-\u001f\u007f]/;
 
+/**
+ * Valida la estructura de una dirección y la normaliza para las búsquedas de identidad.
+ *
+ * @param raw - Entrada sin validar del formulario, SDK o proveedor de pruebas.
+ * @returns Correo en minúsculas sin espacios exteriores o null.
+ */
 export function normalizeEmail(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
   if (CONTROL_CHARS_REGEX.test(raw)) return null;
@@ -27,6 +39,12 @@ export function normalizeEmail(raw: unknown): string | null {
   return email;
 }
 
+/**
+ * Comprueba si normalizeEmail devuelve una dirección cuyo dominio es uc3m.es o un subdominio.
+ *
+ * @param raw - Valor bruto que se quiere comprobar.
+ * @returns true si pertenece a un dominio admitido.
+ */
 export function isUc3mEmail(raw: unknown): boolean {
   const normalized = normalizeEmail(raw);
   if (!normalized) return false;
@@ -34,6 +52,12 @@ export function isUc3mEmail(raw: unknown): boolean {
   return UC3M_DOMAIN_REGEX.test(domain);
 }
 
+/**
+ * Aplica la política de acceso de Comunidad a un correo normalizado.
+ *
+ * @param raw - Dirección que llega al servicio o a un formulario.
+ * @returns Correo UC3M normalizado o null.
+ */
 export function normalizeUc3mEmail(raw: unknown): string | null {
   const normalized = normalizeEmail(raw);
   if (!normalized) return null;
@@ -41,6 +65,12 @@ export function normalizeUc3mEmail(raw: unknown): string | null {
   return UC3M_DOMAIN_REGEX.test(domain) ? normalized : null;
 }
 
+/**
+ * Comprueba que una ruta de destino pertenece al mismo sitio. Lo usa sanitizeNextPath.
+ *
+ * @param value - Ruta candidata que se analiza como URL interna.
+ * @returns true cuando es una ruta interna admitida.
+ */
 function isSafeInternalPath(value: string): boolean {
   if (
     !value ||
@@ -64,6 +94,13 @@ function isSafeInternalPath(value: string): boolean {
   }
 }
 
+/**
+ * Selecciona una ruta que se puede entregar a redirect sin cambiar de origen.
+ *
+ * @param raw - Destino recibido de la URL o formulario.
+ * @param fallback - Destino alternativo. También se valida y por defecto es /home.
+ * @returns La ruta válida de entrada, la alternativa o /home.
+ */
 export function sanitizeNextPath(raw: unknown, fallback = "/home"): string {
   const safeFallback = isSafeInternalPath(fallback) ? fallback : "/home";
   if (typeof raw !== "string") return safeFallback;

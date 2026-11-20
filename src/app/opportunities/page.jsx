@@ -1,3 +1,8 @@
+/**
+ * Ruta /opportunities del App Router. Lee el catálogo publicado y el estado de los marcadores
+ * de la sesión. Los formularios llaman a las Server Actions de ./actions.
+ */
+
 import Link from "next/link";
 import { listVisibleOpportunities } from "../../server/opportunities/operations";
 import { removeOpportunityBookmark, saveOpportunityBookmark } from "./actions";
@@ -40,6 +45,15 @@ const secondaryButtonClass =
 const inlineLinkClass =
   "text-brand-primary underline underline-offset-[0.22em] transition-colors hover:text-brand-ink";
 
+/**
+ * Next.js ejecuta este Server Component al servir /opportunities. Consulta
+ * listVisibleOpportunities y prepara el retorno al catálogo con el filtro activo.
+ *
+ * @param props - Propiedades de ruta suministradas por Next.js.
+ * @param props.searchParams - Promesa con type para filtrar por prácticas o investigación y
+ *   status para mostrar el resultado de un marcador.
+ * @returns Catálogo en JSX con filtros y formularios para guardar o retirar marcadores.
+ */
 export default async function OpportunitiesPage({ searchParams }) {
   const { type, status } = await searchParams;
   const activeType = type === "internship" || type === "research" ? type : undefined;

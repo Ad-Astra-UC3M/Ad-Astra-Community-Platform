@@ -1,3 +1,9 @@
+/**
+ * Ejecutor del SQL inicial del esquema público. db:migrate lo usa para preparar
+ * PostgreSQL en Neon. El cliente de pruebas reutiliza el mismo archivo para PGlite.
+ * El ejecutor actual aplica drizzle/0000_initial.sql directamente.
+ */
+
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -12,6 +18,11 @@ export type MigrationExecutor =
   | { execute: (query: SQL) => Promise<unknown> }
   | { query: (query: string) => Promise<unknown> };
 
+/**
+ * Localiza el SQL que lee getInitialMigrationSql. Busca primero desde el
+ * directorio de trabajo y después respecto a este módulo.
+ * @returns La ruta absoluta prevista de drizzle/0000_initial.sql.
+ */
 function resolveInitialMigrationPath(): string {
   const fromCwd = path.resolve(process.cwd(), "drizzle", "0000_initial.sql");
   if (existsSync(fromCwd)) {
@@ -21,10 +32,19 @@ function resolveInitialMigrationPath(): string {
   return path.resolve(currentDir, "..", "..", "drizzle", "0000_initial.sql");
 }
 
+/**
+ * Lee el SQL inicial del repositorio para runMigrations.
+ * @returns El archivo completo en UTF-8, con los separadores de sentencias intactos.
+ */
 export function getInitialMigrationSql(): string {
   return readFileSync(resolveInitialMigrationPath(), "utf8");
 }
 
+/**
+ * Separa el SQL inicial para los ejecutores que procesan una sentencia por llamada.
+ * @param rawSql Texto leído del archivo inicial con marcadores statement-breakpoint.
+ * @returns Las sentencias no vacías, recortadas y en el orden del archivo.
+ */
 export function splitMigrationStatements(rawSql: string): string[] {
   return rawSql
     .split(STATEMENT_BREAKPOINT)
@@ -32,6 +52,14 @@ export function splitMigrationStatements(rawSql: string): string[] {
     .filter((part) => part.length > 0);
 }
 
+/**
+ * Aplica el esquema inicial en el arranque de PGlite y en db:migrate. Si abre
+ * su propia conexión, la cierra al terminar, incluso en caso de error.
+ * @param executor Motor o cliente opcional. exec recibe el SQL completo y execute o
+ * query reciben una sentencia cada vez. Sin ejecutor usa el directorio PGlite si
+ * está configurado o la conexión de Neon, priorizando DATABASE_URL_UNPOOLED.
+ * @returns Una promesa que finaliza al aplicar todo el SQL y rechaza si falla la ejecución.
+ */
 export async function runMigrations(executor?: MigrationExecutor): Promise<void> {
   const rawSql = getInitialMigrationSql();
 
@@ -95,6 +123,11 @@ export async function runMigrations(executor?: MigrationExecutor): Promise<void>
   }
 }
 
+/**
+ * Comprueba el punto de entrada para ejecutar db:migrate solo como comando.
+ * Los imports desde client.ts y las pruebas se limitan a cargar sus exportaciones.
+ * @returns Si la ruta de process.argv[1] coincide con la URL de este módulo.
+ */
 function isDirectCliInvocation(): boolean {
   const entry = process.argv[1];
   if (!entry) return false;
