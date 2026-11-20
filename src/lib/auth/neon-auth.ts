@@ -44,7 +44,7 @@ export type AuthSignInResult =
   | { ok: false; errorCode: AuthProviderErrorCode; message?: string };
 
 export type AuthVerifyEmailResult =
-  | { ok: true; user: AuthProviderUser }
+  | { ok: true; user: AuthProviderUser; sessionCreated: boolean }
   | { ok: false; errorCode: AuthProviderErrorCode; message?: string };
 
 export type AuthActionResult =
@@ -346,7 +346,12 @@ export function createNeonAuthProvider(neonAuth: NeonAuth): AuthProvider {
       ) {
         return otpFailure();
       }
-      return { ok: true, user };
+      const token = result.data.token;
+      return {
+        ok: true,
+        user,
+        sessionCreated: typeof token === "string" && token.trim().length > 0,
+      };
     },
 
     requestPasswordResetOtp({ email }): Promise<AuthActionResult> {

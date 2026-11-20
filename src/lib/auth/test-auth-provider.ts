@@ -445,7 +445,7 @@ export function createTestAuthProvider(
       if (!result.ok) return result;
 
       await cookieStore.setToken(result.sessionToken, SESSION_TTL_SECONDS);
-      return { ok: true, user: result.user };
+      return { ok: true, user: result.user, sessionCreated: true };
     },
 
     async signIn(input): Promise<AuthSignInResult> {

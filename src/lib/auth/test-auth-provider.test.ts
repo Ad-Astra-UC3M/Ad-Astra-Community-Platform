@@ -41,6 +41,7 @@ test("test auth issues a six-digit verification code per address and replaces it
     assert.equal(results.filter((result) => result.ok).length, 1);
     assert.equal(verified?.user?.email, email);
     assert.equal(verified?.user?.emailVerified, true);
+    assert.equal(verified?.sessionCreated, true);
     assert.equal((await provider.getSession())?.user.email, email);
 
     const otherOtp = await getLatestTestOtp(db, otherEmail, "email-verification");

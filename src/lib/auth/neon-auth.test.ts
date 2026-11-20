@@ -11,6 +11,7 @@ test("Neon uses the verification OTP endpoints and returns the verified identity
   const user = { id: "auth-user", email, name: "Alumna", emailVerified: true };
   const sends: unknown[] = [];
   const verifications: unknown[] = [];
+  const tokens = ["new-session-token", null, ""];
 
   const neonAuth = {
     emailOtp: {
@@ -20,16 +21,22 @@ test("Neon uses the verification OTP endpoints and returns the verified identity
       },
       async verifyEmail(input: unknown) {
         verifications.push(input);
-        return { data: { status: true, user }, error: null };
+        return { data: { status: true, token: tokens.shift(), user }, error: null };
       },
     },
   } as unknown as NeonAuth;
 
   const provider = createNeonAuthProvider(neonAuth);
   assert.deepEqual(await provider.sendVerificationOtp({ email }), { ok: true });
-  assert.deepEqual(await provider.verifyEmailOtp({ email, otp }), { ok: true, user });
+  for (const sessionCreated of [true, false, false]) {
+    assert.deepEqual(await provider.verifyEmailOtp({ email, otp }), {
+      ok: true,
+      user,
+      sessionCreated,
+    });
+  }
   assert.deepEqual(sends, [{ email, type: "email-verification" }]);
-  assert.deepEqual(verifications, [{ email, otp }]);
+  assert.deepEqual(verifications, Array.from({ length: 3 }, () => ({ email, otp })));
 });
 
 test("Neon maps OTP errors without trusting an unrelated or unverified identity", async () => {
