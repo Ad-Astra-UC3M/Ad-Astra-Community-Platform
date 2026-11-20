@@ -61,8 +61,10 @@ test("verifica el alta por código, rechaza el código anterior y recupera el de
 });
 
 test("el portal no expone un proxy público de Neon Auth", async ({ request }) => {
-  for (const path of ["get-session", "admin/list-users", "email-otp/verify-email"]) {
+  for (const path of ["get-session", "admin/list-users"]) {
     const response = await request.get("/api/auth/" + path);
     expect(response.status()).toBe(404);
   }
+  const verification = await request.post("/api/auth/email-otp/verify-email");
+  expect(verification.status()).toBe(404);
 });
