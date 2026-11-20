@@ -16,7 +16,7 @@ Comunidad usa el App Router de Next.js 16.4.6. Las pantallas React propias son a
 
 Las carpetas de `src/app` definen la URL. Por ejemplo, [`activities/page.jsx`](../../src/app/activities/page.jsx) sirve `/activities`, y [`activities/[id]/page.jsx`](../../src/app/activities/%5Bid%5D/page.jsx) sirve `/activities/<id>`. En el segundo caso Next.js entrega `params` con el identificador del segmento y `searchParams` con los valores de la consulta. La página espera ambas promesas con `await`. Mantén las escrituras, como consumir un código o guardar una reserva, en acciones que se ejecutan al enviar el formulario.
 
-Las páginas son *Server Components* por defecto. Pueden comprobar la sesión y llamar a un repositorio en el servidor antes de renderizar JSX. Los componentes con `"use client"` permiten añadir estado local, eventos y APIs del navegador. Un ejemplo es el [lector QR](../../src/app/admin/attendance/%5BshiftId%5D/scanner.jsx), que necesita la cámara del dispositivo. [Componentes de servidor y cliente · Next.js](https://nextjs.org/docs/app/getting-started/server-and-client-components)
+Las páginas son *Server Components* por defecto. Pueden llamar directamente a una operación de servidor. La operación comprueba el acceso y consulta el repositorio antes de que la página renderice JSX. Los componentes con `"use client"` permiten añadir estado local, eventos y APIs del navegador. Un ejemplo es el [lector QR](../../src/app/admin/attendance/%5BshiftId%5D/scanner.jsx), que necesita la cámara del dispositivo. [Componentes de servidor y cliente · Next.js](https://nextjs.org/docs/app/getting-started/server-and-client-components)
 
 ## Una escritura pasa por una Server Action
 

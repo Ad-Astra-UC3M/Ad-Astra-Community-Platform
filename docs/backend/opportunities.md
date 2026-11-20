@@ -75,10 +75,10 @@ flowchart TD
 
 | Función | Parámetros | Retorno o efecto | Punto de entrada |
 | --- | --- | --- | --- |
-| `OpportunitiesPage` | `searchParams` con tipo y resultado | Exige sesión y renderiza el catálogo publicado con el estado de los marcadores. | [`/opportunities`](../../src/app/opportunities/page.jsx) |
-| `OpportunityDetailPage` | `params.id` y `searchParams` de resultado | Exige sesión y renderiza una oportunidad publicada. Usa `notFound()` si falta. | [`/opportunities/[id]`](../../src/app/opportunities/%5Bid%5D/page.jsx) |
-| `BookmarksPage` | `searchParams` de resultado | Exige sesión y renderiza la lista personal, incluidos los marcadores archivados. | [`/bookmarks`](../../src/app/bookmarks/page.jsx) |
-| `AdminOpportunitiesPage` | `searchParams` de resultado | Exige `content_editing` y renderiza el listado editorial y sus formularios. | [`/admin/opportunities`](../../src/app/admin/opportunities/page.jsx) |
+| `OpportunitiesPage` | `searchParams` con tipo y resultado | Llama a `listVisibleOpportunities`, que exige sesión. Renderiza el catálogo publicado y el estado de los marcadores. | [`/opportunities`](../../src/app/opportunities/page.jsx) |
+| `OpportunityDetailPage` | `params.id` y `searchParams` de resultado | Llama a `getVisibleOpportunity`, que exige sesión. Renderiza el detalle publicado y usa `notFound()` si falta. | [`/opportunities/[id]`](../../src/app/opportunities/%5Bid%5D/page.jsx) |
+| `BookmarksPage` | `searchParams` de resultado | Llama a `listMyBookmarks`, que exige sesión. Renderiza la lista personal, incluidos los marcadores archivados. | [`/bookmarks`](../../src/app/bookmarks/page.jsx) |
+| `AdminOpportunitiesPage` | `searchParams` de resultado | Llama a `listOpportunitiesForEditing`, que exige `content_editing`. Renderiza el listado y sus formularios. | [`/admin/opportunities`](../../src/app/admin/opportunities/page.jsx) |
 
 Las [pruebas PGlite](../../src/server/opportunities/repository.test.ts) usan `createProfile(db, overrides?)` para insertar perfiles sintéticos. Comprueban el alta y cambio de estado del panel, el catálogo filtrado, los eventos de auditoría y la separación de marcadores entre personas.
 

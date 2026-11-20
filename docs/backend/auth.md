@@ -148,4 +148,3 @@ Las suites usan el mismo contrato con una base PGlite desechable. Cada método d
 4. `e2e/email-otp.spec.ts` recorre la página, abre la sesión y comprueba que el portal devuelve 404 en la antigua ruta de proxy. El proveedor de pruebas usa el buzón JSONL. La prueba manual con Neon de desarrollo comprueba entrega a un buzón real y la cookie del proveedor.
 
 [Volver al mapa del backend](README.md)
-

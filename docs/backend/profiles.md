@@ -8,13 +8,13 @@ El perfil básico corresponde a la cuenta de Comunidad. El perfil de talento es 
 
 | Página | Lectura y acceso |
 | --- | --- |
-| [`/profile`](../../src/app/profile/page.jsx) | `ProfilePage` exige sesión, consulta `getBasicProfile(user.personId)` y presenta el formulario de datos académicos y personales editables. |
-| [`/profile/talent`](../../src/app/profile/talent/page.jsx) | `TalentProfilePage` exige sesión, pasa la identidad del usuario como solicitante y titular a `getTalentProfile` y rellena el formulario con el perfil guardado. |
-| [`/profile/privacy`](../../src/app/profile/privacy/page.jsx) | `ProfilePrivacyPage` exige sesión y carga en paralelo la decisión de difusión y la solicitud de supresión del usuario. |
-| [`/admin/talent`](../../src/app/admin/talent/page.jsx) | `AdminTalentPage` exige `talent_consultation`. Lee los filtros de la URL y llama a `searchTalentProfiles`. |
-| [`/admin/talent/[id]`](../../src/app/admin/talent/%5Bid%5D/page.jsx) | `AdminTalentDetailPage` exige `talent_consultation`, consulta `getTalentAdminDetail` por ID y devuelve 404 si falta el perfil. |
-| [`/admin/deletion-requests`](../../src/app/admin/deletion-requests/page.jsx) | `AdminDeletionRequestsPage` exige `general_admin` y carga la cola con `listDeletionRequests`. |
-| [`/admin/deletion-requests/[id]`](../../src/app/admin/deletion-requests/%5Bid%5D/page.jsx) | `AdminDeletionRequestDetailPage` exige `general_admin`, busca la solicitud y devuelve 404 si falta. Los formularios invocan la acción de tramitarla. |
+| [`/profile`](../../src/app/profile/page.jsx) | `ProfilePage` llama a `getMyProfile`, que exige sesión y consulta el perfil propio. La página presenta los datos editables. |
+| [`/profile/talent`](../../src/app/profile/talent/page.jsx) | `TalentProfilePage` llama a `getMyTalentProfile`. La operación obtiene la identidad de la sesión y la usa como solicitante y titular en `getTalentProfile`. |
+| [`/profile/privacy`](../../src/app/profile/privacy/page.jsx) | `ProfilePrivacyPage` llama a `getMyPrivacySettings`. La operación comprueba la sesión y carga ambas lecturas en paralelo. |
+| [`/admin/talent`](../../src/app/admin/talent/page.jsx) | `AdminTalentPage` lee los filtros de la URL y llama a `searchTalentForConsultation`, que exige `talent_consultation`. |
+| [`/admin/talent/[id]`](../../src/app/admin/talent/%5Bid%5D/page.jsx) | `AdminTalentDetailPage` llama a `getTalentForConsultation(id)`, que exige `talent_consultation`. Devuelve 404 si falta el perfil. |
+| [`/admin/deletion-requests`](../../src/app/admin/deletion-requests/page.jsx) | `AdminDeletionRequestsPage` llama a `listDeletionRequestsForReview`, que exige `general_admin` y carga la cola. |
+| [`/admin/deletion-requests/[id]`](../../src/app/admin/deletion-requests/%5Bid%5D/page.jsx) | `AdminDeletionRequestDetailPage` llama a `getDeletionRequestForReview(id)`, que exige `general_admin`. La página devuelve 404 si falta. Los formularios invocan la acción de tramitarla. |
 
 ## De la página a la operación autorizada
 
