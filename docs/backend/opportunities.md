@@ -32,7 +32,7 @@ flowchart TD
 | `generateSlug` | Título | Genera un slug con el título normalizado y un sufijo aleatorio. | El alta la usa cuando no se facilita slug. |
 | `normalizeExplicitSlug` | Slug recibido | Devuelve el slug recortado y en minúsculas o `null` si el formato es inválido. | El alta editorial la usa cuando recibe un slug explícito. |
 | `mapAdminOpportunity` | Fila de oportunidad | Devuelve el modelo editorial, con fechas e identidad de creación. | Llamada por el listado, alta y cambios de estado editoriales. |
-| `listAdminOpportunities` | `db` opcional | Devuelve oportunidades de todos los estados. Ordena publicadas, borradores y archivadas por su orden editorial. | Lectura de la página servidor `/admin/opportunities` tras el guard. |
+| `listAdminOpportunities` | `db` opcional | Devuelve oportunidades de todos los estados. Ordena publicadas, borradores y archivadas por su orden editorial. | `listOpportunitiesForEditing` la llama tras comprobar la capacidad editorial. |
 | `createAdminOpportunity` | Datos de alta `input`, perfil actor y `db` opcional | Valida datos y publica o guarda según el estado. Inserta oportunidad y auditoría en una transacción. Devuelve `duplicate_slug` si el slug ya existe. | Llamada por `createOpportunityForEditing`, el seed de E2E y las pruebas del repositorio. |
 | `setAdminOpportunityStatus` | Identificador o slug, nuevo estado, actor y `db` opcional | Valida el estado, bloquea la fila, comprueba los requisitos de publicación y actualiza con auditoría. | Llamada por `changeOpportunityStatus` y las pruebas del repositorio. |
 | `mapCatalogOpportunity` | Fila y booleano `bookmarked` | Devuelve el modelo del catálogo con el estado del marcador de la persona. | Ayudante privado de `listOpportunities` y `getOpportunity`. |
