@@ -366,10 +366,6 @@ export async function verifyAccountEmail(
     };
   }
 
-  if (!verified.user) {
-    return { ok: false, error: "invalid" };
-  }
-
   const email = normalizeUc3mEmail(verified.user.email);
   if (email !== challenge.data.email || !verified.user.emailVerified) {
     return { ok: false, error: "invalid" };
