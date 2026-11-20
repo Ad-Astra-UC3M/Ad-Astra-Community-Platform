@@ -57,12 +57,7 @@ export type RegisterAccountResult =
   | { ok: false; error: RegisterAccountError };
 
 export type VerifyAccountEmailResult =
-  | {
-      ok: true;
-      profileId: string;
-      authUserId: string;
-      email: string;
-    }
+  | { ok: true; sessionUser: AuthUser | null }
   | { ok: false; error: "invalid" | "expired" };
 
 export type AuthenticateAccountResult =
@@ -392,9 +387,9 @@ export async function verifyAccountEmail(
 
   return {
     ok: true,
-    profileId: profile.id,
-    authUserId: verified.user.id,
-    email,
+    sessionUser: verified.sessionCreated
+      ? buildAuthUser(profile, verified.user.id, await loadCapabilities(db, profile.id))
+      : null,
   };
 }
 

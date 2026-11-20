@@ -200,9 +200,8 @@ export async function verifyEmailAction(formData: FormData): Promise<never> {
   }
 
   await setAccountCodeEmail("verification", "");
-  const user = await resolveCurrentUser(db, authProvider).catch(() => null);
-  if (user && user.authUserId === result.authUserId && user.email === result.email) {
-    redirect(accountDestination(user, readOptionalNextPath(next)));
+  if (result.sessionUser) {
+    redirect(accountDestination(result.sessionUser, readOptionalNextPath(next)));
   }
   redirectWithNext("/sign-in", { verified: "1" }, next);
 }

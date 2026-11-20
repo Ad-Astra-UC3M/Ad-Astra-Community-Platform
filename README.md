@@ -8,6 +8,8 @@ Plataforma web en español de la asociación Ad Astra UC3M para gestionar cuenta
 - **PostgreSQL en Neon** con **Drizzle ORM** (`src/db/schema/*`, `drizzle/0000_initial.sql`, 13 tablas MVP en `public`) y **PGlite** para pruebas automáticas locales y E2E.
 - **Neon Auth** (`@neondatabase/auth/next/server`, `src/lib/auth/*`, `src/app/api/auth/[...path]/route.ts`) con Better Auth gestionado por Neon. El acceso usa correo UC3M y contraseña. La verificación del alta y la recuperación usan códigos de seis dígitos por correo, específicos para cada operación. La asistencia usa tarjetas QR firmadas con `jose` (`HS256`, `ATTENDANCE_QR_SECRET`).
 
+En cada rama de Neon Auth, activa la verificación al registrarse mediante código por correo, el inicio automático de sesión tras verificar y la revocación de sesiones al restablecer la contraseña. El MVP utiliza el proveedor de correo compartido de Neon.
+
 ## Configuración local
 
 Copia `.env.example` a `.env.local` y completa las 6 variables obligatorias:

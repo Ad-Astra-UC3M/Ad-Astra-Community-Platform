@@ -180,6 +180,7 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
       );
       const verified = await verifyAccountEmail(db, authProvider, { email, otp });
       assert.equal(verified.ok, true);
+      assert.equal(verified.ok && verified.sessionUser?.email, email);
 
       // The code is single-use.
       const reused = await verifyAccountEmail(db, authProvider, { email, otp });
