@@ -1,6 +1,5 @@
 import { BackLink } from "../../../components/back-link";
-import { requireUser } from "../../../server/auth/access";
-import { getTalentProfile } from "../../../server/profiles/repository";
+import { getMyTalentProfile } from "../../../server/profiles/operations";
 import { saveTalentProfileAction } from "../actions";
 
 export const metadata = { title: "Perfil de talento voluntario" };
@@ -71,8 +70,7 @@ const sectionHeadingClass = "font-display text-[1.25rem] leading-[1.22] font-nor
 const codeClass = "rounded bg-brand-soft/20 px-1.5 py-0.5 font-mono text-[0.9em]";
 
 export default async function TalentProfilePage({ searchParams }) {
-  const user = await requireUser("/profile/talent");
-  const profile = await getTalentProfile(user.personId, user.personId);
+  const profile = await getMyTalentProfile();
   const { status, error } = await searchParams;
   const errorMessage = typeof error === "string" ? errorMessages.get(error) : undefined;
   const saved = status === "saved";

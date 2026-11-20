@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../../components/back-link";
-import { getTalentAdminDetail } from "../../../../server/profiles/talent-consultation";
-import { requireCapability } from "../../../../server/auth/access";
+import { getTalentForConsultation } from "../../../../server/profiles/operations";
 
 export const metadata = { title: "Detalle de perfil de talento" };
 
@@ -30,9 +29,8 @@ const panelClass =
   "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
 
 export default async function AdminTalentDetailPage({ params }) {
-  await requireCapability("talent_consultation");
   const { id } = await params;
-  const profile = await getTalentAdminDetail(id);
+  const profile = await getTalentForConsultation(id);
   if (!profile) notFound();
 
   return (

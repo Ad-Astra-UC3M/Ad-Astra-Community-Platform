@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../components/back-link";
-import { requireUser } from "../../../lib/auth/session";
-import { getActivity } from "../../../server/repositories/activities";
+import { getMyVisibleActivity } from "../../../server/activities/portal";
 import { ShiftSchedule } from "../shift-schedule";
 import { reserveActivityShift } from "./actions";
 
@@ -70,8 +69,7 @@ function ShiftCard({ shift, reserve, singleShift, now }) {
 
 export default async function ActivityPage({ params, searchParams }) {
   const [{ id }, { status }] = await Promise.all([params, searchParams]);
-  const user = await requireUser(`/activities/${encodeURIComponent(id)}`);
-  const activity = await getActivity(id, user.personId);
+  const activity = await getMyVisibleActivity(id);
   if (!activity) notFound();
 
   const message = typeof status === "string" ? messages.get(status) : undefined;

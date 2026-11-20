@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { BackLink } from "../../../components/back-link";
-import { searchTalentProfiles } from "../../../server/profiles/talent-consultation";
-import { requireCapability } from "../../../server/auth/access";
+import { searchTalentForConsultation } from "../../../server/profiles/operations";
 
 export const metadata = { title: "Consulta de talento" };
 
@@ -13,7 +12,6 @@ const secondaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
 export default async function AdminTalentPage({ searchParams }) {
-  await requireCapability("talent_consultation");
   const resolved = await searchParams;
   const query = typeof resolved?.q === "string" ? resolved.q : "";
   const rawTags = typeof resolved?.tags === "string" ? resolved.tags : "";
@@ -23,7 +21,7 @@ export default async function AdminTalentPage({ searchParams }) {
         .map((tag) => tag.trim())
         .filter(Boolean)
     : undefined;
-  const profiles = await searchTalentProfiles({ query, tags });
+  const profiles = await searchTalentForConsultation({ query, tags });
 
   return (
     <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">

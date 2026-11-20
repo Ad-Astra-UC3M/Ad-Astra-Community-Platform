@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { requireUser } from "../../server/auth/access";
-import { listOpportunities } from "../../server/opportunities/repository";
+import { listVisibleOpportunities } from "../../server/opportunities/operations";
 import { removeOpportunityBookmark, saveOpportunityBookmark } from "./actions";
 
 export const metadata = { title: "Oportunidades" };
@@ -44,9 +43,7 @@ const inlineLinkClass =
 export default async function OpportunitiesPage({ searchParams }) {
   const { type, status } = await searchParams;
   const activeType = type === "internship" || type === "research" ? type : undefined;
-  const returnTo = activeType ? `/opportunities?type=${activeType}` : "/opportunities";
-  const user = await requireUser(returnTo);
-  const opportunities = await listOpportunities(user.personId, activeType);
+  const opportunities = await listVisibleOpportunities(activeType);
   const message = typeof status === "string" ? statusMessages.get(status) : undefined;
 
   return (

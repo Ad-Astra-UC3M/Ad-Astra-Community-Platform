@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { BackLink } from "../../components/back-link";
-import { requireUser } from "../../server/auth/access";
-import { listBookmarks } from "../../server/opportunities/repository";
+import { listMyBookmarks } from "../../server/opportunities/operations";
 import { removeOpportunityBookmark } from "../opportunities/actions";
 
 export const metadata = { title: "Mis marcadores" };
@@ -36,9 +35,8 @@ const inlineLinkClass =
   "text-brand-primary underline underline-offset-[0.22em] transition-colors hover:text-brand-ink";
 
 export default async function BookmarksPage({ searchParams }) {
-  const user = await requireUser("/bookmarks");
+  const bookmarks = await listMyBookmarks();
   const { status } = await searchParams;
-  const bookmarks = await listBookmarks(user.personId);
   const message = typeof status === "string" ? statusMessages.get(status) : undefined;
 
   return (

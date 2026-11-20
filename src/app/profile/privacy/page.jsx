@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { BackLink } from "../../../components/back-link";
-import { requireUser } from "../../../server/auth/access";
-import { getDisseminationStatus } from "../../../server/profiles/repository";
-import { getMyDeletionRequest } from "../../../server/profiles/deletion-requests";
+import { getMyPrivacySettings } from "../../../server/profiles/operations";
 import { requestDeletionAction, updateDisseminationAction } from "../actions";
 
 export const metadata = { title: "Difusión y privacidad" };
@@ -56,11 +54,8 @@ const alertClass = "rounded-[4px] bg-brand-accent/35 px-4 py-3.5 text-brand-ink"
 const codeClass = "rounded bg-brand-soft/20 px-1.5 py-0.5 font-mono text-[0.9em]";
 
 export default async function ProfilePrivacyPage({ searchParams }) {
-  const user = await requireUser("/profile/privacy");
-  const [dissemination, deletionRequest, resolvedParams] = await Promise.all([
-    getDisseminationStatus(user.personId),
-    getMyDeletionRequest(user.personId),
-    searchParams,
+  const [{ dissemination, deletionRequest }, resolvedParams] = await Promise.all([
+    getMyPrivacySettings(), searchParams,
   ]);
   const { status, error } = resolvedParams;
   const statusMessage = typeof status === "string" ? statusMessages.get(status) : undefined;

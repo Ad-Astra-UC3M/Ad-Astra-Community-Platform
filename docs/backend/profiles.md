@@ -137,3 +137,17 @@ flowchart TD
 Al pulsar «Solicitar supresión» en privacidad, `requestDeletionAction` lee el motivo. `requestMyAccountDeletion` obtiene el titular de la sesión y `requestAccountDeletion` comprueba si ya hay una solicitud en curso antes de insertar. Al volver a privacidad, `getMyDeletionRequest` lee lo persistido. Para tramitarla desde administración, `reviewDeletionRequest` exige `general_admin` y el repositorio guarda la resolución y su auditoría en una transacción. La operación cierra la solicitud registrada. La ejecución material de la supresión queda fuera de esa transición.
 
 Para cambiar campos editables o su validación, empieza por las acciones y el repositorio de perfil. Para tocar la transición de supresión, empieza por `deletion-requests.ts` y sigue la operación y acción administrativa. Las comprobaciones de persistencia viven en [las pruebas del repositorio](../../src/server/profiles/repository.test.ts). Las pantallas de perfil y las capacidades administrativas se recorren en [oportunidades y perfil](../../e2e/opportunities-and-profile.spec.ts) y [administración y acceso](../../e2e/admin-and-auth.spec.ts).
+
+## Lecturas autorizadas en `operations.ts`
+
+Estas funciones se ejecutan en el servidor. La página las llama directamente para renderizar. La función comprueba la sesión o la capacidad antes de consultar los datos.
+
+| Función | Parámetros | Uso y resultado |
+| --- | --- | --- |
+| `getMyProfile` | Sin parámetros | Exige sesión e identifica el perfil con la sesión. Llama a `getBasicProfile` y entrega los datos básicos a `ProfilePage`. |
+| `getMyTalentProfile` | Sin parámetros | Exige sesión y lee el talento propio con `getTalentProfile`. Entrega los datos a `TalentProfilePage`. |
+| `getMyPrivacySettings` | Sin parámetros | Exige sesión una sola vez, consulta la difusión y la solicitud de supresión en paralelo y entrega ambas a `ProfilePrivacyPage`. |
+| `searchTalentForConsultation` | `filters` con texto o etiquetas | Exige `talent_consultation` y entrega a la página de resultados lo que devuelve `searchTalentProfiles`. |
+| `getTalentForConsultation` | `id` del perfil | Exige `talent_consultation` y llama a `getTalentAdminDetail`. Devuelve el detalle o `null`. |
+| `listDeletionRequestsForReview` | Sin parámetros | Exige `general_admin` y devuelve la cola de solicitudes consultada por `listDeletionRequests`. |
+| `getDeletionRequestForReview` | `id` de la solicitud | Exige `general_admin`, consulta la solicitud con `getDeletionRequest` y devuelve un detalle o `null`. |

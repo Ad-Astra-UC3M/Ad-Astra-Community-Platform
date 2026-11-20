@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../../components/back-link";
-import { getDeletionRequest } from "../../../../server/profiles/deletion-requests";
-import { requireCapability } from "../../../../server/auth/access";
+import { getDeletionRequestForReview } from "../../../../server/profiles/operations";
 import { resolveDeletionRequestAction } from "../actions";
 
 export const metadata = { title: "Detalle de solicitud de supresión" };
@@ -47,13 +46,12 @@ const secondaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
 export default async function AdminDeletionRequestDetailPage({ params, searchParams }) {
-  await requireCapability("general_admin");
   const { id } = await params;
   const resolvedSearch = await searchParams;
   const statusCode = typeof resolvedSearch?.status === "string" ? resolvedSearch.status : "";
   const errorCode = typeof resolvedSearch?.error === "string" ? resolvedSearch.error : "";
 
-  const request = await getDeletionRequest(id);
+  const request = await getDeletionRequestForReview(id);
   if (!request) notFound();
 
   const statusMessage = statusMessages.get(statusCode);

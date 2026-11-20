@@ -1,12 +1,6 @@
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../../components/back-link";
-import {
-  getShiftDetail,
-  listActiveAccountsForDoor,
-  listAttendanceAudit,
-  listShiftAttendeesDetailed,
-} from "../../../../server/repositories/admin";
-import { requireCapability } from "../../access";
+import { getAttendanceShift } from "../../../../server/activities/attendance";
 import {
   confirmManualAttendanceAction,
   correctAttendanceAction,
@@ -92,7 +86,6 @@ const secondaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
 export default async function AttendancePage({ params, searchParams }) {
-  await requireCapability("attendance_validation");
   const { shiftId } = await params;
   const resolvedSearch = await searchParams;
   const query = typeof resolvedSearch?.q === "string" ? resolvedSearch.q : "";
@@ -100,20 +93,12 @@ export default async function AttendancePage({ params, searchParams }) {
   const doorCode = typeof resolvedSearch?.door === "string" ? resolvedSearch.door : "";
   const manualCode = typeof resolvedSearch?.manual === "string" ? resolvedSearch.manual : "";
 
-  const shift = await getShiftDetail(shiftId);
-  if (!shift) notFound();
-
-  const [allAttendees, queriedAttendees, doorAccounts, auditEntries] = await Promise.all([
-    listShiftAttendeesDetailed(shiftId),
-    query ? listShiftAttendeesDetailed(shiftId, query) : Promise.resolve(null),
-    listActiveAccountsForDoor(shiftId, accountQuery),
-    listAttendanceAudit(shiftId),
-  ]);
-  const filteredAttendees = queriedAttendees ?? allAttendees;
+  const detail = await getAttendanceShift(shiftId, query, accountQuery);
+  if (!detail) notFound();
+  const { shift, attendees, doorAccounts, auditEntries } = detail;
 
   const doorBanner = doorFeedback.get(doorCode);
   const manualBanner = manualFeedback.get(manualCode);
-  const confirmedCount = allAttendees.filter((person) => person.status === "attended").length;
 
   return (
     <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
@@ -202,7 +187,7 @@ export default async function AttendancePage({ params, searchParams }) {
 
       <section className={panelClass} aria-label="Personas inscritas y confirmación o corrección manual">
         <h2>Personas inscritas</h2>
-        <p>{confirmedCount} de {allAttendees.length} asistencias confirmadas</p>
+        <p>{shift.attendedCount} de {shift.reservedCount} asistencias confirmadas</p>
 
         <form method="get" className="flex flex-wrap items-end gap-3">
           {accountQuery && <input type="hidden" name="accountQuery" value={accountQuery} />}
@@ -219,9 +204,9 @@ export default async function AttendancePage({ params, searchParams }) {
           <button type="submit" className={secondaryButtonClass}>Filtrar inscritos</button>
         </form>
 
-        {filteredAttendees.length > 0 ? (
+        {attendees.length > 0 ? (
           <ul className="m-0 grid list-none gap-4 p-0">
-            {filteredAttendees.map((person) => (
+            {attendees.map((person) => (
               <li className={panelClass} key={person.personId}>
                 <p>
                   <strong>{person.name}</strong> · {person.status === "attended" ? "Asistido" : "Apuntado"}

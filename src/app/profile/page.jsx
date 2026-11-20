@@ -1,8 +1,7 @@
 import { ArrowRight02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
-import { requireUser } from "../../server/auth/access";
-import { getBasicProfile } from "../../server/profiles/repository";
+import { getMyProfile } from "../../server/profiles/operations";
 import { saveBasicProfileAction } from "./actions";
 
 export const metadata = { title: "Mi perfil" };
@@ -50,8 +49,7 @@ const inlineLinkClass =
   "text-brand-primary underline underline-offset-[0.22em] transition-colors hover:text-brand-ink";
 
 export default async function ProfilePage({ searchParams }) {
-  const user = await requireUser("/profile");
-  const profile = await getBasicProfile(user.personId);
+  const profile = await getMyProfile();
   const { status, error } = await searchParams;
   const errorMessage = typeof error === "string" ? errorMessages.get(error) : undefined;
   const saved = status === "saved";

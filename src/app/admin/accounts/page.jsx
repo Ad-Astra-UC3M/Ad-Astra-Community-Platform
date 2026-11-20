@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { BackLink } from "../../../components/back-link";
-import { searchAccounts } from "../../../server/accounts/repository";
-import { requireCapability } from "../../../server/auth/access";
+import { searchAdminAccounts } from "../../../server/accounts/operations";
 
 export const metadata = { title: "Cuentas y permisos" };
 
@@ -28,7 +27,6 @@ const secondaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
 export default async function AdminAccountsPage({ searchParams }) {
-  await requireCapability("general_admin");
   const resolved = await searchParams;
   const query = typeof resolved?.query === "string" ? resolved.query : "";
   const degree = typeof resolved?.degree === "string" ? resolved.degree : "";
@@ -39,7 +37,7 @@ export default async function AdminAccountsPage({ searchParams }) {
       ? resolved.hasParticipation
       : "";
 
-  const accounts = await searchAccounts({
+  const accounts = await searchAdminAccounts({
     query,
     degree,
     course,

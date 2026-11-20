@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../components/back-link";
-import { requireUser } from "../../../server/auth/access";
-import { getOpportunity } from "../../../server/opportunities/repository";
+import { getVisibleOpportunity } from "../../../server/opportunities/operations";
 import { removeOpportunityBookmark, saveOpportunityBookmark } from "../actions";
 
 export const metadata = { title: "Detalle de oportunidad" };
@@ -39,9 +38,8 @@ const inlineLinkClass =
 
 export default async function OpportunityDetailPage({ params, searchParams }) {
   const [{ id }, { status }] = await Promise.all([params, searchParams]);
-  const user = await requireUser(`/opportunities/${encodeURIComponent(id)}`);
-  const opportunity = await getOpportunity(id, user.personId);
-  if (!opportunity || opportunity.status !== "published") notFound();
+  const opportunity = await getVisibleOpportunity(id);
+  if (!opportunity) notFound();
 
   const message = typeof status === "string" ? statusMessages.get(status) : undefined;
   const returnTo = `/opportunities/${opportunity.id}`;

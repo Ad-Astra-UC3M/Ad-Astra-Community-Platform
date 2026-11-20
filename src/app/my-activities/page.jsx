@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { requireUser } from "../../lib/auth/session";
-import { listReservations } from "../../server/repositories/activities";
+import { listMyReservations } from "../../server/activities/portal";
 import { ShiftSchedule } from "../activities/shift-schedule";
 import { cancelActivityReservation, changeActivityShift } from "./actions";
 
@@ -29,8 +28,7 @@ const selectClass =
   "min-h-12 w-full min-w-0 rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
 
 export default async function MyActivitiesPage({ searchParams }) {
-  const user = await requireUser("/my-activities");
-  const reservations = await listReservations(user.personId);
+  const reservations = await listMyReservations();
   const { status } = await searchParams;
   const message = typeof status === "string" ? messages.get(status) : undefined;
 

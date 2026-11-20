@@ -81,3 +81,14 @@ flowchart TD
 | `AdminOpportunitiesPage` | `searchParams` de resultado | Exige `content_editing` y renderiza el listado editorial y sus formularios. | [`/admin/opportunities`](../../src/app/admin/opportunities/page.jsx) |
 
 Las [pruebas PGlite](../../src/server/opportunities/repository.test.ts) usan `createProfile(db, overrides?)` para insertar perfiles sintéticos. Comprueban el alta y cambio de estado del panel, el catálogo filtrado, los eventos de auditoría y la separación de marcadores entre personas.
+
+## Lecturas autorizadas en `operations.ts`
+
+Estas funciones se ejecutan en el servidor. La página las llama directamente para renderizar. La función comprueba la sesión o la capacidad antes de consultar los datos.
+
+| Función | Parámetros | Uso y resultado |
+| --- | --- | --- |
+| `listVisibleOpportunities` | `type?`, prácticas o investigación | Exige sesión, conserva el filtro en el destino tras iniciar sesión y llama a `listOpportunities` con la identidad del usuario. La página muestra las fichas publicadas y los marcadores del usuario. |
+| `getVisibleOpportunity` | `id` o slug | Exige sesión y guarda el detalle como destino de retorno. Consulta `getOpportunity` con la identidad del usuario. Devuelve una oportunidad publicada o `null`. |
+| `listMyBookmarks` | Sin parámetros | Obtiene la identidad de la sesión antes de llamar a `listBookmarks`. Devuelve los marcadores propios a `/bookmarks`. |
+| `listOpportunitiesForEditing` | Sin parámetros | Exige `content_editing` y llama a `listAdminOpportunities` para el listado editorial. |
