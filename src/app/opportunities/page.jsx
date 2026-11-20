@@ -43,6 +43,7 @@ const inlineLinkClass =
 export default async function OpportunitiesPage({ searchParams }) {
   const { type, status } = await searchParams;
   const activeType = type === "internship" || type === "research" ? type : undefined;
+  const returnTo = activeType ? "/opportunities?type=" + activeType : "/opportunities";
   const opportunities = await listVisibleOpportunities(activeType);
   const message = typeof status === "string" ? statusMessages.get(status) : undefined;
 
