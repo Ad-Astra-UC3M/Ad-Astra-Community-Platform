@@ -1,6 +1,7 @@
 import {
   createHash,
   randomBytes,
+  randomInt,
   randomUUID,
   scryptSync,
   timingSafeEqual,
@@ -9,7 +10,7 @@ import { appendFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { sql } from "drizzle-orm";
 
-import type { AppDb } from "../../db/client";
+import type { AppDb, AppTransaction } from "../../db/client";
 import type {
   AuthActionResult,
   AuthProvider,
@@ -23,7 +24,7 @@ import { normalizeEmail } from "./uc3m";
 
 export const TEST_SESSION_COOKIE_NAME = "ad_astra_test_session";
 
-export type TestTokenKind = "email-verification" | "password-reset";
+export type TestOtpKind = "email-verification" | "password-reset";
 
 export interface TestSessionCookieStore {
   getToken(): Promise<string | null> | string | null;
@@ -36,16 +37,10 @@ export type TestAuthProviderOptions = {
   now?: () => Date;
 };
 
-export type TestAuthProvider = AuthProvider & {
-  resendVerification(input: {
-    email: string;
-    callbackURL?: string;
-  }): Promise<AuthActionResult>;
-};
-
 const SESSION_TTL_SECONDS = 12 * 60 * 60;
-const VERIFICATION_TTL_SECONDS = 30 * 60;
-const RESET_TTL_SECONDS = 30 * 60;
+const OTP_TTL_SECONDS = 5 * 60;
+const OTP_MAX_ATTEMPTS = 3;
+const OTP_PATTERN = /^\d{6}$/;
 
 const initializedDbs = new WeakMap<object, Promise<void>>();
 
@@ -92,8 +87,8 @@ function hashSessionToken(rawToken: string): string {
   return createHash("sha256").update(rawToken).digest("hex");
 }
 
-function buildVerificationIdentifier(kind: TestTokenKind, email: string): string {
-  return `${kind}:${email}`;
+function buildOtpIdentifier(kind: TestOtpKind, email: string): string {
+  return `otp:${kind}:${email}`;
 }
 
 function createMemoryCookieStore(): TestSessionCookieStore {
@@ -156,9 +151,13 @@ export async function ensureTestNeonAuthSchema(db: AppDb): Promise<void> {
         id text PRIMARY KEY,
         identifier text NOT NULL,
         value text NOT NULL,
+        attempts integer NOT NULL DEFAULT 0,
         expires_at timestamptz NOT NULL,
         created_at timestamptz NOT NULL DEFAULT now()
       )
+    `);
+    await db.execute(sql`
+      ALTER TABLE neon_auth.verification ADD COLUMN IF NOT EXISTS attempts integer NOT NULL DEFAULT 0
     `);
   })();
 
@@ -171,29 +170,22 @@ export async function ensureTestNeonAuthSchema(db: AppDb): Promise<void> {
   }
 }
 
-export async function getLatestTestToken(
+export async function getLatestTestOtp(
   db: AppDb,
-  identifier: string,
-  kind: TestTokenKind,
+  email: string,
+  kind: TestOtpKind,
   now: Date = new Date(),
 ): Promise<string | null> {
-  assertTestAuthAllowed();
+  const normalized = normalizeEmail(email);
+  if (!normalized) return null;
+
   await ensureTestNeonAuthSchema(db);
-
-  const normalized = identifier.trim().toLowerCase();
-  const lookupKey = normalized.startsWith(`${kind}:`)
-    ? normalized
-    : buildVerificationIdentifier(kind, normalized);
-
   const result = await db.execute<{ value: string }>(sql`
     SELECT value
     FROM neon_auth.verification
-    WHERE identifier = ${lookupKey}
+    WHERE id = ${buildOtpIdentifier(kind, normalized)}
       AND expires_at > ${now.toISOString()}::timestamptz
-    ORDER BY created_at DESC, id DESC
-    LIMIT 1
   `);
-
   return result.rows[0]?.value ?? null;
 }
 
@@ -217,77 +209,129 @@ function toAuthUser(row: DbUserRow): AuthProviderUser {
   };
 }
 
+type TestOtp = { kind: TestOtpKind; email: string; otp: string; createdAt: string };
+
+async function lockOtpUser(tx: AppTransaction, email: string): Promise<DbUserRow | undefined> {
+  const result = await tx.execute<DbUserRow>(sql`
+    SELECT id, email, name, email_verified
+    FROM neon_auth."user"
+    WHERE email = ${email}
+    FOR UPDATE
+  `);
+  return result.rows[0];
+}
+
+async function issueOtp(
+  tx: AppTransaction,
+  kind: TestOtpKind,
+  email: string,
+  now: Date,
+): Promise<TestOtp> {
+  const identifier = buildOtpIdentifier(kind, email);
+  const previous = await tx.execute<{ value: string }>(sql`
+    SELECT value FROM neon_auth.verification WHERE id = ${identifier}
+  `);
+  let otp: string;
+  do {
+    otp = String(randomInt(1_000_000)).padStart(6, "0");
+  } while (otp === previous.rows[0]?.value);
+
+  const createdAt = now.toISOString();
+  const expiresAt = new Date(now.getTime() + OTP_TTL_SECONDS * 1000);
+  await tx.execute(sql`
+    INSERT INTO neon_auth.verification (id, identifier, value, expires_at, created_at)
+    VALUES (${identifier}, ${identifier}, ${otp}, ${expiresAt.toISOString()}::timestamptz, ${createdAt}::timestamptz)
+    ON CONFLICT (id) DO UPDATE
+    SET value = excluded.value, attempts = 0, expires_at = excluded.expires_at, created_at = excluded.created_at
+  `);
+  return { kind, email, otp, createdAt };
+}
+
+async function consumeOtp(
+  tx: AppTransaction,
+  kind: TestOtpKind,
+  email: string,
+  otp: string,
+  now: Date,
+): Promise<AuthActionResult> {
+  const identifier = buildOtpIdentifier(kind, email);
+  const result = await tx.execute<{
+    value: string;
+    attempts: number;
+    expires_at: string | Date;
+  }>(sql`
+    SELECT value, attempts, expires_at
+    FROM neon_auth.verification WHERE id = ${identifier}
+  `);
+  const entry = result.rows[0];
+  if (!entry) return { ok: false, errorCode: "INVALID_TOKEN" };
+
+  if (new Date(entry.expires_at).getTime() <= now.getTime()) {
+    await tx.execute(sql`DELETE FROM neon_auth.verification WHERE id = ${identifier}`);
+    return { ok: false, errorCode: "TOKEN_EXPIRED" };
+  }
+  if (entry.value !== otp) {
+    if (entry.attempts + 1 >= OTP_MAX_ATTEMPTS) {
+      await tx.execute(sql`DELETE FROM neon_auth.verification WHERE id = ${identifier}`);
+    } else {
+      await tx.execute(sql`
+        UPDATE neon_auth.verification SET attempts = attempts + 1 WHERE id = ${identifier}
+      `);
+    }
+    return { ok: false, errorCode: "INVALID_TOKEN" };
+  }
+
+  await tx.execute(sql`DELETE FROM neon_auth.verification WHERE id = ${identifier}`);
+  return { ok: true };
+}
+
+function writeTestMailbox(message: TestOtp): void {
+  const mailboxFile = process.env.AD_ASTRA_TEST_MAILBOX_FILE?.trim();
+  if (isTestAuthEnabled() && mailboxFile) {
+    mkdirSync(dirname(mailboxFile), { recursive: true });
+    appendFileSync(mailboxFile, JSON.stringify(message) + "\n", "utf8");
+  }
+}
+
+async function createSession(
+  tx: AppTransaction,
+  userId: string,
+  now: Date,
+): Promise<string> {
+  const token = generateOpaqueToken();
+  const expiresAt = new Date(now.getTime() + SESSION_TTL_SECONDS * 1000);
+  await tx.execute(sql`
+    INSERT INTO neon_auth.session (id, user_id, token, expires_at, created_at)
+    VALUES (${randomUUID()}, ${userId}, ${hashSessionToken(token)}, ${expiresAt.toISOString()}::timestamptz, ${now.toISOString()}::timestamptz)
+  `);
+  return token;
+}
+
 export function createTestAuthProvider(
   db: AppDb,
   options: TestAuthProviderOptions = {},
-): TestAuthProvider {
+): AuthProvider {
   assertTestAuthAllowed();
   const cookieStore = options.cookieStore ?? createMemoryCookieStore();
   const getNow = options.now ?? (() => new Date());
 
-  async function issueVerificationToken(
-    kind: TestTokenKind,
-    email: string,
-    ttlSeconds: number,
-  ): Promise<string> {
-    const identifier = buildVerificationIdentifier(kind, email);
-    const token = generateOpaqueToken();
-    const now = getNow();
-    const expiresAt = new Date(now.getTime() + ttlSeconds * 1000);
+  async function sendOtp(emailInput: string, kind: TestOtpKind): Promise<AuthActionResult> {
+    const email = normalizeEmail(emailInput);
+    if (!email) return { ok: true };
 
-    await db.execute(sql`
-      DELETE FROM neon_auth.verification
-      WHERE identifier = ${identifier}
-    `);
-
-    await db.execute(sql`
-      INSERT INTO neon_auth.verification (id, identifier, value, expires_at, created_at)
-      VALUES (${randomUUID()}, ${identifier}, ${token}, ${expiresAt.toISOString()}::timestamptz, ${now.toISOString()}::timestamptz)
-    `);
-
-    const mailboxFile = process.env.AD_ASTRA_TEST_MAILBOX_FILE?.trim();
-    if (isTestAuthEnabled() && mailboxFile) {
-      mkdirSync(dirname(mailboxFile), { recursive: true });
-      appendFileSync(
-        mailboxFile,
-        `${JSON.stringify({ kind, email, token, createdAt: now.toISOString() })}\n`,
-        "utf8",
-      );
-    }
-
-    return token;
-  }
-
-  async function sendVerificationEmail(input: {
-    email: string;
-    callbackURL?: string;
-  }): Promise<AuthActionResult> {
     await ensureTestNeonAuthSchema(db);
-    const email = normalizeEmail(input.email);
-    if (!email) {
-      return { ok: true };
-    }
-
-    const userResult = await db.execute<DbUserRow>(sql`
-      SELECT id, email, name, email_verified
-      FROM neon_auth."user"
-      WHERE email = ${email}
-      LIMIT 1
-    `);
-    const user = userResult.rows[0];
-    if (!user || user.email_verified) {
-      return { ok: true };
-    }
-
-    await issueVerificationToken(
-      "email-verification",
-      email,
-      VERIFICATION_TTL_SECONDS,
-    );
+    const message = await db.transaction(async (tx) => {
+      const user = await lockOtpUser(tx, email);
+      const expectedVerified = kind === "password-reset";
+      return user?.email_verified === expectedVerified
+        ? issueOtp(tx, kind, email, getNow())
+        : null;
+    });
+    if (message) writeTestMailbox(message);
     return { ok: true };
   }
 
-  const provider: TestAuthProvider = {
+  return {
     async signUp(input): Promise<AuthSignUpResult> {
       await ensureTestNeonAuthSchema(db);
       const email = normalizeEmail(input.email);
@@ -324,25 +368,27 @@ export function createTestAuthProvider(
 
       const userId = randomUUID();
       const accountId = randomUUID();
-      const nowIso = getNow().toISOString();
+      const now = getNow();
+      const nowIso = now.toISOString();
       const passwordHash = hashPassword(input.password);
       const name = input.name.trim() || email;
 
+      let message: TestOtp;
       try {
-        await db.execute(sql`
-          INSERT INTO neon_auth."user" (id, email, email_verified, name, created_at, updated_at)
-          VALUES (${userId}, ${email}, false, ${name}, ${nowIso}::timestamptz, ${nowIso}::timestamptz)
-        `);
-        await db.execute(sql`
-          INSERT INTO neon_auth.account (id, user_id, account_id, provider_id, password, created_at)
-          VALUES (${accountId}, ${userId}, ${userId}, 'credential', ${passwordHash}, ${nowIso}::timestamptz)
-        `);
+        message = await db.transaction(async (tx) => {
+          await tx.execute(sql`
+            INSERT INTO neon_auth."user" (id, email, email_verified, name, created_at, updated_at)
+            VALUES (${userId}, ${email}, false, ${name}, ${nowIso}::timestamptz, ${nowIso}::timestamptz)
+          `);
+          await tx.execute(sql`
+            INSERT INTO neon_auth.account (id, user_id, account_id, provider_id, password, created_at)
+            VALUES (${accountId}, ${userId}, ${userId}, 'credential', ${passwordHash}, ${nowIso}::timestamptz)
+          `);
+          return issueOtp(tx, "email-verification", email, now);
+        });
       } catch (error) {
-        const pgCode =
-          typeof error === "object" && error !== null && "code" in error
-            ? String((error as { code?: unknown }).code)
-            : "";
-        if (pgCode === "23505") {
+        const cause = error instanceof Error ? error.cause ?? error : error;
+        if (typeof cause === "object" && cause !== null && "code" in cause && cause.code === "23505") {
           return {
             ok: false,
             errorCode: "USER_ALREADY_EXISTS",
@@ -351,12 +397,7 @@ export function createTestAuthProvider(
         }
         throw error;
       }
-
-      await issueVerificationToken(
-        "email-verification",
-        email,
-        VERIFICATION_TTL_SECONDS,
-      );
+      writeTestMailbox(message);
 
       return {
         ok: true,
@@ -370,52 +411,42 @@ export function createTestAuthProvider(
       };
     },
 
-    async verifyEmail(input): Promise<AuthVerifyEmailResult> {
-      await ensureTestNeonAuthSchema(db);
-      const token = input.token.trim();
-      if (!token) {
-        return { ok: false, errorCode: "INVALID_TOKEN" };
-      }
-
-      const nowIso = getNow().toISOString();
-      const consumed = await db.execute<{
-        identifier: string;
-        expires_at: string | Date;
-      }>(sql`
-        DELETE FROM neon_auth.verification
-        WHERE value = ${token}
-          AND identifier LIKE 'email-verification:%'
-        RETURNING identifier, expires_at
-      `);
-
-      const row = consumed.rows[0];
-      if (!row) {
-        return { ok: false, errorCode: "INVALID_TOKEN" };
-      }
-
-      const expiresAt = new Date(row.expires_at);
-      if (expiresAt.getTime() <= getNow().getTime()) {
-        return { ok: false, errorCode: "TOKEN_EXPIRED" };
-      }
-
-      const email = row.identifier.slice("email-verification:".length);
-      const updated = await db.execute<DbUserRow>(sql`
-        UPDATE neon_auth."user"
-        SET email_verified = true, updated_at = ${nowIso}::timestamptz
-        WHERE email = ${email}
-        RETURNING id, email, name, email_verified
-      `);
-
-      const userRow = updated.rows[0];
-      if (!userRow) {
-        return { ok: false, errorCode: "INVALID_TOKEN" };
-      }
-
-      return { ok: true, user: toAuthUser(userRow) };
+    sendVerificationOtp({ email }) {
+      return sendOtp(email, "email-verification");
     },
 
-    sendVerificationEmail,
-    resendVerification: sendVerificationEmail,
+    async verifyEmailOtp(input): Promise<AuthVerifyEmailResult> {
+      const email = normalizeEmail(input.email);
+      if (!email || !OTP_PATTERN.test(input.otp)) {
+        return { ok: false, errorCode: "INVALID_TOKEN" };
+      }
+
+      await ensureTestNeonAuthSchema(db);
+      const now = getNow();
+      const result = await db.transaction(async (tx) => {
+        const user = await lockOtpUser(tx, email);
+        if (!user) return { ok: false, errorCode: "INVALID_TOKEN" } as const;
+
+        const consumed = await consumeOtp(tx, "email-verification", email, input.otp, now);
+        if (!consumed.ok) return consumed;
+
+        await tx.execute(sql`
+          UPDATE neon_auth."user"
+          SET email_verified = true, updated_at = ${now.toISOString()}::timestamptz
+          WHERE id = ${user.id}
+        `);
+        const sessionToken = await createSession(tx, user.id, now);
+        return {
+          ok: true,
+          user: toAuthUser({ ...user, email_verified: true }),
+          sessionToken,
+        } as const;
+      });
+      if (!result.ok) return result;
+
+      await cookieStore.setToken(result.sessionToken, SESSION_TTL_SECONDS);
+      return { ok: true, user: result.user };
+    },
 
     async signIn(input): Promise<AuthSignInResult> {
       await ensureTestNeonAuthSchema(db);
@@ -424,37 +455,30 @@ export function createTestAuthProvider(
         return { ok: false, errorCode: "INVALID_CREDENTIALS" };
       }
 
-      const result = await db.execute<DbCredentialRow>(sql`
-        SELECT u.id, u.email, u.name, u.email_verified, a.password
-        FROM neon_auth."user" u
-        JOIN neon_auth.account a
-          ON a.user_id = u.id AND a.provider_id = 'credential'
-        WHERE u.email = ${email}
-        LIMIT 1
-      `);
+      const result = await db.transaction(async (tx) => {
+        const row = await lockOtpUser(tx, email);
+        if (!row) return { ok: false, errorCode: "INVALID_CREDENTIALS" } as const;
 
-      const row = result.rows[0];
-      if (!row || !row.password || !verifyPassword(input.password, row.password)) {
-        return { ok: false, errorCode: "INVALID_CREDENTIALS" };
-      }
+        const credentials = await tx.execute<{ password: string | null }>(sql`
+          SELECT password
+          FROM neon_auth.account
+          WHERE user_id = ${row.id} AND provider_id = 'credential'
+        `);
+        const password = credentials.rows[0]?.password;
+        if (!password || !verifyPassword(input.password, password)) {
+          return { ok: false, errorCode: "INVALID_CREDENTIALS" } as const;
+        }
+        if (!row.email_verified) {
+          return { ok: false, errorCode: "EMAIL_NOT_VERIFIED" } as const;
+        }
 
-      if (!row.email_verified) {
-        return { ok: false, errorCode: "EMAIL_NOT_VERIFIED" };
-      }
+        const sessionToken = await createSession(tx, row.id, getNow());
+        return { ok: true, user: toAuthUser(row), sessionToken } as const;
+      });
+      if (!result.ok) return result;
 
-      const now = getNow();
-      const rawSessionToken = generateOpaqueToken();
-      const hashedToken = hashSessionToken(rawSessionToken);
-      const expiresAt = new Date(now.getTime() + SESSION_TTL_SECONDS * 1000);
-
-      await db.execute(sql`
-        INSERT INTO neon_auth.session (id, user_id, token, expires_at, created_at)
-        VALUES (${randomUUID()}, ${row.id}, ${hashedToken}, ${expiresAt.toISOString()}::timestamptz, ${now.toISOString()}::timestamptz)
-      `);
-
-      await cookieStore.setToken(rawSessionToken, SESSION_TTL_SECONDS);
-
-      return { ok: true, user: toAuthUser(row) };
+      await cookieStore.setToken(result.sessionToken, SESSION_TTL_SECONDS);
+      return { ok: true, user: result.user };
     },
 
     async signOut(): Promise<void> {
@@ -475,7 +499,8 @@ export function createTestAuthProvider(
       if (!rawToken) return null;
 
       const hashed = hashSessionToken(rawToken);
-      const nowIso = getNow().toISOString();
+      const now = getNow();
+      const nowIso = now.toISOString();
       const result = await db.execute<{
         session_id: string;
         user_id: string;
@@ -516,32 +541,13 @@ export function createTestAuthProvider(
       };
     },
 
-    async requestPasswordReset(input): Promise<AuthActionResult> {
-      await ensureTestNeonAuthSchema(db);
-      const email = normalizeEmail(input.email);
-      if (!email) {
-        return { ok: true };
-      }
-
-      const result = await db.execute<DbUserRow>(sql`
-        SELECT id, email, name, email_verified
-        FROM neon_auth."user"
-        WHERE email = ${email}
-        LIMIT 1
-      `);
-      const user = result.rows[0];
-      if (!user || !user.email_verified) {
-        return { ok: true };
-      }
-
-      await issueVerificationToken("password-reset", email, RESET_TTL_SECONDS);
-      return { ok: true };
+    requestPasswordResetOtp({ email }) {
+      return sendOtp(email, "password-reset");
     },
 
-    async resetPassword(input): Promise<AuthActionResult> {
-      await ensureTestNeonAuthSchema(db);
-      const token = input.token.trim();
-      if (!token) {
+    async resetPasswordWithOtp(input): Promise<AuthActionResult> {
+      const email = normalizeEmail(input.email);
+      if (!email || !OTP_PATTERN.test(input.otp)) {
         return { ok: false, errorCode: "INVALID_TOKEN" };
       }
       if (
@@ -553,49 +559,25 @@ export function createTestAuthProvider(
         return { ok: false, errorCode: "WEAK_PASSWORD" };
       }
 
-      const consumed = await db.execute<{
-        identifier: string;
-        expires_at: string | Date;
-      }>(sql`
-        DELETE FROM neon_auth.verification
-        WHERE value = ${token}
-          AND identifier LIKE 'password-reset:%'
-        RETURNING identifier, expires_at
-      `);
+      await ensureTestNeonAuthSchema(db);
+      return db.transaction(async (tx) => {
+        const user = await lockOtpUser(tx, email);
+        if (!user?.email_verified) return { ok: false, errorCode: "INVALID_TOKEN" };
 
-      const row = consumed.rows[0];
-      if (!row) {
-        return { ok: false, errorCode: "INVALID_TOKEN" };
-      }
+        const consumed = await consumeOtp(tx, "password-reset", email, input.otp, getNow());
+        if (!consumed.ok) return consumed;
 
-      const expiresAt = new Date(row.expires_at);
-      if (expiresAt.getTime() <= getNow().getTime()) {
-        return { ok: false, errorCode: "TOKEN_EXPIRED" };
-      }
-
-      const email = row.identifier.slice("password-reset:".length);
-      const userResult = await db.execute<{ id: string }>(sql`
-        SELECT id FROM neon_auth."user" WHERE email = ${email} LIMIT 1
-      `);
-      const user = userResult.rows[0];
-      if (!user) {
-        return { ok: false, errorCode: "INVALID_TOKEN" };
-      }
-
-      const newHash = hashPassword(input.newPassword);
-      await db.execute(sql`
-        UPDATE neon_auth.account
-        SET password = ${newHash}
-        WHERE user_id = ${user.id} AND provider_id = 'credential'
-      `);
-
-      // Revoke every active session for this user across all devices.
-      await db.execute(sql`
-        DELETE FROM neon_auth.session WHERE user_id = ${user.id}
-      `);
-      await cookieStore.clearToken();
-
-      return { ok: true };
+        const newHash = hashPassword(input.newPassword);
+        await tx.execute(sql`
+          UPDATE neon_auth.account
+          SET password = ${newHash}
+          WHERE user_id = ${user.id} AND provider_id = 'credential'
+        `);
+        await tx.execute(sql`
+          DELETE FROM neon_auth.session WHERE user_id = ${user.id}
+        `);
+        return { ok: true };
+      });
     },
 
     async revokeUserSessions(authUserId: string): Promise<void> {
@@ -628,6 +610,4 @@ export function createTestAuthProvider(
       return toAuthUser(row);
     },
   };
-
-  return provider;
 }

@@ -44,7 +44,7 @@ export type AuthSignInResult =
   | { ok: false; errorCode: AuthProviderErrorCode; message?: string };
 
 export type AuthVerifyEmailResult =
-  | { ok: true; user: AuthProviderUser | null }
+  | { ok: true; user: AuthProviderUser }
   | { ok: false; errorCode: AuthProviderErrorCode; message?: string };
 
 export type AuthActionResult =
@@ -56,7 +56,6 @@ export interface AuthProvider {
     email: string;
     password: string;
     name: string;
-    callbackURL?: string;
   }): Promise<AuthSignUpResult>;
   signIn(input: {
     email: string;
@@ -64,17 +63,15 @@ export interface AuthProvider {
   }): Promise<AuthSignInResult>;
   signOut(): Promise<void>;
   getSession(): Promise<AuthProviderSession | null>;
-  sendVerificationEmail(input: {
+  sendVerificationOtp(input: { email: string }): Promise<AuthActionResult>;
+  verifyEmailOtp(input: {
     email: string;
-    callbackURL?: string;
-  }): Promise<AuthActionResult>;
-  verifyEmail(input: { token: string }): Promise<AuthVerifyEmailResult>;
-  requestPasswordReset(input: {
+    otp: string;
+  }): Promise<AuthVerifyEmailResult>;
+  requestPasswordResetOtp(input: { email: string }): Promise<AuthActionResult>;
+  resetPasswordWithOtp(input: {
     email: string;
-    redirectTo?: string;
-  }): Promise<AuthActionResult>;
-  resetPassword(input: {
-    token: string;
+    otp: string;
     newPassword: string;
   }): Promise<AuthActionResult>;
   revokeUserSessions(authUserId: string): Promise<void>;
@@ -126,11 +123,13 @@ export function getNeonAuth(): NeonAuth | null {
   return instance;
 }
 
-function mapBetterAuthErrorCode(error: {
+type BetterAuthError = {
   code?: string | null;
   message?: string | null;
   status?: number | null;
-}): AuthProviderErrorCode {
+};
+
+function mapBetterAuthErrorCode(error: BetterAuthError): AuthProviderErrorCode {
   const code = (error.code ?? "").toUpperCase();
   const message = (error.message ?? "").toLowerCase();
 
@@ -149,6 +148,21 @@ function mapBetterAuthErrorCode(error: {
     return "EMAIL_NOT_VERIFIED";
   }
   if (
+    code === "OTP_EXPIRED" ||
+    code.includes("TOKEN_EXPIRED") ||
+    message.includes("expired")
+  ) {
+    return "TOKEN_EXPIRED";
+  }
+  if (
+    code === "INVALID_OTP" ||
+    code === "TOO_MANY_ATTEMPTS" ||
+    code.includes("INVALID_TOKEN") ||
+    message.includes("invalid token")
+  ) {
+    return "INVALID_TOKEN";
+  }
+  if (
     code.includes("INVALID_EMAIL_OR_PASSWORD") ||
     code.includes("INVALID_PASSWORD") ||
     code.includes("INVALID_CREDENTIALS") ||
@@ -156,16 +170,20 @@ function mapBetterAuthErrorCode(error: {
   ) {
     return "INVALID_CREDENTIALS";
   }
-  if (code.includes("TOKEN_EXPIRED") || message.includes("expired")) {
-    return "TOKEN_EXPIRED";
-  }
-  if (code.includes("INVALID_TOKEN") || message.includes("invalid token")) {
-    return "INVALID_TOKEN";
-  }
-  if (code.includes("PASSWORD_TOO_SHORT") || code.includes("WEAK_PASSWORD")) {
+  if (
+    code === "PASSWORD_TOO_LONG" ||
+    code.includes("PASSWORD_TOO_SHORT") ||
+    code.includes("WEAK_PASSWORD")
+  ) {
     return "WEAK_PASSWORD";
   }
   return "PROVIDER_ERROR";
+}
+
+function otpFailure(
+  error?: BetterAuthError | null,
+): Extract<AuthActionResult, { ok: false }> {
+  return { ok: false, errorCode: error ? mapBetterAuthErrorCode(error) : "PROVIDER_ERROR" };
 }
 
 function toProviderUser(raw: unknown): AuthProviderUser | null {
@@ -184,8 +202,36 @@ function toProviderUser(raw: unknown): AuthProviderUser | null {
       typeof candidate.name === "string" && candidate.name.trim()
         ? candidate.name
         : candidate.email,
-    emailVerified: Boolean(candidate.emailVerified),
+    emailVerified: candidate.emailVerified === true,
   };
+}
+
+async function postPasswordOtp(
+  neonAuth: NeonAuth,
+  action: "request-password-reset" | "reset-password",
+  body: { email: string; otp?: string; password?: string },
+): Promise<AuthActionResult> {
+  // The server SDK lacks the request helper and routes its reset helper to
+  // /email-otp/passcode. The SDK proxy can forward the supported paths.
+  const origin = process.env.APP_ORIGIN?.trim() || "https://comunidad.adastrauc3m.es";
+  const path = ["email-otp", action];
+  const request = new Request(new URL("/api/auth/" + path.join("/"), origin), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const response = await neonAuth.handler().POST(request, {
+    params: Promise.resolve({ path }),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    return otpFailure({
+      status: response.status,
+      code: typeof data?.code === "string" ? data.code : undefined,
+      message: typeof data?.message === "string" ? data.message : undefined,
+    });
+  }
+  return data?.success === true ? { ok: true } : otpFailure();
 }
 
 export function createNeonAuthProvider(neonAuth: NeonAuth): AuthProvider {
@@ -195,7 +241,6 @@ export function createNeonAuthProvider(neonAuth: NeonAuth): AuthProvider {
         email: input.email,
         password: input.password,
         name: input.name,
-        callbackURL: input.callbackURL,
       });
 
       if (result.error) {
@@ -276,81 +321,44 @@ export function createNeonAuthProvider(neonAuth: NeonAuth): AuthProvider {
       };
     },
 
-    async sendVerificationEmail(input): Promise<AuthActionResult> {
-      const result = await neonAuth.sendVerificationEmail({
-        email: input.email,
-        callbackURL: input.callbackURL,
+    async sendVerificationOtp({ email }): Promise<AuthActionResult> {
+      const result = await neonAuth.emailOtp.sendVerificationOtp({
+        email,
+        type: "email-verification",
       });
-      if (result.error) {
-        return {
-          ok: false,
-          errorCode: mapBetterAuthErrorCode(result.error),
-          message: result.error.message,
-        };
-      }
-      return { ok: true };
+      return !result.error && result.data?.success === true
+        ? { ok: true }
+        : otpFailure(result.error);
     },
 
-    async verifyEmail(input): Promise<AuthVerifyEmailResult> {
-      const result = await neonAuth.verifyEmail({
-        query: { token: input.token },
-      });
-      if (result.error) {
-        return {
-          ok: false,
-          errorCode: mapBetterAuthErrorCode(result.error),
-          message: result.error.message,
-        };
-      }
+    async verifyEmailOtp({ email, otp }): Promise<AuthVerifyEmailResult> {
+      const targetEmail = normalizeEmail(email);
+      if (!targetEmail) return { ok: false, errorCode: "INVALID_TOKEN" };
 
-      const rawData = result.data as Record<string, unknown> | null | undefined;
-      const user = toProviderUser(rawData?.user);
-      if (user) {
-        return { ok: true, user: { ...user, emailVerified: true } };
-      }
+      const result = await neonAuth.emailOtp.verifyEmail({ email: targetEmail, otp });
+      if (result.error) return otpFailure(result.error);
 
-      if (rawData?.status === true) {
-        const session = await provider.getSession();
-        if (session?.user) {
-          return {
-            ok: true,
-            user: { ...session.user, emailVerified: true },
-          };
-        }
-        return { ok: true, user: null };
+      const user = toProviderUser(result.data?.user);
+      if (
+        result.data?.status !== true ||
+        !user?.emailVerified ||
+        normalizeEmail(user.email) !== targetEmail
+      ) {
+        return otpFailure();
       }
-
-      return { ok: false, errorCode: "INVALID_TOKEN" };
+      return { ok: true, user };
     },
 
-    async requestPasswordReset(input): Promise<AuthActionResult> {
-      const result = await neonAuth.requestPasswordReset({
-        email: input.email,
-        redirectTo: input.redirectTo,
-      });
-      if (result.error) {
-        return {
-          ok: false,
-          errorCode: mapBetterAuthErrorCode(result.error),
-          message: result.error.message,
-        };
-      }
-      return { ok: true };
+    requestPasswordResetOtp({ email }): Promise<AuthActionResult> {
+      return postPasswordOtp(neonAuth, "request-password-reset", { email });
     },
 
-    async resetPassword(input): Promise<AuthActionResult> {
-      const result = await neonAuth.resetPassword({
-        token: input.token,
-        newPassword: input.newPassword,
+    resetPasswordWithOtp({ email, otp, newPassword }): Promise<AuthActionResult> {
+      return postPasswordOtp(neonAuth, "reset-password", {
+        email,
+        otp,
+        password: newPassword,
       });
-      if (result.error) {
-        return {
-          ok: false,
-          errorCode: mapBetterAuthErrorCode(result.error),
-          message: result.error.message,
-        };
-      }
-      return { ok: true };
     },
 
     async revokeUserSessions(authUserId: string): Promise<void> {
