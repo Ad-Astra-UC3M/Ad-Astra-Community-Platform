@@ -9,7 +9,7 @@ import { E2E_ACCOUNTS, signInAs, signOut } from "./helpers/e2e-env";
 
 /**
  * Comprueba los destinos visibles del encabezado para el rol bajo prueba.
- * Abre y vuelve a cerrar el menú en móvil para evaluar los mismos enlaces.
+ * Abre el menú móvil para evaluar los enlaces y espera a que desaparezca al cerrarlo.
  * @param header Localizador del encabezado institucional.
  * @param expected Destino del logotipo, CTA y lista exacta de enlaces del rol por comprobar.
  * @returns Una promesa que finaliza al completar las aserciones y cerrar el menú si se abrió.
@@ -31,7 +31,10 @@ async function expectHeaderNav(
   }
   await expect(nav.getByRole("link")).toHaveCount(expected.links.length);
 
-  if (isMobile) await header.getByRole("button", { name: "Cerrar menú" }).click();
+  if (isMobile) {
+    await header.getByRole("button", { name: "Cerrar menú" }).click();
+    await expect(header.getByRole("navigation", { name: "Navegación móvil", includeHidden: true })).toBeHidden();
+  }
 }
 
 test("la navegación y el pie institucional acompañan al visitante, miembro y administrador", async ({ page }) => {
