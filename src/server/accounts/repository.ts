@@ -639,7 +639,7 @@ export async function setProfileCapability(
  * @param targetProfileId - UUID del perfil que se activa o desactiva.
  * @param status - Estado deseado, que también determina la fecha de desactivación.
  * @param actorProfileId - UUID del autor de auditoría.
- * @param onDeactivateAuthUser - Revoca sesiones con el ID de autenticación tras confirmar un
+ * @param onDeactivateAuthUser - Solicita revocar sesiones con el ID de autenticación tras confirmar un
  *   cambio real a deactivated, cuando el perfil tiene ese ID.
  * @param db - Conexión opcional para ejecutar la transacción.
  * @returns Identificador, estado e indicador de cambio, o el error de validación o de último

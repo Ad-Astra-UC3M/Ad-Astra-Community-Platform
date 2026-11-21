@@ -1,6 +1,6 @@
 # Cuentas y capacidades
 
-Las páginas JSX de administración muestran las cuentas y sus permisos. Para cambiar una cuenta, el formulario invoca una Server Action. La operación comprueba `general_admin` y toma la identidad del administrador de la sesión. PostgreSQL aplica el cambio y la auditoría en la misma transacción. Si se desactiva una cuenta, la operación revoca después sus sesiones.
+Las páginas JSX de administración muestran las cuentas y sus permisos. Para cambiar una cuenta, el formulario invoca una Server Action. La operación comprueba `general_admin` y toma la identidad del administrador de la sesión. PostgreSQL aplica el cambio y la auditoría en la misma transacción. Si se desactiva una cuenta, la operación solicita a Neon la revocación de sus sesiones después de guardar el cambio. El control del estado local bloquea las operaciones protegidas aunque falle la revocación remota.
 
 ```mermaid
 flowchart TD
@@ -10,7 +10,7 @@ flowchart TD
     F --> O["Operación de cuentas"]
     O --> C["Guard de escritura general_admin"]
     C --> W["Transacción de cuenta y auditoría"]
-    W --> S["Revocación de sesiones si cambia a desactivada"]
+    W --> S["Solicitud de revocación a Neon si se desactiva"]
     W --> N["Revalidación de rutas y redirección"]
 ```
 
@@ -24,14 +24,14 @@ flowchart TD
 | `getAccountAdminDetail` | Identificador `profileId` y `db` opcional | Devuelve la ficha con reservas, capacidades, auditoría y supresiones. Devuelve `null` si no hay ficha. | `getAdminAccount` la llama tras comprobar `general_admin`. La página usa `notFound()` si falta la cuenta. |
 | `isOnlyActiveGeneralAdminLocked` | Transacción `tx` y perfil objetivo | Bloquea en orden las filas de administradores generales y devuelve si el objetivo es el único activo. | Ayudante privado de revocación de `general_admin` y desactivación. |
 | `setProfileCapability` | Perfil objetivo, capacidad, booleano `enabled`, perfil actor y `db` opcional | Concede o revoca la capacidad y audita los cambios. Devuelve el resultado, si hubo cambio o el error `last_general_admin` cuando corresponde. | `changeAccountCapability` le pasa la identidad de sesión. Las pruebas llaman a esta función con una base aislada. |
-| `setProfileStatus` | Perfil objetivo, nuevo estado, perfil actor, callback de revocación opcional y `db` opcional | Actualiza y audita el estado, protege al último administrador general activo y llama al callback tras confirmar un cambio a `deactivated`. | `changeAccountStatus` aporta al administrador de sesión y la revocación del proveedor de autenticación. |
+| `setProfileStatus` | Perfil objetivo, nuevo estado, perfil actor, callback de revocación opcional y `db` opcional | Actualiza y audita el estado, protege al último administrador general activo y llama al callback tras confirmar un cambio a `deactivated`. | `changeAccountStatus` aporta al administrador de sesión y la función que solicita la revocación al proveedor de autenticación. |
 
 ## [`src/server/accounts/operations.ts`](../../src/server/accounts/operations.ts)
 
 | Función | Parámetros | Retorno o efecto | Llamada y relación con Next.js |
 | --- | --- | --- | --- |
 | `changeAccountCapability` | Identificador objetivo, código de capacidad y booleano | Exige `general_admin`, valida el identificador presente y el código, y delega la escritura. Devuelve `null` si faltan esos datos o el código es inválido. | Llamada por `toggleAccountCapabilityAction` desde el formulario de ficha. |
-| `changeAccountStatus` | Identificador objetivo y estado `active` o `deactivated` | Exige `general_admin`, delega el cambio y conecta la revocación de sesiones. Devuelve `null` cuando falta el identificador. | Llamada por `setAccountStatusAction` desde la ficha. |
+| `changeAccountStatus` | Identificador objetivo y estado `active` o `deactivated` | Exige `general_admin`, delega el cambio y conecta la solicitud de revocación de sesiones. Devuelve `null` cuando falta el identificador. | Llamada por `setAccountStatusAction` desde la ficha. |
 
 ## [`src/app/admin/accounts/actions.ts`](../../src/app/admin/accounts/actions.ts)
 
