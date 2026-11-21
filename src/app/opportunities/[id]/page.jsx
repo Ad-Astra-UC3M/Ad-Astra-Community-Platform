@@ -1,8 +1,12 @@
+/**
+ * Ruta dinámica /opportunities/[id]. Muestra la información de una oportunidad publicada y
+ * permite gestionar su marcador desde el detalle.
+ */
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../components/back-link";
-import { requireUser } from "../../../lib/auth/session";
-import { getOpportunity } from "../../../server/repositories/opportunities";
+import { getVisibleOpportunity } from "../../../server/opportunities/operations";
 import { removeOpportunityBookmark, saveOpportunityBookmark } from "../actions";
 
 export const metadata = { title: "Detalle de oportunidad" };
@@ -37,11 +41,21 @@ const secondaryButtonClass =
 const inlineLinkClass =
   "text-brand-primary underline underline-offset-[0.22em] transition-colors hover:text-brand-ink";
 
+/**
+ * Next.js ejecuta este Server Component en la ruta de detalle. Usa getVisibleOpportunity y
+ * llama a notFound si la oportunidad no está disponible.
+ *
+ * @param props - Propiedades de ruta suministradas por Next.js.
+ * @param props.params - Promesa con el ID o slug de la oportunidad.
+ * @param props.searchParams - Promesa con status para mostrar el resultado de la acción de
+ *   marcador.
+ * @returns Detalle en JSX con su contacto y formulario de marcador, o la vista 404 de Next.js
+ *   si falta.
+ */
 export default async function OpportunityDetailPage({ params, searchParams }) {
   const [{ id }, { status }] = await Promise.all([params, searchParams]);
-  const user = await requireUser(`/opportunities/${encodeURIComponent(id)}`);
-  const opportunity = await getOpportunity(id, user.personId);
-  if (!opportunity || opportunity.status !== "published") notFound();
+  const opportunity = await getVisibleOpportunity(id);
+  if (!opportunity) notFound();
 
   const message = typeof status === "string" ? statusMessages.get(status) : undefined;
   const returnTo = `/opportunities/${opportunity.id}`;

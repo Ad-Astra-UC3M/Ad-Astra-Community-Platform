@@ -1,7 +1,12 @@
+/**
+ * @file Pantalla de inicio del portal. Las tarjetas de navegación dependen de la sesión y de las
+ * capacidades de Comunidad.
+ */
+
 import { ArrowRight02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
-import { requireUser } from "../../lib/auth/session";
+import { requireUser } from "../../server/auth/access";
 
 export const metadata = { title: "Inicio" };
 
@@ -44,6 +49,10 @@ const adminLink = {
   description: "Accede a las herramientas de gestión habilitadas para tu cuenta.",
 };
 
+/**
+ * Exige una sesión con retorno a /home y prepara los enlaces del portal. Incluye la entrada al panel cuando
+ * el usuario tiene alguna capacidad.
+ */
 export default async function HomePage() {
   const user = await requireUser("/home");
   const hasAdmin = user.capabilities.length > 0;

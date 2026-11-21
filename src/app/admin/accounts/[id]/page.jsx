@@ -1,9 +1,13 @@
+/**
+ * Ruta dinámica /admin/accounts/[id]. Presenta la ficha de la cuenta y los formularios de
+ * capacidades y estado para administración general.
+ */
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../../components/back-link";
-import { CAPABILITY_CODES } from "../../../../lib/auth/session";
-import { getAccountAdminDetail } from "../../../../server/repositories/admin";
-import { requireCapability } from "../../access";
+import { CAPABILITY_CODES } from "../../../../db/schema";
+import { getAdminAccount } from "../../../../server/accounts/operations";
 import { setAccountStatusAction, toggleAccountCapabilityAction } from "../actions";
 
 export const metadata = { title: "Ficha de cuenta" };
@@ -62,13 +66,22 @@ const panelClass =
 const secondaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
+/**
+ * Next.js ejecuta este Server Component y consulta getAdminAccount. Llama a notFound si el
+ * perfil no está disponible.
+ *
+ * @param props - Propiedades de ruta suministradas por Next.js.
+ * @param props.params - Promesa con el ID de cuenta que se consulta.
+ * @param props.searchParams - Promesa con status y error que indican el resultado de un cambio.
+ * @returns Ficha en JSX con sus datos, formularios y trazabilidad, o la vista 404 si no hay
+ *   cuenta.
+ */
 export default async function AdminAccountDetailPage({ params, searchParams }) {
-  await requireCapability("general_admin");
   const { id } = await params;
   const resolvedSearch = await searchParams;
   const statusCode = typeof resolvedSearch?.status === "string" ? resolvedSearch.status : "";
   const errorCode = typeof resolvedSearch?.error === "string" ? resolvedSearch.error : "";
-  const account = await getAccountAdminDetail(id);
+  const account = await getAdminAccount(id);
   if (!account) notFound();
 
   const statusMessage = statusMessages.get(statusCode);

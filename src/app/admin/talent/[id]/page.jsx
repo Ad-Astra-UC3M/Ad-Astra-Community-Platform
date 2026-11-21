@@ -1,7 +1,11 @@
+/**
+ * Ruta dinámica /admin/talent/[id]. Presenta la ficha interna de talento, con sus datos
+ * profesionales, enlaces e indicador de difusión.
+ */
+
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../../components/back-link";
-import { getTalentAdminDetail } from "../../../../server/repositories/admin";
-import { requireCapability } from "../../access";
+import { getTalentForConsultation } from "../../../../server/profiles/operations";
 
 export const metadata = { title: "Detalle de perfil de talento" };
 
@@ -29,10 +33,18 @@ const experienceKindLabels = {
 const panelClass =
   "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
 
+/**
+ * Next.js ejecuta este Server Component para consultar getTalentForConsultation. Llama a
+ * notFound cuando falta la ficha.
+ *
+ * @param props - Propiedades de ruta suministradas por Next.js.
+ * @param props.params - Promesa con el UUID del perfil de talento solicitado.
+ * @returns Ficha interna en JSX para la capacidad talent_consultation, o la vista 404 si falta
+ *   el perfil.
+ */
 export default async function AdminTalentDetailPage({ params }) {
-  await requireCapability("talent_consultation");
   const { id } = await params;
-  const profile = await getTalentAdminDetail(id);
+  const profile = await getTalentForConsultation(id);
   if (!profile) notFound();
 
   return (

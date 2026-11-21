@@ -1,6 +1,10 @@
+/**
+ * @file Página de App Router para `/my-activities`. Renderiza en servidor las reservas de la sesión y
+ * ofrece cambiarlas o cancelarlas.
+ */
+
 import Link from "next/link";
-import { requireUser } from "../../lib/auth/session";
-import { listReservations } from "../../server/repositories/activities";
+import { listMyReservations } from "../../server/activities/portal";
 import { ShiftSchedule } from "../activities/shift-schedule";
 import { cancelActivityReservation, changeActivityShift } from "./actions";
 
@@ -28,9 +32,16 @@ const secondaryButtonClass =
 const selectClass =
   "min-h-12 w-full min-w-0 rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
 
+/**
+ * Next.js ejecuta la página y `listMyReservations` carga los datos de la persona conectada. Los
+ * formularios envían sus campos a las Server Actions de cambio y cancelación.
+ * @param props Propiedades de la página que proporciona Next.js.
+ * @param props.searchParams Promesa con la consulta. Usa `status` para mostrar el resultado de la
+ * acción.
+ * @returns La lista de reservas, con las operaciones disponibles para cada una, o el estado vacío.
+ */
 export default async function MyActivitiesPage({ searchParams }) {
-  const user = await requireUser("/my-activities");
-  const reservations = await listReservations(user.personId);
+  const reservations = await listMyReservations();
   const { status } = await searchParams;
   const message = typeof status === "string" ? messages.get(status) : undefined;
 

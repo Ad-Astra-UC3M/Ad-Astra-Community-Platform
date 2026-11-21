@@ -1,8 +1,19 @@
+/**
+ * @file Controles cliente de la tarjeta QR. Usan el navegador para imprimir y facilitar el acceso al
+ * token cuando no hay cámara.
+ */
+
 "use client";
 
 const secondaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink";
 
+/**
+ * `CardPage` monta estos controles debajo de la tarjeta.
+ * @param props Datos de la tarjeta que pasan del servidor al componente cliente.
+ * @param props.token JWT vigente que puede seleccionarse para validar con código manual.
+ * @returns Los controles de impresión y el campo de solo lectura con el código.
+ */
 export function CardTools({ token }) {
   return (
     <div className="grid min-w-0 gap-4 print:hidden">

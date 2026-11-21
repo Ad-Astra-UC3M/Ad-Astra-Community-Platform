@@ -1,8 +1,12 @@
+/**
+ * @file Página de App Router para `/activities/[id]`. Muestra el detalle de una actividad publicada y
+ * ofrece reservar sus turnos.
+ */
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../components/back-link";
-import { requireUser } from "../../../lib/auth/session";
-import { getActivity } from "../../../server/repositories/activities";
+import { getMyVisibleActivity } from "../../../server/activities/portal";
 import { ShiftSchedule } from "../shift-schedule";
 import { reserveActivityShift } from "./actions";
 
@@ -24,6 +28,15 @@ const primaryButtonClass =
 const secondaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink";
 
+/**
+ * `ActivityPage` usa este componente para mostrar horario, aforo y estado de la reserva de cada turno.
+ * @param props Datos del turno y de su formulario.
+ * @param props.shift Turno con horario, plazas y estado de la reserva propia.
+ * @param props.reserve Server Action vinculada a la actividad. El formulario añade `shiftId`.
+ * @param props.singleShift Activa el aviso cuando la actividad tiene un solo turno.
+ * @param props.now Hora de referencia en milisegundos para ocultar la reserva si el turno ya empezó.
+ * @returns La tarjeta de turno, con formulario cuando la inscripción sigue abierta y hay plaza.
+ */
 function ShiftCard({ shift, reserve, singleShift, now }) {
   const closed = new Date(shift.startsAt).getTime() <= now;
   const hasCapacity = shift.available === null || shift.available > 0;
@@ -68,10 +81,18 @@ function ShiftCard({ shift, reserve, singleShift, now }) {
   );
 }
 
+/**
+ * Next.js llama a esta página de servidor. Carga `getMyVisibleActivity`, responde con `notFound` cuando
+ * falta el detalle y enlaza `reserveActivityShift` a la actividad cargada.
+ * @param props Propiedades de la ruta que proporciona Next.js.
+ * @param props.params Promesa con `id`, el ID o slug de la actividad.
+ * @param props.searchParams Promesa con la consulta. `status` permite mostrar el resultado de la
+ * reserva.
+ * @returns El detalle con la galería y las tarjetas de turno.
+ */
 export default async function ActivityPage({ params, searchParams }) {
   const [{ id }, { status }] = await Promise.all([params, searchParams]);
-  const user = await requireUser(`/activities/${encodeURIComponent(id)}`);
-  const activity = await getActivity(id, user.personId);
+  const activity = await getMyVisibleActivity(id);
   if (!activity) notFound();
 
   const message = typeof status === "string" ? messages.get(status) : undefined;

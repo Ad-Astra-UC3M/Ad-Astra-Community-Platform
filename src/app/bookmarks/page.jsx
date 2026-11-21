@@ -1,7 +1,11 @@
+/**
+ * Ruta /bookmarks del App Router. Lista las oportunidades guardadas por la persona autenticada,
+ * con una vista reducida para las archivadas y la opción de retirar cada marcador.
+ */
+
 import Link from "next/link";
 import { BackLink } from "../../components/back-link";
-import { requireUser } from "../../lib/auth/session";
-import { listBookmarks } from "../../server/repositories/opportunities";
+import { listMyBookmarks } from "../../server/opportunities/operations";
 import { removeOpportunityBookmark } from "../opportunities/actions";
 
 export const metadata = { title: "Mis marcadores" };
@@ -35,10 +39,17 @@ const secondaryButtonClass =
 const inlineLinkClass =
   "text-brand-primary underline underline-offset-[0.22em] transition-colors hover:text-brand-ink";
 
+/**
+ * Next.js ejecuta este Server Component para leer listMyBookmarks y mostrar el resultado de
+ * removeOpportunityBookmark.
+ *
+ * @param props - Propiedades de ruta suministradas por Next.js.
+ * @param props.searchParams - Promesa con status para el mensaje tras retirar un marcador.
+ * @returns Lista personal en JSX con entradas publicadas y archivadas, o su estado vacío.
+ */
 export default async function BookmarksPage({ searchParams }) {
-  const user = await requireUser("/bookmarks");
+  const bookmarks = await listMyBookmarks();
   const { status } = await searchParams;
-  const bookmarks = await listBookmarks(user.personId);
   const message = typeof status === "string" ? statusMessages.get(status) : undefined;
 
   return (

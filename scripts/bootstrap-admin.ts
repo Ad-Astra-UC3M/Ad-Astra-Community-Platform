@@ -1,3 +1,9 @@
+/**
+ * Comando operativo de arranque de Comunidad. Concede general_admin a un
+ * perfil existente que ya completó el alta en Neon Auth. Usa el cliente
+ * Drizzle de la aplicación y registra la concesión en la auditoría.
+ */
+
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { eq } from "drizzle-orm";
@@ -15,6 +21,14 @@ export interface BootstrapAdminResult {
   alreadyHadCapability: boolean;
 }
 
+/**
+ * Concede general_admin a un perfil activo, enlazado y verificado. Se llama
+ * desde db:bootstrap-admin, el seed E2E y las pruebas. Bloquea el perfil dentro
+ * de una transacción y audita la concesión solo si la inserción es nueva.
+ * @param db Cliente Drizzle que ejecuta la transacción.
+ * @param rawEmail Correo que se recorta y pasa a minúsculas para localizar el perfil.
+ * @returns Identidad del perfil y si se concedió la capacidad o ya existía. Rechaza si el perfil no cumple las condiciones.
+ */
 export async function bootstrapAdmin(
   db: AppDb,
   rawEmail: string,
@@ -93,6 +107,11 @@ export async function bootstrapAdmin(
   });
 }
 
+/**
+ * Decide si debe leer el argumento de correo y arrancar el comando. Las pruebas con PGlite y
+ * el seed de Playwright pueden importar bootstrapAdmin como función para sus fixtures.
+ * @returns Si la ruta de process.argv[1] corresponde a la URL de este módulo.
+ */
 function isDirectCliInvocation(): boolean {
   const entry = process.argv[1];
   if (!entry) return false;

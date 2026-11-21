@@ -1,7 +1,10 @@
+/**
+ * Ruta /admin del App Router. Orquesta la vista inicial de administración a partir de las
+ * capacidades de sesión y los datos que permite cada una.
+ */
+
 import Link from "next/link";
-import { listShifts } from "../../server/repositories/activities";
-import { getAdminMetrics } from "../../server/repositories/admin";
-import { requireAdminAny } from "./access";
+import { loadAdminDashboard } from "../../server/accounts/operations";
 
 export const metadata = { title: "Panel de administración" };
 
@@ -68,14 +71,16 @@ const panelClass =
 const primaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
+/**
+ * Next.js ejecuta este Server Component para consultar loadAdminDashboard y seleccionar los
+ * módulos autorizados.
+ *
+ * @returns Panel en JSX con enlaces por capacidad y las secciones de métricas y turnos cuando
+ *   corresponden.
+ */
 export default async function AdminPage() {
-  const user = await requireAdminAny();
-  const capabilities = new Set(user.capabilities);
-  const visibleModules = moduleCards.filter((card) => capabilities.has(card.capability));
-  const [metrics, shifts] = await Promise.all([
-    capabilities.has("general_admin") ? getAdminMetrics() : Promise.resolve(null),
-    capabilities.has("attendance_validation") ? listShifts() : Promise.resolve([]),
-  ]);
+  const { capabilities, metrics, shifts } = await loadAdminDashboard();
+  const visibleModules = moduleCards.filter((card) => capabilities.includes(card.capability));
 
   return (
     <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
@@ -84,7 +89,7 @@ export default async function AdminPage() {
         <h1>Panel administrativo</h1>
         <p className="max-w-[48ch] text-[1.2rem] leading-[1.55]">
           Accede únicamente a los módulos autorizados para tus capacidades activas:{" "}
-          {user.capabilities.map((cap) => capabilityLabels[cap] ?? cap).join(", ")}.
+          {capabilities.map((cap) => capabilityLabels[cap] ?? cap).join(", ")}.
         </p>
       </header>
 
@@ -129,7 +134,7 @@ export default async function AdminPage() {
         </section>
       )}
 
-      {capabilities.has("attendance_validation") && (
+      {capabilities.includes("attendance_validation") && (
         <section className="grid min-w-0 gap-4" aria-label="Acceso rápido a turnos de asistencia">
           <h2>Control de asistencia</h2>
           <p>Elige el turno en el que vas a recibir a los participantes.</p>

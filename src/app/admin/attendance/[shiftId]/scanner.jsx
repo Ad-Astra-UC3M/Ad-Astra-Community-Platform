@@ -1,9 +1,22 @@
+/**
+ * @file Componente cliente del control de asistencia. Captura un QR por cámara o permite pegar el token
+ * y envía el formulario para su validación en el servidor.
+ */
+
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
 
 
 
+/**
+ * `AttendancePage` monta el lector con una Server Action vinculada al turno. Usa `useActionState` para
+ * mostrar el resultado y bloquear el envío mientras está pendiente.
+ * @param props Datos que recibe el lector desde la página de turno.
+ * @param props.action Acción que recibe el estado previo y el formulario con `token` y devuelve el
+ * nuevo mensaje.
+ * @returns El lector de cámara y el formulario manual con su estado de validación.
+ */
 export function Scanner({action}) {
   const [result, submit, pending] = useActionState(action, "");
   const [active, setActive] = useState(false);
@@ -18,11 +31,20 @@ export function Scanner({action}) {
     let stream;
     let timer;
     const preview = video.current;
+    /**
+     * La limpieza del efecto y `scan` llaman a este helper para liberar las pistas de cámara, cancelar
+     * el temporizador y desconectar el vídeo.
+     */
     function stop() {
       stream?.getTracks().forEach(track => track.stop());
       if (timer) clearTimeout(timer);
       if (preview) preview.srcObject = null;
     }
+    /**
+     * El efecto de `Scanner` abre la cámara cuando el lector está activo. Importa `jsqr` bajo demanda,
+     * inicia el vídeo y prepara el lienzo para `readFrame`. Si falla, muestra la opción de pegar el
+     * token.
+     */
     async function scan() {
       try {
         const { default: decode } = await import("jsqr");
@@ -35,6 +57,11 @@ export function Scanner({action}) {
         await preview.play();
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d", { willReadFrequently: true });
+        /**
+         * `scan` inicia este ciclo de lectura en el navegador. Captura un fotograma del vídeo, lo
+         * decodifica con `jsqr` y envía el formulario al obtener un código. Si necesita otra lectura,
+         * programa el siguiente fotograma.
+         */
         function readFrame() {
           if (closed || !preview) return;
           if (preview.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {

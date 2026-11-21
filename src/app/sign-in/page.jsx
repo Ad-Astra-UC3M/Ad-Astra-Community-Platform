@@ -1,5 +1,11 @@
+/**
+ * @file Pantalla de entrada al portal. Lee el destino solicitado y las confirmaciones de cuenta y los pasa
+ * al formulario de acceso.
+ */
+
 import Link from "next/link";
-import { readOptionalNextPath, signIn } from "../../lib/auth/session";
+import { readOptionalNextPath } from "../../server/auth/form-context";
+import { signIn } from "../auth-actions";
 
 export const metadata = { title: "Acceder a la comunidad" };
 
@@ -9,6 +15,12 @@ const primaryButtonClass =
 const inputClass =
   "min-h-12 w-full min-w-0 rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
 
+/**
+ * Renderiza el formulario conectado a signIn. Sanea next antes de volver a enviarlo como campo oculto.
+ *
+ * @param props.searchParams - Promesa con next, error o avisos tras verificar el correo o restablecer la
+ * contraseña.
+ */
 export default async function SignInPage({ searchParams }) {
   const { error, next, reset, verified } = await searchParams;
   const safeNext = readOptionalNextPath(next);

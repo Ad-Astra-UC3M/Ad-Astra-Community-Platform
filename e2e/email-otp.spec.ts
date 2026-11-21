@@ -1,6 +1,16 @@
+/**
+ * Regresiones Playwright de verificación de correo. Comprueban el formulario
+ * Next.js con el proveedor local de Auth y el buzón JSONL de la ejecución. La
+ * prueba HTTP comprueba la retirada de las rutas públicas del proxy.
+ */
+
 import { expect, test } from "@playwright/test";
 import { registerForVerification, waitForMailboxOtp } from "./helpers/e2e-env";
 
+/**
+ * Prueba el error de código, el reenvío, la invalidación del código anterior y
+ * la llegada a /bookmarks al abrir sesión con el código nuevo.
+ */
 test("verifica el alta por código, rechaza el código anterior y recupera el destino protegido", async ({ page }, info) => {
   const email = `verificacion.${info.project.name}.${info.repeatEachIndex}.${info.retry}@alumnos.uc3m.es`;
   const password = "VerificacionE2E2026!";
@@ -26,6 +36,12 @@ test("verifica el alta por código, rechaza el código anterior y recupera el de
   await main.getByLabel("Contraseña").fill(password);
   await main.getByRole("button", { name: "Acceder", exact: true }).click();
 
+  /**
+   * Comprueba el estado y el destino de retorno visibles en la URL de verificación.
+   * @param param Parámetro del estado que espera el paso actual.
+   * @param value Valor esperado del parámetro.
+   * @returns La aserción Playwright sobre /verify-email y sus dos parámetros, incluido next.
+   */
   const expectVerificationStep = (param: string, value: string) =>
     expect(page).toHaveURL(url =>
       url.pathname === "/verify-email" &&
@@ -58,4 +74,17 @@ test("verifica el alta por código, rechaza el código anterior y recupera el de
   await codeField.fill(newCode);
   await confirmButton.click();
   await expect(page).toHaveURL(/\/bookmarks$/);
+});
+
+/**
+ * Comprueba que GET para sesión y administración y POST para verificar correo
+ * devuelven 404 en las rutas que usaba el proxy de Neon Auth.
+ */
+test("el portal no expone un proxy público de Neon Auth", async ({ request }) => {
+  for (const path of ["get-session", "admin/list-users"]) {
+    const response = await request.get("/api/auth/" + path);
+    expect(response.status()).toBe(404);
+  }
+  const verification = await request.post("/api/auth/email-otp/verify-email");
+  expect(verification.status()).toBe(404);
 });

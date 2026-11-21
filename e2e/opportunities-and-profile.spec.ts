@@ -1,6 +1,16 @@
+/**
+ * Recorridos Playwright de actividades, catálogo de oportunidades y edición
+ * del perfil. Usan la interfaz de Next.js con PGlite sembrado y crean cuentas
+ * verificadas para aislar el estado de cada caso.
+ */
+
 import { expect, test } from "@playwright/test";
 import { E2E_ACCOUNTS, registerVerifyAndSignIn, signInAs, signOut } from "./helpers/e2e-env";
 
+/**
+ * Comprueba la galería ordenada, el cambio al turno de destino y la reemisión
+ * de la tarjeta. El panel rechaza el código anterior y valida el vigente.
+ */
 test("turno único con imágenes ordenadas, cambio atómico de turno y reemisión QR con revocación", async ({ page }, info) => {
   const email = `turnos.${info.project.name}@alumnos.uc3m.es`;
   await registerVerifyAndSignIn(page, {
@@ -55,6 +65,10 @@ test("turno único con imágenes ordenadas, cambio atómico de turno y reemisió
   await expect(page.getByRole("status")).toContainText("Asistencia registrada.");
 });
 
+/**
+ * Recorre el filtro de investigación, el detalle y los marcadores. Comprueba
+ * la aparición de una sola ficha guardada y su retirada desde /bookmarks.
+ */
 test("oportunidades con filtro por tipo y marcadores idempotentes", async ({ page }, info) => {
   await registerVerifyAndSignIn(page, {
     firstName: "Inés",
@@ -84,6 +98,11 @@ test("oportunidades con filtro por tipo y marcadores idempotentes", async ({ pag
   await expect(page.getByText("Todavía no tienes oportunidades guardadas.")).toBeVisible();
 });
 
+/**
+ * Verifica el enlace al aviso, la edición del perfil con correo de solo lectura
+ * y la validación de enlaces de talento. Comprueba el historial de difusión y
+ * que la solicitud de supresión queda pendiente.
+ */
 test("aviso de privacidad, perfil básico, talento voluntario, difusión y solicitud de supresión", async ({ page }, info) => {
   await page.goto("/sign-up");
   await page.getByRole("link", { name: "aviso de privacidad" }).click();

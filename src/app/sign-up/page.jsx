@@ -1,6 +1,11 @@
+/**
+ * @file Pantalla de alta institucional. La vista lee de la URL los errores previstos. La acción de cuenta
+ * valida y persiste lo que envía el formulario.
+ */
+
 import Link from "next/link";
 import { BackLink } from "../../components/back-link";
-import { signUp } from "../../lib/auth/session";
+import { signUp } from "../auth-actions";
 
 export const metadata = { title: "Crear cuenta" };
 
@@ -19,6 +24,11 @@ const primaryButtonClass =
 const inputClass =
   "min-h-12 w-full min-w-0 rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
 
+/**
+ * Next.js renderiza el registro y conecta el formulario a la Server Action signUp.
+ *
+ * @param props.searchParams - Promesa con el código de error opcional devuelto por la acción.
+ */
 export default async function SignUpPage({ searchParams }) {
   const { error } = await searchParams;
   const message =

@@ -1,6 +1,10 @@
+/**
+ * @file Página de App Router para `/admin/activities`. Muestra las actividades y los formularios de
+ * edición tras comprobar la capacidad correspondiente.
+ */
+
 import { BackLink } from "../../../components/back-link";
-import { listAdminActivities } from "../../../server/repositories/admin";
-import { requireCapability } from "../access";
+import { listAdminActivities } from "../../../server/activities/admin";
 import {
   addActivityImageAction,
   addActivityShiftAction,
@@ -61,8 +65,19 @@ const errorMessages = new Map([
   ["missing_shift", "No se encontró el turno indicado."],
 ]);
 
+/**
+ * Propone a `AdminActivitiesPage` las horas de inicio y fin para los formularios de turno.
+ * @param offsetHours Horas que se suman al instante actual antes de leer la fecha y hora locales del
+ * servidor.
+ * @returns Una fecha con precisión de hora en el formato de `datetime-local`.
+ */
 function defaultDateTimeInput(offsetHours) {
   const date = new Date(Date.now() + offsetHours * 60 * 60 * 1000);
+  /**
+   * Añade el cero inicial a los valores de fecha y hora de `defaultDateTimeInput`.
+   * @param value Mes, día u hora que se convierte a texto.
+   * @returns La cadena con un mínimo de dos dígitos.
+   */
   const pad = (value) => String(value).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:00`;
 }
@@ -78,8 +93,15 @@ const primaryButtonClass =
 const secondaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
+/**
+ * Next.js llama a esta página de servidor. `listAdminActivities` exige `content_editing` antes de
+ * cargar actividades, turnos y galerías. Los formularios enlazan a las Server Actions del panel.
+ * @param props Propiedades de la página que proporciona Next.js.
+ * @param props.searchParams Promesa con `status` o `error`, códigos que se traducen a avisos de la
+ * operación.
+ * @returns Los formularios de creación y edición y el listado de actividades y turnos.
+ */
 export default async function AdminActivitiesPage({ searchParams }) {
-  await requireCapability("content_editing");
   const resolvedSearch = await searchParams;
   const statusCode = typeof resolvedSearch?.status === "string" ? resolvedSearch.status : "";
   const errorCode = typeof resolvedSearch?.error === "string" ? resolvedSearch.error : "";

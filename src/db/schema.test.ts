@@ -1,3 +1,9 @@
+/**
+ * Pruebas de integración del esquema PostgreSQL con Node y PGlite. Aplican el
+ * SQL inicial y ejercitan las restricciones, índices y tipos con consultas
+ * Drizzle. También comprueban el bootstrap administrativo y getDb en pruebas.
+ */
+
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -38,6 +44,13 @@ const EXPECTED_MVP_TABLES = [
   "talent_profiles",
 ].sort();
 
+/**
+ * Inserta la fila base que usan los casos del esquema para crear referencias
+ * válidas o aislar una restricción concreta.
+ * @param db Conexión Drizzle aislada del caso.
+ * @param overrides Campos que sustituyen los valores válidos de la fixture.
+ * @returns La fila de profiles devuelta por PostgreSQL tras insertar.
+ */
 async function insertValidProfile(
   db: AppDb,
   overrides: Partial<typeof profiles.$inferInsert> = {},

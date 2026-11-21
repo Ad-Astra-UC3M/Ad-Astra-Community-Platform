@@ -1,7 +1,11 @@
+/**
+ * Ruta /profile/privacy del App Router. Presenta la decisión vigente y el historial de
+ * difusión, además del estado de la solicitud de supresión del titular.
+ */
+
 import Link from "next/link";
 import { BackLink } from "../../../components/back-link";
-import { requireUser } from "../../../lib/auth/session";
-import { getDisseminationStatus, getMyDeletionRequest } from "../../../server/repositories/profile";
+import { getMyPrivacySettings } from "../../../server/profiles/operations";
 import { requestDeletionAction, updateDisseminationAction } from "../actions";
 
 export const metadata = { title: "Difusión y privacidad" };
@@ -35,6 +39,12 @@ const deletionStatusLabels = {
   resolved: "Resuelta",
 };
 
+/**
+ * Formatea las fechas del historial y de la solicitud que muestra ProfilePrivacyPage.
+ *
+ * @param timestamp - Fecha o valor de fecha que se convierte a Date.
+ * @returns Fecha y hora en español con la zona Europe/Madrid.
+ */
 function formatDateTime(timestamp) {
   return dateTimeFormat.format(new Date(timestamp));
 }
@@ -54,12 +64,19 @@ const alertClass = "rounded-[4px] bg-brand-accent/35 px-4 py-3.5 text-brand-ink"
 
 const codeClass = "rounded bg-brand-soft/20 px-1.5 py-0.5 font-mono text-[0.9em]";
 
+/**
+ * Next.js ejecuta este Server Component para leer getMyPrivacySettings. Sus formularios
+ * registran decisiones de difusión y crean una solicitud de supresión.
+ *
+ * @param props - Propiedades de ruta suministradas por Next.js.
+ * @param props.searchParams - Promesa con status y error para mostrar el resultado de los
+ *   formularios.
+ * @returns Vista de privacidad en JSX con estado de difusión, historial y solicitud actual o
+ *   formulario de alta.
+ */
 export default async function ProfilePrivacyPage({ searchParams }) {
-  const user = await requireUser("/profile/privacy");
-  const [dissemination, deletionRequest, resolvedParams] = await Promise.all([
-    getDisseminationStatus(user.personId),
-    getMyDeletionRequest(user.personId),
-    searchParams,
+  const [{ dissemination, deletionRequest }, resolvedParams] = await Promise.all([
+    getMyPrivacySettings(), searchParams,
   ]);
   const { status, error } = resolvedParams;
   const statusMessage = typeof status === "string" ? statusMessages.get(status) : undefined;

@@ -1,14 +1,16 @@
+/**
+ * @file Vista JSX de los formularios OTP de alta. VerifyEmailPage le pasa los valores ya leídos en el
+ * servidor y las pruebas de render pueden pasar datos propios.
+ */
+
 import Link from "next/link";
 import {
   AccountCodeField,
   InstitutionalEmailField,
 } from "../../components/account-code-fields";
 import { BackLink } from "../../components/back-link";
-import {
-  readOptionalNextPath,
-  resendVerificationAction,
-  verifyEmailAction,
-} from "../../lib/auth/session";
+import { readOptionalNextPath } from "../../server/auth/form-context";
+import { resendVerificationAction, verifyEmailAction } from "../auth-actions";
 
 const primaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface";
@@ -22,6 +24,13 @@ const errors = {
   invalid: "El código de verificación no es válido o ya se ha utilizado. Comprueba el correo y usa el código más reciente.",
 };
 
+/**
+ * Renderiza los formularios de confirmación y reenvío. Conecta verifyEmailAction y resendVerificationAction
+ * y conserva el destino seguro.
+ *
+ * @param props.params - Avisos de consulta y destino interno ya leídos por la página.
+ * @param props.email - Correo sugerido para los campos de los formularios.
+ */
 export function VerifyEmailView({ params, email }) {
   const { sent, resent, pending, error } = params;
   const next = readOptionalNextPath(params.next);

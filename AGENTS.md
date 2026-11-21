@@ -20,6 +20,8 @@ Lee el [README](README.md) y la última entrada de la [bitácora](docs/developme
 - Mantén rutas, subrutas, componentes y modelos en inglés, y la interfaz en español. Cuida una estructura de carpetas legible y accesible, organiza el código por recorrido y acerca sus pruebas. Extrae componentes cuando varias pantallas compartan un comportamiento concreto.
 - Para el diseño, consulta el manual de identidad y las guías de diseño, producto y componentes del repositorio `Ad-Astra-Landing-page`. Reutiliza activos institucionales apropiados y verifica los estados de interacción en móvil y escritorio.
 
+- Documenta cada fichero del backend y cada función nombrada en su código. La cabecera explica su responsabilidad. El JSDoc junto a la firma explica propósito, parámetros y su uso, resultado o efecto y relación con los llamadores. Cuando use una convención de Next.js, explica qué hace en ese flujo. Mantén el [mapa del backend](docs/backend/README.md) al día al mover archivos o cambiar decisiones.
+
 ## Integrar, revisar y entregar
 
 1. Ejecuta `npm test`, `npm run typecheck`, `npm run build` y los recorridos afectados con `npm run test:e2e`. El chequeo de tipos genera los tipos de ruta e ignora los validadores antiguos de desarrollo. Las instrucciones de instalación del navegador están en el README.

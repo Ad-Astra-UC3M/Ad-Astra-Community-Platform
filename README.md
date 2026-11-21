@@ -6,7 +6,7 @@ Plataforma web en español de la asociación Ad Astra UC3M para gestionar cuenta
 
 - **Next.js 16 (App Router)** con componentes propios en `.jsx` y estilos en **Tailwind CSS v4** (`src/app/globals.css`).
 - **PostgreSQL en Neon** con **Drizzle ORM** (`src/db/schema/*`, `drizzle/0000_initial.sql`, 13 tablas MVP en `public`) y **PGlite** para pruebas automáticas locales y E2E.
-- **Neon Auth** (`@neondatabase/auth/next/server`, `src/lib/auth/*`, `src/app/api/auth/[...path]/route.ts`) con Better Auth gestionado por Neon. El acceso usa correo UC3M y contraseña. La verificación del alta y la recuperación usan códigos de seis dígitos por correo, específicos para cada operación. La asistencia usa tarjetas QR firmadas con `jose` (`HS256`, `ATTENDANCE_QR_SECRET`).
+- **Neon Auth** (`@neondatabase/auth/next/server`, `src/server/auth/`) con Better Auth gestionado por Neon. El acceso usa correo UC3M y contraseña. La verificación del alta y la recuperación usan códigos de seis dígitos por correo, específicos para cada operación. La asistencia usa tarjetas QR firmadas con `jose` (`HS256`, `ATTENDANCE_QR_SECRET`).
 
 En cada rama de Neon Auth, activa la verificación al registrarse mediante código por correo, el inicio automático de sesión tras verificar y la revocación de sesiones al restablecer la contraseña. El MVP utiliza el proveedor de correo compartido de Neon.
 
@@ -54,11 +54,12 @@ npm run test:e2e
 
 - `src/db/`: esquema Drizzle (`schema/`), cliente PostgreSQL/PGlite (`client.ts`) y migraciones (`migrate.ts`).
 - `drizzle/`: migraciones SQL (`0000_initial.sql`).
-- `src/lib/auth/`: validación UC3M, integración Neon Auth, proveedor de autenticación de pruebas y frontera de sesión (`session.ts`).
-- `src/server/`: servicios (`auth/`, `services/attendance-card.ts`) y repositorios PostgreSQL (`repositories/`).
-- `src/app/`: rutas, layouts, acciones de servidor y API `/api/auth/[...path]`.
+- `src/server/`: acceso, reglas de negocio y datos agrupados por `auth/`, `activities/`, `opportunities/`, `accounts/` y `profiles/`.
+- `src/app/`: páginas y layouts JSX, junto con las Server Actions que invocan las funciones de servidor.
 - `src/components/` y `src/institutional/`: barra/pie institucional y componentes compartidos.
 - `scripts/`: utilidades operativas (`bootstrap-admin.ts`).
 - `e2e/`: seed y recorridos de navegador con Playwright.
+
+La [guía del backend](docs/backend/README.md) explica cómo seguir un formulario hasta su operación de servidor y documenta las funciones de cada módulo.
 
 El [modo de trabajo con agentes](AGENTS.md) y la [bitácora de desarrollo](docs/development-log.md) permiten retomar el proyecto.

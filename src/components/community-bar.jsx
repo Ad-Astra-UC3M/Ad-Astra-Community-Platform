@@ -1,5 +1,10 @@
+/**
+ * @file Barra de usuario autenticado que incluye RootLayout. Usa el usuario resuelto para mostrar la sesión
+ * y enlaza el formulario al cierre de sesión del servidor.
+ */
+
 import Link from "next/link";
-import { signOut } from "../lib/auth/session";
+import { signOut } from "../app/auth-actions";
 
 const linkClass =
   "inline-flex min-h-[44px] items-center py-2 text-brand-primary underline underline-offset-4 transition-colors hover:text-brand-ink";
@@ -7,6 +12,11 @@ const linkClass =
 const textButtonClass =
   "min-h-[44px] cursor-pointer border-0 bg-transparent py-2 text-left text-brand-primary underline underline-offset-4 transition-colors hover:text-brand-ink";
 
+/**
+ * Muestra nombre, correo y acceso al panel si corresponde. El formulario invoca signOut.
+ *
+ * @param props.user - Usuario que entrega RootLayout después de resolver su sesión y capacidades.
+ */
 export function CommunityBar({ user }) {
   const hasAdmin = Array.isArray(user?.capabilities) && user.capabilities.length > 0;
 

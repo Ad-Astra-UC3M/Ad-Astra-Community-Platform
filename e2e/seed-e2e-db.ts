@@ -1,16 +1,33 @@
+/**
+ * Construye las fixtures de Playwright antes de que arranque Next.js. Trabaja
+ * sobre el directorio PGlite de la ejecución. Reutiliza servicios y repositorios
+ * de Comunidad con el proveedor local de Auth para obtener perfiles verificados,
+ * capacidades, actividades con turnos y oportunidades.
+ */
+
 import { rmSync } from "node:fs";
 import { eq } from "drizzle-orm";
 
 import { bootstrapAdmin } from "../scripts/bootstrap-admin";
 import { closeDb, getDb } from "../src/db/client";
 import { activities, opportunities, profiles, shifts } from "../src/db/schema";
-import { createTestAuthProvider, getLatestTestOtp } from "../src/lib/auth/test-auth-provider";
+import { createTestAuthProvider, getLatestTestOtp } from "../src/server/auth/test-auth-provider";
 import { registerAccount, verifyAccountEmail } from "../src/server/auth/service";
-import { reserveShift } from "../src/server/repositories/activities";
-import { createAdminActivity, setProfileCapability } from "../src/server/repositories/admin";
-import { createOpportunity } from "../src/server/repositories/opportunities";
+import { reserveShift } from "../src/server/activities/participation";
+import { createAdminActivity } from "../src/server/activities/admin-data";
+import { setProfileCapability } from "../src/server/accounts/repository";
+import { createAdminOpportunity } from "../src/server/opportunities/repository";
 import { E2E_ACCOUNTS } from "./helpers/e2e-env";
 
+/**
+ * Prepara un perfil de prueba para main. Si ya existe un perfil enlazado devuelve
+ * sus identificadores. Si no existe ese enlace, tramita el alta y la verificación
+ * con el OTP local y cierra la sesión resultante.
+ * @param db Cliente Drizzle de la instancia PGlite del seed.
+ * @param authProvider Proveedor local con el que registrar, verificar y cerrar la sesión.
+ * @param input Identidad sintética, contraseña y datos académicos usados durante el alta.
+ * @returns Identificadores de perfil y de Auth para configurar capacidades o reservas.
+ */
 async function seedVerifiedUser(
   db: Awaited<ReturnType<typeof getDb>>,
   authProvider: ReturnType<typeof createTestAuthProvider>,
@@ -55,6 +72,14 @@ async function seedVerifiedUser(
   return { profileId: reg.profileId, authUserId: reg.authUserId };
 }
 
+/**
+ * Punto de entrada invocado por el webServer de Playwright antes de next start.
+ * Reinicia el directorio de pruebas y el buzón configurados, carga fixtures,
+ * comprueba la presencia de perfiles y turnos y limpia los OTP del seed antes
+ * de cerrar la conexión.
+ * @returns Una promesa que finaliza cuando el servidor puede abrir la base sembrada.
+ * Si falla, el proceso CLI termina con error y Playwright no arranca Next.js.
+ */
 async function main() {
   const dataDir = process.env.AD_ASTRA_PG_TEST_DIR?.trim();
   if (!dataDir) {
@@ -234,7 +259,7 @@ async function main() {
     const existingOpportunities = await db.select({ slug: opportunities.slug }).from(opportunities);
     if (existingOpportunities.length === 0) {
       const deadline = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 2, 15, 23, 59));
-      const opp1 = await createOpportunity(
+      const opp1 = await createAdminOpportunity(
         {
           slug: "internship-flight-dynamics",
           type: "internship",
@@ -253,7 +278,7 @@ async function main() {
       );
       if (!opp1.ok) throw new Error(`Opportunity 1 seed failed: ${opp1.error}`);
 
-      const opp2 = await createOpportunity(
+      const opp2 = await createAdminOpportunity(
         {
           slug: "research-electric-propulsion",
           type: "research",

@@ -1,8 +1,12 @@
+/**
+ * Ruta /profile del App Router. Presenta el perfil básico del titular identificado por la
+ * sesión y enlaza con sus opciones de talento y privacidad.
+ */
+
 import { ArrowRight02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
-import { requireUser } from "../../lib/auth/session";
-import { getBasicProfile } from "../../server/repositories/profile";
+import { getMyProfile } from "../../server/profiles/operations";
 import { saveBasicProfileAction } from "./actions";
 
 export const metadata = { title: "Mi perfil" };
@@ -49,9 +53,18 @@ const alertClass = "rounded-[4px] bg-brand-accent/35 px-4 py-3.5 text-brand-ink"
 const inlineLinkClass =
   "text-brand-primary underline underline-offset-[0.22em] transition-colors hover:text-brand-ink";
 
+/**
+ * Next.js ejecuta este Server Component para leer getMyProfile y preparar el formulario que
+ * invoca saveBasicProfileAction.
+ *
+ * @param props - Propiedades de ruta suministradas por Next.js.
+ * @param props.searchParams - Promesa con status y error que muestran el resultado del
+ *   guardado.
+ * @returns Perfil y formulario en JSX, con un aviso cuando no se encuentra la cuenta de la
+ *   sesión.
+ */
 export default async function ProfilePage({ searchParams }) {
-  const user = await requireUser("/profile");
-  const profile = await getBasicProfile(user.personId);
+  const profile = await getMyProfile();
   const { status, error } = await searchParams;
   const errorMessage = typeof error === "string" ? errorMessages.get(error) : undefined;
   const saved = status === "saved";
