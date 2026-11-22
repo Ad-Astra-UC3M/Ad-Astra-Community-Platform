@@ -10,7 +10,7 @@ export function BookmarkButton({ action, id, title, saved, returnTo }) {
       <input type="hidden" name="returnTo" value={returnTo} />
       <button
         type="submit"
-        aria-label={`${label} · ${title}`}
+        aria-label={`Marcador · ${title}`}
         aria-pressed={saved}
         title={label}
         className="grid size-12 cursor-pointer place-items-center rounded-sm border border-brand-primary bg-brand-surface text-brand-primary transition-colors aria-pressed:bg-brand-soft/30 aria-pressed:text-brand-ink hover:bg-brand-soft/30 hover:text-brand-ink"

@@ -6,11 +6,10 @@ import { ArrowRight01Icon, Calendar03Icon, Clock01Icon, Location01Icon } from "@
 import Link from "next/link";
 import { primaryButtonClass, secondaryButtonClass } from "../../components/form-styles";
 import { PageHeading, pageClassName } from "../../components/page-layout";
-import { PortalDate, PortalFigure, PortalIcon, PortalMeta, portalPanelClassName } from "../../components/portal-ui";
+import { ActivityDates, PortalFigure, PortalIcon, PortalMeta, portalPanelClassName } from "../../components/portal-ui";
 import { listMyVisibleActivities } from "../../server/activities/portal";
 
 function ActivityListCard({ activity, featured = false }) {
-  const firstShift = activity.shifts[0];
   const singleShift = activity.shifts.length === 1;
   const Heading = featured ? "h2" : "h3";
   const cardClass = featured && activity.coverImage
@@ -21,8 +20,8 @@ function ActivityListCard({ activity, featured = false }) {
     <article className={"grid min-w-0 gap-5 " + cardClass}>
       {activity.coverImage && <PortalFigure image={activity.coverImage} eager={featured} />}
       <div className={"grid min-w-0 content-start gap-4 " + (featured ? "md:py-3" : "")}>
-        {firstShift && (
-          <PortalMeta icon={Calendar03Icon}><PortalDate date={firstShift.startsAt} /></PortalMeta>
+        {activity.shifts.length > 0 && (
+          <PortalMeta icon={Calendar03Icon}><ActivityDates shifts={activity.shifts} /></PortalMeta>
         )}
         <Heading className={featured
           ? "text-[clamp(1.15rem,2.2vw,1.6rem)]"

@@ -88,13 +88,17 @@ test("oportunidades con filtro por tipo y marcadores idempotentes", async ({ pag
   await page.getByRole("link", { name: "Ver detalle" }).first().click();
   await expect(page.getByRole("link", { name: "Volver a oportunidades", exact: true })).toHaveAttribute("href", "/opportunities");
   await expect(page.getByRole("link", { name: "Consultar información externa" })).toBeVisible();
-  await page.getByRole("button", { name: "Guardar marcador" }).click();
+  const marker = page.getByRole("button", { name: /^Marcador ·/ });
+  await expect(marker).toHaveAttribute("aria-pressed", "false");
+  await marker.click();
   await expect(page.getByRole("status")).toContainText("Guardar un marcador no envía ninguna candidatura.");
+  await expect(marker).toHaveAttribute("aria-pressed", "true");
 
   await page.getByRole("link", { name: "Ver mis marcadores" }).click();
   await expect(page).toHaveURL(/\/bookmarks$/);
   await expect(page.locator("article")).toHaveCount(1);
-  await page.getByRole("button", { name: /Retirar marcador/ }).click();
+  await expect(marker).toHaveAttribute("aria-pressed", "true");
+  await marker.click();
   await expect(page.getByText("Todavía no tienes oportunidades guardadas.")).toBeVisible();
 });
 

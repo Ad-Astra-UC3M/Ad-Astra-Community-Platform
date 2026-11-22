@@ -180,7 +180,7 @@ test("CA-06, CA-10 y CA-11: alta en puerta, confirmación manual, actividad con 
 
   // CA-11: resolución motivada de la solicitud de supresión
   await page.goto("/admin/deletion-requests");
-  await page.locator("li", { hasText: email }).getByRole("link", { name: "Gestionar solicitud" }).click();
+  await page.getByRole("row").filter({ hasText: email }).getByRole("link", { name: "Gestionar solicitud" }).click();
   await expect(page).toHaveURL(/\/admin\/deletion-requests\/.+$/);
   await page.getByLabel("Resultado motivado de la resolución").fill("Solicitud revisada y resuelta conforme al aviso de privacidad.");
   await page.getByRole("button", { name: "Marcar como resuelta" }).click();

@@ -10,7 +10,7 @@ import { BackLink } from "../../../components/back-link";
 import { primaryButtonClass, secondaryButtonClass } from "../../../components/form-styles";
 import { PageHeading, pageClassName } from "../../../components/page-layout";
 import {
-  PortalDate,
+  ActivityDates,
   portalFeedbackClassName,
   PortalFigure,
   PortalIcon,
@@ -101,7 +101,6 @@ export default async function ActivityPage({ params, searchParams }) {
   const message = messages.get(status);
   const reserve = reserveActivityShift.bind(null, activity.id);
   const now = Date.now();
-  const firstShift = activity.shifts[0];
   const singleShift = activity.shifts.length === 1;
 
   return (
@@ -111,7 +110,7 @@ export default async function ActivityPage({ params, searchParams }) {
         title={activity.title}
         description={(
           <>
-            {firstShift && <><PortalDate date={firstShift.startsAt} /> · </>}
+            {activity.shifts.length > 0 && <><ActivityDates shifts={activity.shifts} /> · </>}
             {activity.location}
           </>
         )}

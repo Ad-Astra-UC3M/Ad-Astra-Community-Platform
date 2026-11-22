@@ -14,7 +14,8 @@ test("el marcador muestra la acción, su estado y un icono, y conserva el filtro
     />,
   );
 
-  assert.match(html, /<button[^>]*type="submit"[^>]*aria-label="Guardar marcador · Diseño de antenas"[^>]*aria-pressed="false"/);
+  assert.match(html, /<button[^>]*type="submit"[^>]*aria-label="Marcador · Diseño de antenas"[^>]*aria-pressed="false"/);
+  assert.match(html, /title="Guardar marcador"/);
   assert.match(html, /<svg[^>]*aria-hidden="true"/);
   assert.doesNotMatch(html, /\[&amp;_path\]:fill-current/);
   assert.match(html, /name="opportunityId" value="opportunity-1"/);
@@ -32,7 +33,8 @@ test("un marcador guardado tiene icono relleno y permite retirarlo", () => {
     />,
   );
 
-  assert.match(html, /aria-label="Retirar marcador · Diseño de antenas"[^>]*aria-pressed="true"/);
+  assert.match(html, /aria-label="Marcador · Diseño de antenas"[^>]*aria-pressed="true"/);
+  assert.match(html, /title="Retirar marcador"/);
   assert.match(html, /\[&amp;_path\]:fill-current/);
   assert.match(html, /name="returnTo" value="\/bookmarks"/);
 });

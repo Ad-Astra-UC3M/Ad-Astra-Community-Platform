@@ -4,7 +4,7 @@
  */
 
 import Link from "next/link";
-import { ArrowRight02Icon, Calendar03Icon, Briefcase01Icon, UserGroupIcon, Delete02Icon, Folder01Icon, QrCodeIcon } from "@hugeicons/core-free-icons";
+import { Calendar03Icon, Briefcase01Icon, UserGroupIcon, Delete02Icon, Folder01Icon, QrCodeIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { loadAdminDashboard } from "../../server/accounts/operations";
 
@@ -106,7 +106,10 @@ export default async function AdminPage() {
         <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
           {visibleModules.map((mod) => (
             <li className={panelClass} key={mod.href}>
-              <h3>{mod.title}</h3>
+              <h3 className="flex items-start gap-2">
+                <HugeiconsIcon icon={mod.icon} size={22} aria-hidden="true" className="shrink-0 text-brand-primary" />
+                {mod.title}
+              </h3>
               <p>{mod.description}</p>
               <div>
                 <Link className={primaryButtonClass} href={mod.href}>{mod.cta}</Link>

@@ -98,19 +98,34 @@ function TimelineHeading({ id, icon, children }) {
   );
 }
 
+/** Muestra las reservas activas con los controles que el servidor autoriza para cada turno. */
+function ActiveReservationTimeline({ reservations }) {
+  return (
+    <ol className={railClass} role="list">
+      {reservations.map((reservation) => (
+        <li className={nodeClass + " before:bg-brand-accent"} key={reservation.participationId}>
+          <ReservationAgendaCard reservation={reservation}>
+            {reservation.canCancel && <ReservationActions reservation={reservation} />}
+          </ReservationAgendaCard>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 /**
  * Next.js ejecuta la página y `listMyReservations` carga las reservas de la sesión en orden de
- * inicio. Las reservas futuras que siguen abiertas al cambio se muestran primero y el historial
- * se ordena del turno más reciente al más antiguo.
+ * inicio. Agrupa los turnos en curso, los futuros y el historial, que va del más reciente al más antiguo.
  * @param props Propiedades de la página que proporciona Next.js.
  * @param props.searchParams Promesa con la consulta. Usa `status` para mostrar el resultado de la acción.
- * @returns Las dos líneas de tiempo con los controles disponibles y sus estados vacíos.
+ * @returns La agenda con los controles disponibles, los estados vacíos y el historial de asistencia.
  */
 export default async function MyActivitiesPage({ searchParams }) {
   const [reservations, { status }] = await Promise.all([listMyReservations(), searchParams]);
   const message = typeof status === "string" ? messages.get(status) : undefined;
-  const upcoming = reservations.filter((reservation) => reservation.canCancel);
-  const history = reservations.filter((reservation) => !reservation.canCancel).reverse();
+  const ongoing = reservations.filter((reservation) => reservation.agendaSection === "ongoing");
+  const upcoming = reservations.filter((reservation) => reservation.agendaSection === "upcoming");
+  const history = reservations.filter((reservation) => reservation.agendaSection === "history").reverse();
 
   return (
     <main className={pageClassName}>
@@ -126,20 +141,19 @@ export default async function MyActivitiesPage({ searchParams }) {
       />
       {message && <p className={portalFeedbackClassName} role="status">{message}</p>}
 
+      {ongoing.length > 0 && (
+        <section aria-labelledby="ongoing-reservations-heading" className="grid min-w-0 gap-4">
+          <TimelineHeading id="ongoing-reservations-heading" icon={Clock01Icon}>Turnos en curso</TimelineHeading>
+          <ActiveReservationTimeline reservations={ongoing} />
+        </section>
+      )}
+
       <section aria-labelledby="upcoming-reservations-heading" className="grid min-w-0 gap-4">
         <TimelineHeading id="upcoming-reservations-heading" icon={Calendar03Icon}>
           Próximas reservas
         </TimelineHeading>
         {upcoming.length > 0 ? (
-          <ol className={railClass} role="list">
-            {upcoming.map((reservation) => (
-              <li className={nodeClass + " before:bg-brand-accent"} key={reservation.participationId}>
-                <ReservationAgendaCard reservation={reservation}>
-                  <ReservationActions reservation={reservation} />
-                </ReservationAgendaCard>
-              </li>
-            ))}
-          </ol>
+          <ActiveReservationTimeline reservations={upcoming} />
         ) : (
           <p className={portalPanelClassName}>No tienes próximas reservas.</p>
         )}

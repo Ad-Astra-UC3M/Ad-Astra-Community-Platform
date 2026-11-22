@@ -493,6 +493,11 @@ describe("activities with PostgreSQL", () => {
       const originalParticipationId = initialReservation.participationId;
       assert.equal(initialReservation.shiftId, shiftA.id);
       assert.equal(initialReservation.canCancel, true);
+      assert.equal(initialReservation.agendaSection, "upcoming");
+      const whenItStarts = await listReservations(studentA.id, db, shiftA.startsAt);
+      assert.equal(whenItStarts.find((row) => row.shiftId === shiftA.id)?.agendaSection, "ongoing");
+      const whenItEnds = await listReservations(studentA.id, db, shiftA.endsAt);
+      assert.equal(whenItEnds.find((row) => row.shiftId === shiftA.id)?.agendaSection, "history");
       // Grupo B está lleno y Grupo C ya está reservado por studentA -> otherShifts vacío
       assert.deepEqual(initialReservation.otherShifts, []);
 
@@ -620,6 +625,9 @@ describe("activities with PostgreSQL", () => {
         .update(activities)
         .set({ status: "archived" })
         .where(eq(activities.id, main.activity.id));
+      const archived = (await listReservations(studentA.id, db, BASE_NOW)).find((row) => row.shiftId === shiftC.id);
+      assert.equal(archived?.activityStatus, "archived");
+      assert.equal(archived?.canCancel, true);
       assert.equal(await changeReservation(studentA.id, shiftC.id, shiftA.id, BASE_NOW, db), "closed");
       assert.equal(await cancelReservation(studentA.id, shiftC.id, BASE_NOW, db), "cancelled");
     } finally {

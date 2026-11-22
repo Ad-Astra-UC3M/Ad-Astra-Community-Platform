@@ -27,8 +27,11 @@ test("alta UC3M verificada, reserva, tarjeta digital y control de asistencia", a
 
   const agenda = page.getByRole("region", { name: "Próximas actividades" });
   const shortcuts = page.getByRole("navigation", { name: "Accesos directos" });
+  const rocket = page.getByRole("img", { name: "Cohete universitario sobre una rampa al atardecer" });
   await expect(page.getByRole("heading", { name: /^Hola, Lucía/ })).toBeVisible();
   await expect(agenda).toContainText("No tienes próximas reservas.");
+  await expect(rocket).toBeVisible();
+  await expect.poll(() => rocket.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
   if (isMobile) {
     expect((await agenda.boundingBox())!.y).toBeLessThan((await shortcuts.boundingBox())!.y);
   }
@@ -49,9 +52,11 @@ test("alta UC3M verificada, reserva, tarjeta digital y control de asistencia", a
   await page.goto("/home");
   await expect(agenda.getByRole("link", { name: /CubeSat/ })).toBeVisible();
   await expect(agenda).toContainText("Reserva confirmada");
+  await page.screenshot({ path: info.outputPath("home-with-reservation.png"), fullPage: true });
   await agenda.getByRole("link", { name: "Ver mis actividades" }).click();
   const upcoming = page.getByRole("region", { name: "Próximas reservas" });
   await expect(upcoming).toContainText("Reserva confirmada");
+  await page.screenshot({ path: info.outputPath("my-activities-upcoming.png"), fullPage: true });
   await page.getByRole("banner").getByRole("link", { name: "Mi tarjeta QR" }).click();
   await page.screenshot({ path: info.outputPath("card.png"), fullPage: true });
   await page.getByText("Usar el código sin cámara").click();
@@ -117,6 +122,7 @@ test("alta UC3M verificada, reserva, tarjeta digital y control de asistencia", a
   const history = page.getByRole("region", { name: "Historial de asistencia" });
   await expect(history.getByText("Asistencia registrada", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /Cancelar reserva/ })).toHaveCount(0);
+  await page.screenshot({ path: info.outputPath("my-activities-history.png"), fullPage: true });
 });
 
 /**

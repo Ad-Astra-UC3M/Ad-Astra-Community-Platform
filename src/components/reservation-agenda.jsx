@@ -30,16 +30,19 @@ function ReservationDate({ date, upcoming }) {
   );
 }
 
-function ReservationStatus({ status, upcoming }) {
+function ReservationStatus({ status, agendaSection }) {
   const attended = status === "attended";
+  const active = agendaSection !== "history";
   const label = attended
     ? "Asistencia registrada"
-    : upcoming
-      ? "Reserva confirmada"
-      : "Sin asistencia registrada";
+    : {
+        upcoming: "Reserva confirmada",
+        ongoing: "En curso",
+        history: "Sin asistencia registrada",
+      }[agendaSection];
 
   return (
-    <span className={`inline-flex w-fit max-w-full items-center gap-1.5 rounded-sm px-2.5 py-1 text-sm font-bold ${attended || upcoming ? "bg-brand-accent" : "bg-brand-panel"}`}>
+    <span className={`inline-flex w-fit max-w-full items-center gap-1.5 rounded-sm px-2.5 py-1 text-sm font-bold ${attended || active ? "bg-brand-accent" : "bg-brand-panel"}`}>
       <PortalIcon icon={attended ? Tick01Icon : Ticket01Icon} size={16} />
       {label}
     </span>
@@ -53,9 +56,11 @@ function ReservationSummary({ reservation, start, end }) {
   return (
     <>
       <h3 className="font-serif text-[1.35rem] leading-tight font-bold normal-case sm:text-[1.5rem]">
-        <Link href={`/activities/${reservation.activityId}`} className="text-brand-ink hover:text-brand-primary">
-          {reservation.activityTitle}
-        </Link>
+        {reservation.activityStatus === "published" ? (
+          <Link href={`/activities/${reservation.activityId}`} className="text-brand-ink hover:text-brand-primary">
+            {reservation.activityTitle}
+          </Link>
+        ) : reservation.activityTitle}
       </h3>
       <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[0.95rem]">
         <PortalMeta icon={Clock01Icon}>
@@ -81,7 +86,7 @@ export function ReservationAgendaCard({ reservation, children }) {
       <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3 sm:gap-4">
         <ReservationDate date={start} upcoming />
         <div className="grid min-w-0 gap-2">
-          <ReservationStatus status={reservation.status} upcoming />
+          <ReservationStatus status={reservation.status} agendaSection={reservation.agendaSection} />
           <ReservationSummary reservation={reservation} start={start} end={end} />
         </div>
       </div>
@@ -101,7 +106,7 @@ export function ReservationHistoryRow({ reservation }) {
         <ReservationSummary reservation={reservation} start={start} end={end} />
       </div>
       <div className="col-start-2 sm:col-start-auto">
-        <ReservationStatus status={reservation.status} />
+        <ReservationStatus status={reservation.status} agendaSection={reservation.agendaSection} />
       </div>
     </div>
   );

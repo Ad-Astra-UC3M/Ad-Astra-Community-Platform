@@ -5,9 +5,9 @@
 
 "use client";
 
+import { Camera01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useActionState, useEffect, useRef, useState } from "react";
-
-
 
 /**
  * `AttendancePage` monta el lector con una Server Action vinculada al turno. Usa `useActionState` para
@@ -97,23 +97,30 @@ export function Scanner({action}) {
       <h2>Leer tarjeta</h2>
       <button
         type="button"
-        className="inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink"
+        className="inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start gap-2 rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink"
         disabled={pending}
         onClick={() => {
           setCameraError("");
           setActive(!active);
         }}
       >
+        <HugeiconsIcon icon={Camera01Icon} size={18} aria-hidden="true" className="shrink-0" />
         {active ? "Cerrar cámara" : "Abrir cámara"}
       </button>
       {active && (
-        <video
-          ref={video}
-          muted
-          playsInline
-          aria-label="Vista de cámara"
-          className="block w-full max-w-[32rem] rounded-[4px]"
-        />
+        <div className="grid gap-2">
+          <div className="relative grid w-full max-w-lg place-items-center overflow-hidden rounded-lg bg-brand-ink">
+            <video
+              ref={video}
+              muted
+              playsInline
+              aria-label="Vista de cámara"
+              className="aspect-video w-full object-contain"
+            />
+            <div aria-hidden="true" className="pointer-events-none absolute aspect-square w-2/5 max-w-44 rounded-sm border-2 border-brand-accent" />
+          </div>
+          <p>Centra el código QR en el recuadro amarillo.</p>
+        </div>
       )}
       {cameraError && (
         <p className="rounded-[4px] bg-brand-accent/35 px-4 py-3.5 text-brand-ink" role="alert">

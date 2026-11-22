@@ -35,9 +35,14 @@ export function PortalMeta({ icon, children }) {
   );
 }
 
-export function PortalDate({ date }) {
-  const value = new Date(date);
-  return <time dateTime={value.toISOString()}>{portalDateFormat.format(value)}</time>;
+export function ActivityDates({ shifts }) {
+  const first = new Date(shifts[0].startsAt);
+  const last = new Date(shifts.at(-1).startsAt);
+  const start = portalDateFormat.format(first);
+  if (start === portalDateFormat.format(last)) {
+    return <time dateTime={first.toISOString()}>{start}</time>;
+  }
+  return portalDateFormat.formatRange(first, last);
 }
 
 export function PortalFigure({ image, caption = image.imageAlt, eager = false, className = "" }) {

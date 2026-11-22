@@ -19,8 +19,7 @@ import { accentButtonClass, secondaryButtonClass } from "../../components/form-s
 import { pageClassName } from "../../components/page-layout";
 import { portalPanelClassName, PortalIcon } from "../../components/portal-ui";
 import { ReservationAgendaCard } from "../../components/reservation-agenda";
-import { listMyReservations } from "../../server/activities/portal";
-import { requireUser } from "../../server/auth/access";
+import { loadMyHome } from "../../server/activities/portal";
 
 export const metadata = { title: "Inicio" };
 
@@ -74,8 +73,7 @@ const heroImageClass = [
  * @returns El inicio autenticado con la agenda y los accesos disponibles.
  */
 export default async function HomePage() {
-  const [user, reservations] = await Promise.all([requireUser("/home"), listMyReservations("/home")]);
-  const upcoming = reservations.find((reservation) => reservation.canCancel);
+  const { user, upcoming } = await loadMyHome();
   const links = user.capabilities.length > 0 ? [...studentLinks, adminLink] : studentLinks;
   const agendaLink = (
     <Link href="/my-activities" className={secondaryButtonClass}>
