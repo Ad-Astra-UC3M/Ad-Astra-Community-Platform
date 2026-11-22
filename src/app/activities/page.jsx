@@ -1,65 +1,88 @@
 /**
- * @file Página de App Router para `/activities`. Renderiza en el servidor el catálogo de actividades
- * publicado para la persona conectada.
+ * @file Página de App Router para `/activities`. Muestra el catálogo publicado para la persona conectada.
  */
 
+import { ArrowRight01Icon, Calendar03Icon, Clock01Icon, Location01Icon } from "@hugeicons/core-free-icons";
 import Link from "next/link";
+import { primaryButtonClass, secondaryButtonClass } from "../../components/form-styles";
+import { PageHeading, pageClassName } from "../../components/page-layout";
+import { PortalDate, PortalFigure, PortalIcon, PortalMeta, portalPanelClassName } from "../../components/portal-ui";
 import { listMyVisibleActivities } from "../../server/activities/portal";
 
-const primaryButtonClass =
-  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
+function ActivityListCard({ activity, featured = false }) {
+  const firstShift = activity.shifts[0];
+  const singleShift = activity.shifts.length === 1;
+  const Heading = featured ? "h2" : "h3";
+  const cardClass = featured && activity.coverImage
+    ? "items-start md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]"
+    : "content-start";
 
-const panelClass =
-  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
+  return (
+    <article className={"grid min-w-0 gap-5 " + cardClass}>
+      {activity.coverImage && <PortalFigure image={activity.coverImage} eager={featured} />}
+      <div className={"grid min-w-0 content-start gap-4 " + (featured ? "md:py-3" : "")}>
+        {firstShift && (
+          <PortalMeta icon={Calendar03Icon}><PortalDate date={firstShift.startsAt} /></PortalMeta>
+        )}
+        <Heading className={featured
+          ? "text-[clamp(1.15rem,2.2vw,1.6rem)]"
+          : "font-serif text-[1.35rem] leading-tight font-bold normal-case"}
+        >
+          {activity.title}
+        </Heading>
+        <p className="max-w-[65ch] whitespace-pre-line [overflow-wrap:anywhere]">{activity.description}</p>
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+          <PortalMeta icon={Location01Icon}>{activity.location}</PortalMeta>
+          <PortalMeta icon={Clock01Icon}>
+            {singleShift ? "Sesión única" : activity.shifts.length + " turnos"}
+          </PortalMeta>
+        </div>
+        <Link
+          className={featured ? primaryButtonClass : secondaryButtonClass}
+          href={"/activities/" + activity.id}
+        >
+          {featured && <PortalIcon icon={ArrowRight01Icon} size={16} />}
+          {singleShift ? "Ver actividad" : "Ver turnos"}
+        </Link>
+      </div>
+    </article>
+  );
+}
 
 /**
- * Next.js llama a esta página para abrir el catálogo. `listMyVisibleActivities` comprueba la sesión y
- * carga las actividades publicadas.
- * @returns El catálogo con enlaces al detalle y un mensaje cuando no hay actividades.
+ * Next.js llama a esta página para abrir el catálogo. `listMyVisibleActivities` comprueba la sesión
+ * y carga las actividades publicadas. La primera con imagen funciona como portada del catálogo.
+ * @returns Catálogo de actividades con enlaces al detalle y un mensaje cuando está vacío.
  */
 export default async function ActivitiesPage() {
   const activities = await listMyVisibleActivities();
+  const featured = activities.find((activity) => activity.coverImage) ?? activities[0];
+  const remaining = activities.filter((activity) => activity.id !== featured?.id);
 
   return (
-    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
-      <h1 className="font-display text-[1.75rem] leading-[1.12] font-normal uppercase text-brand-primary md:text-[2.5rem]">
-        Actividades
-      </h1>
-      {activities.length === 0 ? (
-        <section className={panelClass}>
+    <main className={pageClassName}>
+      <PageHeading
+        title="Actividades"
+        description="Explora los talleres y encuentros de Ad Astra y elige un turno."
+      />
+      {featured ? (
+        <>
+          <ActivityListCard activity={featured} featured />
+          {remaining.length > 0 && (
+            <section className="grid min-w-0 gap-4" aria-labelledby="more-activities-heading">
+              <h2 id="more-activities-heading" className="border-b border-brand-line pb-2.5">
+                Más actividades
+              </h2>
+              <div className="grid gap-6 md:grid-cols-2">
+                {remaining.map((activity) => <ActivityListCard key={activity.id} activity={activity} />)}
+              </div>
+            </section>
+          )}
+        </>
+      ) : (
+        <section className={portalPanelClassName}>
           <p>No hay actividades publicadas en este momento.</p>
         </section>
-      ) : (
-        activities.map((activity) => {
-          const singleShift = activity.shifts.length === 1;
-          return (
-            <article className={panelClass} key={activity.id}>
-              {activity.coverImage && (
-                <img
-                  src={activity.coverImage.imageUrl}
-                  alt={activity.coverImage.imageAlt}
-                  loading="lazy"
-                  className="max-h-56 w-full rounded-[4px] object-cover"
-                />
-              )}
-              <header className="grid gap-1">
-                <h2 className="font-display text-[1.25rem] leading-[1.22] font-normal uppercase">
-                  {activity.title}
-                </h2>
-                <p>
-                  {activity.location}
-                  {singleShift ? " · Sesión única" : ` · ${activity.shifts.length} turnos`}
-                </p>
-              </header>
-              <p>{activity.description}</p>
-              <div>
-                <Link className={primaryButtonClass} href={`/activities/${activity.id}`}>
-                  {singleShift ? "Ver actividad" : "Ver turnos"}
-                </Link>
-              </div>
-            </article>
-          );
-        })
       )}
     </main>
   );
