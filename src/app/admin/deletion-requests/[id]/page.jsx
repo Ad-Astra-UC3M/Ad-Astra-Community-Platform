@@ -41,7 +41,7 @@ const errorMessages = new Map([
 ]);
 
 const panelClass =
-  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
+  "grid min-w-0 gap-4 rounded-lg border border-brand-primary/40 bg-brand-surface p-5 md:p-6";
 const fieldClass = "grid min-w-0 gap-1.5 font-bold";
 const textareaClass =
   "min-h-12 w-full min-w-0 resize-y rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
@@ -73,9 +73,9 @@ export default async function AdminDeletionRequestDetailPage({ params, searchPar
   const errorMessage = errorMessages.get(errorCode);
 
   return (
-    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
+    <main className="mx-auto grid w-full max-w-[1280px] gap-6 px-4 pt-8 pb-16 sm:px-6 md:px-12 md:pt-12">
       <BackLink href="/admin/deletion-requests">Volver a solicitudes</BackLink>
-      <header className="grid min-w-0 gap-4">
+      <header className="grid min-w-0 gap-3 border-b border-brand-primary/40 pb-6">
         <p className="text-[0.9rem] font-bold text-brand-primary">
           Solicitud de supresión · {statusLabels[request.status]}
         </p>

@@ -84,7 +84,7 @@ function formatAuditStatusSummary(entry) {
 }
 
 const panelClass =
-  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
+  "grid min-w-0 gap-4 rounded-lg border border-brand-primary/40 bg-brand-surface p-5 md:p-6";
 const fieldClass = "grid min-w-0 gap-1.5 font-bold";
 const inlineFieldClass = "grid min-w-0 flex-1 basis-56 gap-1.5 font-bold";
 const inputClass =
@@ -121,9 +121,9 @@ export default async function AttendancePage({ params, searchParams }) {
   const manualBanner = manualFeedback.get(manualCode);
 
   return (
-    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
+    <main className="mx-auto grid w-full max-w-[1280px] gap-6 px-4 pt-8 pb-16 sm:px-6 md:px-12 md:pt-12">
       <BackLink href="/admin">Volver a turnos</BackLink>
-      <header className="grid min-w-0 gap-4">
+      <header className="grid min-w-0 gap-3 border-b border-brand-primary/40 pb-6">
         <p className="text-[0.9rem] font-bold text-brand-primary">Control de asistencia · {shift.name}</p>
         <h1>{shift.activityTitle}</h1>
         <p>

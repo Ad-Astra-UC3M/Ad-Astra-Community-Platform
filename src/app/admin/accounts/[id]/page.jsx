@@ -62,7 +62,7 @@ const deletionLabels = {
 };
 
 const panelClass =
-  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
+  "grid min-w-0 gap-4 rounded-lg border border-brand-primary/40 bg-brand-surface p-5 md:p-6";
 const secondaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
@@ -89,9 +89,9 @@ export default async function AdminAccountDetailPage({ params, searchParams }) {
   const activeCapabilities = new Set(account.capabilities);
 
   return (
-    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
+    <main className="mx-auto grid w-full max-w-[1280px] gap-6 px-4 pt-8 pb-16 sm:px-6 md:px-12 md:pt-12">
       <BackLink href="/admin/accounts">Volver a cuentas</BackLink>
-      <header className="grid min-w-0 gap-4">
+      <header className="grid min-w-0 gap-3 border-b border-brand-primary/40 pb-6">
         <p className="text-[0.9rem] font-bold text-brand-primary">
           Administración general · {account.status === "active" ? "Cuenta activa" : "Cuenta desactivada"}
         </p>

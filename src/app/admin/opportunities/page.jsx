@@ -4,6 +4,7 @@
  */
 
 import { BackLink } from "../../../components/back-link";
+import { AdminTable } from "../admin-table";
 import { listOpportunitiesForEditing } from "../../../server/opportunities/operations";
 import { createAdminOpportunityAction, setAdminOpportunityStatusAction } from "./actions";
 
@@ -54,7 +55,7 @@ const errorMessages = new Map([
 ]);
 
 const panelClass =
-  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
+  "grid min-w-0 gap-4 rounded-lg border border-brand-primary/40 bg-brand-surface p-5 md:p-6";
 const fieldClass = "grid min-w-0 gap-1.5 font-bold";
 const inputClass =
   "min-h-12 w-full min-w-0 rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
@@ -84,9 +85,9 @@ export default async function AdminOpportunitiesPage({ searchParams }) {
   const errorMessage = errorMessages.get(errorCode);
 
   return (
-    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
+    <main className="mx-auto grid w-full max-w-[1280px] gap-6 px-4 pt-8 pb-16 sm:px-6 md:px-12 md:pt-12">
       <BackLink href="/admin">Volver al panel</BackLink>
-      <header className="grid min-w-0 gap-4">
+      <header className="grid min-w-0 gap-3 border-b border-brand-primary/40 pb-6">
         <p className="text-[0.9rem] font-bold text-brand-primary">Edición de contenido</p>
         <h1>Oportunidades</h1>
         <p className="max-w-[48ch] text-[1.2rem] leading-[1.55]">
@@ -108,7 +109,7 @@ export default async function AdminOpportunitiesPage({ searchParams }) {
 
       <section className={panelClass} aria-label="Nueva oportunidad">
         <h2>Nueva oportunidad</h2>
-        <form action={createAdminOpportunityAction} className="grid min-w-0 gap-4">
+        <form action={createAdminOpportunityAction} className="grid min-w-0 gap-4 md:grid-cols-2">
           <label className={fieldClass}>
             Tipo
             <select className={inputClass} name="type" defaultValue="internship">
@@ -183,26 +184,13 @@ export default async function AdminOpportunitiesPage({ searchParams }) {
 
       <section className="grid min-w-0 gap-4" aria-label="Listado completo de oportunidades">
         <h2>Todas las oportunidades ({opportunities.length})</h2>
-        {opportunities.map((opportunity) => (
-          <article className={panelClass} key={opportunity.id}>
-            <header className="grid min-w-0 gap-4">
-              <p className="text-[0.9rem] font-bold text-brand-primary">
-                {typeLabels[opportunity.type]} · {statusLabels[opportunity.status]}
-              </p>
-              <h3>{opportunity.title}</h3>
-              <p>
-                {[opportunity.organization, opportunity.location, opportunity.workModality].filter(Boolean).join(" · ")}
-              </p>
-            </header>
-            <p>{opportunity.description}</p>
-            {opportunity.deadlineAt && (
-              <p>Fecha límite: {dateFormat.format(new Date(opportunity.deadlineAt))}</p>
-            )}
-            <p>
-              Solicitud:{" "}
-              {[opportunity.applicationUrl, opportunity.contactEmail].filter(Boolean).join(" · ") || "Sin medio de solicitud"}
-            </p>
-            <div className="flex flex-wrap items-center gap-3">
+        <AdminTable label="Todas las oportunidades" headers={["Oportunidad", "Tipo", "Estado", "Fecha límite", "Acciones"]}>
+          {opportunities.map((opportunity) => (
+            <tr key={opportunity.id}>
+              <td><strong>{opportunity.title}</strong><br />{[opportunity.organization, opportunity.location, opportunity.workModality].filter(Boolean).join(" · ")}<p>{opportunity.description}</p><p>Solicitud: {[opportunity.applicationUrl, opportunity.contactEmail].filter(Boolean).join(" · ") || "Sin medio de solicitud"}</p></td>
+              <td>{typeLabels[opportunity.type]}</td><td>{statusLabels[opportunity.status]}</td>
+              <td>{opportunity.deadlineAt ? dateFormat.format(new Date(opportunity.deadlineAt)) : "—"}</td>
+              <td>            <div className="flex flex-wrap items-center gap-3">
               {opportunity.status !== "published" && (
                 <form action={setAdminOpportunityStatusAction}>
                   <input type="hidden" name="opportunityId" value={opportunity.id} />
@@ -224,9 +212,10 @@ export default async function AdminOpportunitiesPage({ searchParams }) {
                   <button type="submit" className={secondaryButtonClass}>Archivar</button>
                 </form>
               )}
-            </div>
-          </article>
-        ))}
+            </div></td>
+            </tr>
+          ))}
+        </AdminTable>
       </section>
     </main>
   );

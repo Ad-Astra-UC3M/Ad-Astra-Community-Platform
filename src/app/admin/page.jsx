@@ -4,12 +4,15 @@
  */
 
 import Link from "next/link";
+import { ArrowRight02Icon, Calendar03Icon, Briefcase01Icon, UserGroupIcon, Delete02Icon, Folder01Icon, QrCodeIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { loadAdminDashboard } from "../../server/accounts/operations";
 
 export const metadata = { title: "Panel de administración" };
 
 const moduleCards = [
   {
+    icon: QrCodeIcon,
     capability: "attendance_validation",
     href: "/admin/attendance",
     title: "Validación de asistencia",
@@ -17,6 +20,7 @@ const moduleCards = [
     cta: "Abrir control de asistencia",
   },
   {
+    icon: Calendar03Icon,
     capability: "content_editing",
     href: "/admin/activities",
     title: "Edición de actividades",
@@ -24,6 +28,7 @@ const moduleCards = [
     cta: "Gestionar actividades",
   },
   {
+    icon: Briefcase01Icon,
     capability: "content_editing",
     href: "/admin/opportunities",
     title: "Edición de oportunidades",
@@ -31,6 +36,7 @@ const moduleCards = [
     cta: "Gestionar oportunidades",
   },
   {
+    icon: UserGroupIcon,
     capability: "general_admin",
     href: "/admin/accounts",
     title: "Cuentas y permisos",
@@ -38,6 +44,7 @@ const moduleCards = [
     cta: "Gestionar cuentas",
   },
   {
+    icon: Delete02Icon,
     capability: "general_admin",
     href: "/admin/deletion-requests",
     title: "Solicitudes de supresión",
@@ -45,6 +52,7 @@ const moduleCards = [
     cta: "Ver solicitudes",
   },
   {
+    icon: Folder01Icon,
     capability: "talent_consultation",
     href: "/admin/talent",
     title: "Consulta de talento",
@@ -67,7 +75,7 @@ const activityStatusLabels = {
 };
 
 const panelClass =
-  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
+  "grid min-w-0 gap-4 rounded-lg border border-brand-primary/40 bg-brand-surface p-5 md:p-6";
 const primaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
@@ -83,8 +91,8 @@ export default async function AdminPage() {
   const visibleModules = moduleCards.filter((card) => capabilities.includes(card.capability));
 
   return (
-    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
-      <header className="grid min-w-0 gap-4">
+    <main className="mx-auto grid w-full max-w-[1280px] gap-6 px-4 pt-8 pb-16 sm:px-6 md:px-12 md:pt-12">
+      <header className="grid min-w-0 gap-3 border-b border-brand-primary/40 pb-6">
         <p className="text-[0.9rem] font-bold text-brand-primary">Organización</p>
         <h1>Panel administrativo</h1>
         <p className="max-w-[48ch] text-[1.2rem] leading-[1.55]">
@@ -95,7 +103,7 @@ export default async function AdminPage() {
 
       <section className="grid min-w-0 gap-4" aria-label="Módulos administrativos disponibles">
         <h2>Módulos habilitados</h2>
-        <ul className="m-0 grid list-none gap-4 p-0">
+        <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
           {visibleModules.map((mod) => (
             <li className={panelClass} key={mod.href}>
               <h3>{mod.title}</h3>

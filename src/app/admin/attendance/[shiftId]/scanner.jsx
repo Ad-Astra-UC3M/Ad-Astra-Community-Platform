@@ -93,7 +93,7 @@ export function Scanner({action}) {
   }, [active]);
 
   return (
-    <section className="grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8">
+    <section className="grid min-w-0 gap-4 rounded-lg border border-brand-primary/40 bg-brand-surface p-5 md:p-6">
       <h2>Leer tarjeta</h2>
       <button
         type="button"
@@ -120,7 +120,8 @@ export function Scanner({action}) {
           {cameraError}
         </p>
       )}
-      <form className="grid min-w-0 gap-4" action={submit} ref={form}>
+      <form className="grid min-w-0 gap-4 border-t border-brand-primary/30 pt-4" action={submit} ref={form}>
+        <p>También puedes introducir el código manualmente.</p>
         <label className="grid min-w-0 gap-1.5 font-bold">
           Código de la tarjeta
           <textarea

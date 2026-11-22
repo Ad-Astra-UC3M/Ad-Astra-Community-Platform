@@ -4,13 +4,14 @@
  */
 
 import Link from "next/link";
+import { AdminTable } from "../admin-table";
 import { BackLink } from "../../../components/back-link";
 import { searchTalentForConsultation } from "../../../server/profiles/operations";
 
 export const metadata = { title: "Consulta de talento" };
 
 const panelClass =
-  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
+  "grid min-w-0 gap-4 rounded-lg border border-brand-primary/40 bg-brand-surface p-5 md:p-6";
 const primaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 const secondaryButtonClass =
@@ -38,9 +39,9 @@ export default async function AdminTalentPage({ searchParams }) {
   const profiles = await searchTalentForConsultation({ query, tags });
 
   return (
-    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
+    <main className="mx-auto grid w-full max-w-[1280px] gap-6 px-4 pt-8 pb-16 sm:px-6 md:px-12 md:pt-12">
       <BackLink href="/admin">Volver al panel</BackLink>
-      <header className="grid min-w-0 gap-4">
+      <header className="grid min-w-0 gap-3 border-b border-brand-primary/40 pb-6">
         <p className="text-[0.9rem] font-bold text-brand-primary">Consulta de talento</p>
         <h1>Perfiles voluntarios de talento</h1>
         <p className="max-w-[48ch] text-[1.2rem] leading-[1.55]">
@@ -78,31 +79,17 @@ export default async function AdminTalentPage({ searchParams }) {
             </p>
           </section>
         ) : (
-          <ul className="m-0 grid list-none gap-4 p-0">
+          <AdminTable label="Resultados de talento" headers={["Perfil", "Formación", "Competencias", "Difusión", "Acción"]}>
             {profiles.map((profile) => (
-              <li className={panelClass} key={profile.personId}>
-                <p className="text-[0.9rem] font-bold text-brand-primary">
-                  {profile.disseminationGranted ? "Difusión autorizada" : "Sin autorización de difusión"} ·{" "}
-                  {profile.linksCount} enlace{profile.linksCount === 1 ? "" : "s"}
-                </p>
-                <h3>{profile.name}</h3>
-                {profile.headline && <p><strong>{profile.headline}</strong></p>}
-                <p>
-                  {[profile.degree, profile.course, profile.university, profile.expectedGraduationYear]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-                {profile.skills.length > 0 && <p>Habilidades: {profile.skills.join(", ")}</p>}
-                {profile.tools.length > 0 && <p>Herramientas: {profile.tools.join(", ")}</p>}
-                {profile.interests.length > 0 && <p>Intereses: {profile.interests.join(", ")}</p>}
-                <div>
-                  <Link className={primaryButtonClass} href={`/admin/talent/${profile.personId}`}>
-                    Ver perfil de talento
-                  </Link>
-                </div>
-              </li>
+              <tr key={profile.personId}>
+                <td><strong>{profile.name}</strong>{profile.headline && <><br />{profile.headline}</>}</td>
+                <td>{[profile.degree, profile.course, profile.university, profile.expectedGraduationYear].filter(Boolean).join(" · ") || "Sin especificar"}</td>
+                <td>{profile.skills.length > 0 && <p>Habilidades: {profile.skills.join(", ")}</p>}{profile.tools.length > 0 && <p>Herramientas: {profile.tools.join(", ")}</p>}{profile.interests.length > 0 && <p>Intereses: {profile.interests.join(", ")}</p>}</td>
+                <td>{profile.disseminationGranted ? "Difusión autorizada" : "Sin autorización de difusión"}<br />{profile.linksCount} enlace{profile.linksCount === 1 ? "" : "s"}</td>
+                <td><Link className={primaryButtonClass} href={`/admin/talent/${profile.personId}`}>Ver perfil de talento</Link></td>
+              </tr>
             ))}
-          </ul>
+          </AdminTable>
         )}
       </section>
     </main>

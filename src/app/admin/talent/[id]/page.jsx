@@ -31,7 +31,7 @@ const experienceKindLabels = {
 };
 
 const panelClass =
-  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
+  "grid min-w-0 gap-4 rounded-lg border border-brand-primary/40 bg-brand-surface p-5 md:p-6";
 
 /**
  * Next.js ejecuta este Server Component para consultar getTalentForConsultation. Llama a
@@ -48,9 +48,9 @@ export default async function AdminTalentDetailPage({ params }) {
   if (!profile) notFound();
 
   return (
-    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
+    <main className="mx-auto grid w-full max-w-[1280px] gap-6 px-4 pt-8 pb-16 sm:px-6 md:px-12 md:pt-12">
       <BackLink href="/admin/talent">Volver a consulta de talento</BackLink>
-      <header className="grid min-w-0 gap-4">
+      <header className="grid min-w-0 gap-3 border-b border-brand-primary/40 pb-6">
         <p className="text-[0.9rem] font-bold text-brand-primary">
           Consulta de talento · {profile.disseminationGranted ? "Difusión autorizada" : "Sin autorización de difusión"}
         </p>

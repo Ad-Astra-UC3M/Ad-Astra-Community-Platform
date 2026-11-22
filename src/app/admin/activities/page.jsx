@@ -83,7 +83,7 @@ function defaultDateTimeInput(offsetHours) {
 }
 
 const panelClass =
-  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
+  "grid min-w-0 gap-4 rounded-lg border border-brand-primary/40 bg-brand-surface p-5 md:p-6";
 const fieldClass = "grid min-w-0 gap-1.5 font-bold";
 const inputClass =
   "min-h-12 w-full min-w-0 rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
@@ -113,9 +113,9 @@ export default async function AdminActivitiesPage({ searchParams }) {
   const defaultEnd = defaultDateTimeInput(50);
 
   return (
-    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
+    <main className="mx-auto grid w-full max-w-[1280px] gap-6 px-4 pt-8 pb-16 sm:px-6 md:px-12 md:pt-12">
       <BackLink href="/admin">Volver al panel</BackLink>
-      <header className="grid min-w-0 gap-4">
+      <header className="grid min-w-0 gap-3 border-b border-brand-primary/40 pb-6">
         <p className="text-[0.9rem] font-bold text-brand-primary">Edición de contenido</p>
         <h1>Actividades y turnos</h1>
         <p className="max-w-[48ch] text-[1.2rem] leading-[1.55]">
@@ -137,7 +137,7 @@ export default async function AdminActivitiesPage({ searchParams }) {
 
       <section className={panelClass} aria-label="Crear nueva actividad">
         <h2>Nueva actividad</h2>
-        <form action={createAdminActivityAction} className="grid min-w-0 gap-4">
+        <form action={createAdminActivityAction} className="grid min-w-0 gap-4 md:grid-cols-2">
           <label className={fieldClass}>
             Título
             <input className={inputClass} name="title" type="text" required maxLength={160} placeholder="Ejemplo: Seminario de propulsión" />
@@ -199,7 +199,7 @@ export default async function AdminActivitiesPage({ searchParams }) {
         <h2>Actividades existentes ({activities.length})</h2>
         {activities.map((activity) => (
           <article className={panelClass} key={activity.id}>
-            <header className="grid min-w-0 gap-4">
+            <header className="grid min-w-0 gap-3 border-b border-brand-primary/40 pb-6">
               <p className="text-[0.9rem] font-bold text-brand-primary">{statusLabels[activity.status]} · {activity.location}</p>
               <h3>{activity.title}</h3>
               <p>{activity.description}</p>

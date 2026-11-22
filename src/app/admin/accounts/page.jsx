@@ -4,6 +4,7 @@
  */
 
 import Link from "next/link";
+import { AdminTable } from "../admin-table";
 import { BackLink } from "../../../components/back-link";
 import { searchAdminAccounts } from "../../../server/accounts/operations";
 
@@ -22,7 +23,7 @@ const statusLabels = {
 };
 
 const panelClass =
-  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
+  "grid min-w-0 gap-4 rounded-lg border border-brand-primary/40 bg-brand-surface p-5 md:p-6";
 const fieldClass = "grid min-w-0 gap-1.5 font-bold";
 const inputClass =
   "min-h-12 w-full min-w-0 rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
@@ -60,9 +61,9 @@ export default async function AdminAccountsPage({ searchParams }) {
   });
 
   return (
-    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
+    <main className="mx-auto grid w-full max-w-[1280px] gap-6 px-4 pt-8 pb-16 sm:px-6 md:px-12 md:pt-12">
       <BackLink href="/admin">Volver al panel</BackLink>
-      <header className="grid min-w-0 gap-4">
+      <header className="grid min-w-0 gap-3 border-b border-brand-primary/40 pb-6">
         <p className="text-[0.9rem] font-bold text-brand-primary">Administración general</p>
         <h1>Cuentas y permisos</h1>
         <p className="max-w-[48ch] text-[1.2rem] leading-[1.55]">
@@ -73,7 +74,7 @@ export default async function AdminAccountsPage({ searchParams }) {
 
       <section className={panelClass} aria-label="Filtros de búsqueda de cuentas">
         <h2>Buscar y filtrar</h2>
-        <form method="get" className="grid min-w-0 gap-4">
+        <form method="get" className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">
           <label className={fieldClass}>
             Nombre o correo
             <input className={inputClass} name="query" type="search" defaultValue={query} placeholder="Nombre, apellidos o correo UC3M" />
@@ -116,35 +117,17 @@ export default async function AdminAccountsPage({ searchParams }) {
             <p>No se han encontrado cuentas con los filtros indicados.</p>
           </section>
         ) : (
-          <ul className="m-0 grid list-none gap-4 p-0">
+          <AdminTable label="Resultados de cuentas" headers={["Cuenta", "Estado", "Participación", "Capacidades", "Acción"]}>
             {accounts.map((account) => (
-              <li className={panelClass} key={account.id}>
-                <p className="text-[0.9rem] font-bold text-brand-primary">
-                  {statusLabels[account.status]} · {account.capabilities.length > 0 ? "Organización" : "Estudiante"}
-                </p>
-                <h3>{account.name}</h3>
-                <p>
-                  {account.email}
-                  {account.degree ? ` · ${account.degree}` : ""}
-                  {account.course ? ` (${account.course})` : ""}
-                </p>
-                <p>
-                  Reservas: {account.reservationCount} · Asistencias confirmadas: {account.attendedCount}
-                </p>
-                <p>
-                  Capacidades:{" "}
-                  {account.capabilities.length > 0
-                    ? account.capabilities.map((cap) => capabilityLabels[cap] ?? cap).join(", ")
-                    : "Sin capacidades administrativas"}
-                </p>
-                <div>
-                  <Link className={secondaryButtonClass} href={`/admin/accounts/${account.id}`}>
-                    Ver ficha y permisos
-                  </Link>
-                </div>
-              </li>
+              <tr key={account.id}>
+                <td><strong>{account.name}</strong><br />{account.email}{(account.degree || account.course) && <><br />{account.degree}{account.course ? ` (${account.course})` : ""}</>}</td>
+                <td>{statusLabels[account.status]} · {account.capabilities.length > 0 ? "Organización" : "Estudiante"}</td>
+                <td>{account.reservationCount} reservas · {account.attendedCount} asistencias</td>
+                <td>{account.capabilities.length ? account.capabilities.map((cap) => capabilityLabels[cap] ?? cap).join(", ") : "Sin capacidades administrativas"}</td>
+                <td><Link className={secondaryButtonClass} href={`/admin/accounts/${account.id}`}>Ver ficha y permisos</Link></td>
+              </tr>
             ))}
-          </ul>
+          </AdminTable>
         )}
       </section>
     </main>
