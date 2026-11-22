@@ -42,10 +42,10 @@ Las páginas leen mediante funciones del servidor. Las acciones se ejecutan en e
 | `home/page.jsx` · `HomePage` | Sin argumentos propios | Llama a `loadMyHome` para mostrar la próxima reserva que se puede abrir y los accesos de la sesión. |
 | `activities/page.jsx` · `ActivitiesPage` | Sin argumentos propios | Next renderiza el catálogo con `listMyVisibleActivities`. |
 | `activities/[id]/page.jsx` · `ActivityPage` | `params.id`, `searchParams.status` | Next renderiza detalle, turnos y aviso. Usa `getMyVisibleActivity`, llama a `notFound` si falta el detalle y vincula `reserveActivityShift` a la actividad. |
-| `activities/[id]/actions.ts` · `reserveActivityShift` | ID vinculado de actividad, formulario con `shiftId` | Llama a `reserveMyShift` y redirige al detalle con el código devuelto. |
+| `activities/[id]/actions.ts` · `reserveActivityShift` | ID vinculado de actividad, formulario con `shiftId` | Llama a `reserveMyShift`, revalida ambas agendas si hay reserva y redirige al detalle. |
 | `my-activities/page.jsx` · `MyActivitiesPage` | `searchParams.status` | Next agrupa `listMyReservations` en turnos en curso, futuras reservas e historial. Las tarjetas muestran los formularios que permite el servidor. |
-| `my-activities/actions.ts` · `cancelActivityReservation` | Formulario con `shiftId` | Llama a `cancelMyReservation` y redirige a Mis actividades con el resultado. |
-| `my-activities/actions.ts` · `changeActivityShift` | Formulario con `fromShiftId` y `toShiftId` | Llama a `changeMyReservation` y redirige a Mis actividades con el resultado. |
+| `my-activities/actions.ts` · `cancelActivityReservation` | Formulario con `shiftId` | Llama a `cancelMyReservation`, revalida Inicio si cancela y redirige a Mis actividades con el resultado. |
+| `my-activities/actions.ts` · `changeActivityShift` | Formulario con `fromShiftId` y `toShiftId` | Llama a `changeMyReservation`, revalida Inicio si cambia el turno y redirige a Mis actividades. |
 | `qr-card/page.jsx` · `CardPage` | `searchParams.status` | Next renderiza la tarjeta propia. Llama a `issueMyCard` y pasa el token a `QRCode.toDataURL`. |
 | `qr-card/actions.ts` · `reissueMyCard` | Sin campos de formulario | Llama a la operación homónima del módulo y redirige a `/qr-card?status=reissued`. |
 | `admin/activities/page.jsx` · `AdminActivitiesPage` | Parámetros de búsqueda para avisos | Next renderiza actividades y turnos mediante `listAdminActivities` y conecta los formularios de edición. |
@@ -58,7 +58,7 @@ Las páginas leen mediante funciones del servidor. Las acciones se ejecutan en e
 | --- | --- | --- |
 | `readField` | Formulario, nombre de campo | Las acciones de edición reciben texto recortado o cadena vacía. |
 | `parseTimestamp` | Texto de fecha | Crear actividad y añadir turno reciben milisegundos o `NaN` para que la capa de datos valide el horario. |
-| `revalidateActivityPaths` | Sin parámetros | Las acciones de edición invalidan con `revalidatePath` las vistas del catálogo y del panel relacionadas con actividades. |
+| `revalidateActivityPaths` | Sin parámetros | Las acciones de edición revalidan el catálogo, las agendas y las vistas del panel relacionadas con actividades. |
 | `createAdminActivityAction` | Formulario con título, descripción, lugar, estado, turno e imágenes opcionales | Convierte los campos, llama a `createAdminActivity`, revalida y redirige con `created` o el error. |
 | `addActivityShiftAction` | Formulario con actividad, nombre, horario y aforo | Llama a `addActivityShift`, revalida y redirige con `shift_added` o el error. |
 | `addActivityImageAction` | Formulario con actividad, URL, texto alternativo y posición | Llama a `addActivityImage`, revalida y redirige con `image_added` o el error. |
@@ -71,7 +71,7 @@ Las páginas leen mediante funciones del servidor. Las acciones se ejecutan en e
 | Función | Entrada | Resultado y llamadas |
 | --- | --- | --- |
 | `readField` | Formulario, nombre de campo | Las acciones manuales reciben texto recortado o cadena vacía. |
-| `revalidateAttendancePaths` | ID de turno | Las acciones de asistencia invalidan el detalle, el panel y Mis actividades con `revalidatePath`. |
+| `revalidateAttendancePaths` | ID de turno | Las acciones de asistencia revalidan el detalle, el panel y las agendas de Inicio y Mis actividades. |
 | `validateCard` | ID de turno vinculado, estado previo del escáner, formulario con token | El escáner recibe un mensaje del resultado de `validateAttendanceCard`. Revalida las vistas cuando el token supera la verificación. |
 | `registerAtDoorAction` | Formulario con turno, cuenta objetivo y motivo | Llama a `registerAtDoor`, revalida y redirige con `door=registered` o el error. |
 | `confirmManualAttendanceAction` | Formulario con turno, persona y motivo | Llama a `manualConfirmAttendance`, revalida y redirige con `manual=confirmed` o el error. |

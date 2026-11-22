@@ -87,7 +87,7 @@ export default async function HomePage() {
       <section className="grid overflow-hidden rounded-lg bg-brand-ink text-brand-surface sm:grid-cols-[repeat(2,minmax(0,1fr))]">
         <div className="grid min-w-0 content-center gap-4 p-[clamp(1.5rem,4vw,3.375rem)] sm:gap-6">
           <h1 className="text-[clamp(1.55rem,3.35vw,3rem)] text-brand-surface after:h-[7px] after:w-[clamp(92px,13vw,176px)]">
-            Hola, {user.name}
+            Hola, {user.firstName}
           </h1>
           <p className="max-w-[46ch] text-[1.04rem]">
             Consulta tus próximos talleres y encuentra tu siguiente oportunidad.

@@ -20,7 +20,7 @@ Una identidad de Neon y un perfil de Comunidad se relacionan por `authUserId`. E
 
 - `db` es una conexión `AppDb` de Drizzle. En despliegue apunta a Neon PostgreSQL y en pruebas a PGlite.
 - `authProvider` tiene el contrato `AuthProvider`. Las pruebas pueden inyectar un proveedor de prueba sin cambiar el servicio.
-- `AuthUser` es lo que consume la aplicación tras resolver la sesión. Incluye los identificadores de perfil e identidad, el nombre, el correo, el estado y las capacidades.
+- `AuthUser` es lo que consume la aplicación tras resolver la sesión. Incluye los identificadores de perfil e identidad, el nombre de pila para el saludo, el nombre completo, el correo, el estado y las capacidades.
 - `next` es un destino interno opcional. Se sanitiza al volver a una pantalla protegida.
 - `options.now` fija la hora en una prueba. Cuando se omite se usa la hora actual.
 - Los códigos de verificación y recuperación tienen seis dígitos. El servicio mantiene separados propósito, correo e identidad.

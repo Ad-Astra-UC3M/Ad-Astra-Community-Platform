@@ -211,6 +211,7 @@ describe("Auth service (Neon Auth + public.profiles on PGlite)", () => {
       assert.equal(signedIn.user.personId, registered.profileId);
       assert.equal(signedIn.user.authUserId, registered.authUserId);
       assert.equal(signedIn.user.name, "Carlos Ruiz");
+      assert.equal(signedIn.user.firstName, "Carlos");
       assert.deepEqual(signedIn.user.capabilities, ["attendance_validation"]);
 
       const current = await resolveCurrentUser(db, authProvider);

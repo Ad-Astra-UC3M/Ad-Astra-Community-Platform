@@ -28,7 +28,7 @@ test("alta UC3M verificada, reserva, tarjeta digital y control de asistencia", a
   const agenda = page.getByRole("region", { name: "Próximas actividades" });
   const shortcuts = page.getByRole("navigation", { name: "Accesos directos" });
   const rocket = page.getByRole("img", { name: "Cohete universitario sobre una rampa al atardecer" });
-  await expect(page.getByRole("heading", { name: /^Hola, Lucía/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hola, Lucía", exact: true })).toBeVisible();
   await expect(agenda).toContainText("No tienes próximas reservas.");
   await expect(rocket).toBeVisible();
   await expect.poll(() => rocket.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
@@ -49,7 +49,7 @@ test("alta UC3M verificada, reserva, tarjeta digital y control de asistencia", a
   await page.getByRole("button", { name: /Reservar plaza/ }).click();
   await expect(page.getByText("Tu plaza está reservada.")).toBeVisible();
 
-  await page.goto("/home");
+  await page.getByRole("banner").getByRole("link", { name: "Ad Astra UC3M" }).click();
   await expect(agenda.getByRole("link", { name: /CubeSat/ })).toBeVisible();
   await expect(agenda).toContainText("Reserva confirmada");
   await page.screenshot({ path: info.outputPath("home-with-reservation.png"), fullPage: true });
