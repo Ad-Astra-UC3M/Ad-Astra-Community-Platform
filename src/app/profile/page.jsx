@@ -3,9 +3,11 @@
  * sesión y enlaza con sus opciones de talento y privacidad.
  */
 
-import { ArrowRight02Icon } from "@hugeicons/core-free-icons";
+import { ArrowRight02Icon, Folder01Icon, SecurityCheckIcon, Settings02Icon, User03Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
+import { inputClass } from "../../components/form-styles";
+import { PageHeading, pageClassName } from "../../components/page-layout";
 import { getMyProfile } from "../../server/profiles/operations";
 import { saveBasicProfileAction } from "./actions";
 
@@ -28,11 +30,13 @@ const errorMessages = new Map([
 const profileLinks = [
   {
     href: "/profile/talent",
+    icon: Folder01Icon,
     label: "Perfil de talento voluntario",
     description: "Añade de forma opcional formación, experiencia, habilidades, idiomas y enlaces externos.",
   },
   {
     href: "/profile/privacy",
+    icon: SecurityCheckIcon,
     label: "Difusión y privacidad / Solicitud de supresión",
     description: "Gestiona tu decisión de difusión profesional y consulta o solicita la supresión de tu cuenta.",
   },
@@ -42,9 +46,6 @@ const primaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
 const fieldClass = "grid min-w-0 gap-1.5 font-bold";
-
-const inputClass =
-  "min-h-12 w-full min-w-0 rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
 
 const noticeClass = "rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink";
 
@@ -71,10 +72,8 @@ export default async function ProfilePage({ searchParams }) {
 
   if (!profile) {
     return (
-      <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
-        <h1 className="font-display text-[1.75rem] leading-[1.12] font-normal uppercase text-brand-primary md:text-[2.5rem]">
-          Mi perfil
-        </h1>
+      <main className={pageClassName}>
+        <PageHeading title="Mi perfil" />
         <p className={alertClass} role="alert">
           No se ha encontrado la cuenta asociada a esta sesión.
         </p>
@@ -83,11 +82,8 @@ export default async function ProfilePage({ searchParams }) {
   }
 
   return (
-    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
-      <p className="text-[0.9rem] font-bold text-brand-primary">Comunidad Ad Astra UC3M</p>
-      <h1 className="font-display text-[1.75rem] leading-[1.12] font-normal uppercase text-brand-primary md:text-[2.5rem]">
-        Mi perfil
-      </h1>
+    <main className={pageClassName}>
+      <PageHeading title="Mi perfil" />
       <p className="max-w-[48ch] text-[1.2rem] leading-relaxed">
         Actualiza tus datos básicos académicos. Tu correo UC3M permanece fijo para conservar tu
         identidad e historial en la comunidad.
@@ -104,143 +100,151 @@ export default async function ProfilePage({ searchParams }) {
         </p>
       )}
 
-      <section className="grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8">
-        <h2 className="font-display text-[1.25rem] leading-[1.22] font-normal uppercase">
-          Datos básicos
-        </h2>
-        <form
-          key={`${profile.firstName}|${profile.lastName}|${profile.degree}|${profile.course}|${profile.academicLevel ?? ""}|${profile.languageModality ?? ""}`}
-          action={saveBasicProfileAction}
-          className="grid min-w-0 gap-4"
-        >
-          <label className={fieldClass}>
-            Correo UC3M (solo lectura)
-            <input
-              name="email"
-              type="email"
-              defaultValue={profile.email}
-              readOnly
-              aria-readonly="true"
-              aria-describedby="email-immutable-help"
-              className={`${inputClass} read-only:bg-brand-soft/15`}
-            />
-          </label>
-          <p id="email-immutable-help" className={noticeClass}>
-            El correo institucional identifica tu cuenta y no puede editarse desde el perfil.
-          </p>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+        <section className="grid min-w-0 gap-4 rounded-lg border border-brand-line p-5 md:p-6">
+          <h2 className="flex items-center gap-2 border-b border-brand-line pb-2.5">
+            <HugeiconsIcon icon={User03Icon} size={21} aria-hidden="true" className="shrink-0 text-brand-primary" />
+            Datos básicos
+          </h2>
+          <form
+            key={`${profile.firstName}|${profile.lastName}|${profile.degree}|${profile.course}|${profile.academicLevel ?? ""}|${profile.languageModality ?? ""}`}
+            action={saveBasicProfileAction}
+            className="grid min-w-0 gap-4 sm:grid-cols-2"
+          >
+            <label className={fieldClass + " sm:col-span-2"}>
+              Correo UC3M (solo lectura)
+              <input
+                name="email"
+                type="email"
+                defaultValue={profile.email}
+                readOnly
+                aria-readonly="true"
+                aria-describedby="email-immutable-help"
+                className={`${inputClass} read-only:bg-brand-soft/15`}
+              />
+            </label>
+            <p id="email-immutable-help" className={noticeClass + " sm:col-span-2"}>
+              El correo institucional identifica tu cuenta y no puede editarse desde el perfil.
+            </p>
 
-          <label className={fieldClass}>
-            Nombre
-            <input
-              name="firstName"
-              defaultValue={profile.firstName}
-              maxLength={80}
-              required
-              className={inputClass}
-            />
-          </label>
+            <label className={fieldClass}>
+              Nombre
+              <input
+                name="firstName"
+                defaultValue={profile.firstName}
+                maxLength={80}
+                required
+                className={inputClass}
+              />
+            </label>
 
-          <label className={fieldClass}>
-            Apellidos
-            <input
-              name="lastName"
-              defaultValue={profile.lastName}
-              maxLength={120}
-              required
-              className={inputClass}
-            />
-          </label>
+            <label className={fieldClass}>
+              Apellidos
+              <input
+                name="lastName"
+                defaultValue={profile.lastName}
+                maxLength={120}
+                required
+                className={inputClass}
+              />
+            </label>
 
-          <label className={fieldClass}>
-            Titulación
-            <input
-              name="degree"
-              defaultValue={profile.degree}
-              maxLength={120}
-              required
-              className={inputClass}
-            />
-          </label>
+            <label className={fieldClass}>
+              Titulación
+              <input
+                name="degree"
+                defaultValue={profile.degree}
+                maxLength={120}
+                required
+                className={inputClass}
+              />
+            </label>
 
-          <label className={fieldClass}>
-            Curso
-            <input
-              name="course"
-              defaultValue={profile.course}
-              maxLength={40}
-              required
-              className={inputClass}
-            />
-          </label>
+            <label className={fieldClass}>
+              Curso
+              <input
+                name="course"
+                defaultValue={profile.course}
+                maxLength={40}
+                required
+                className={inputClass}
+              />
+            </label>
 
-          <label className={fieldClass}>
-            Nivel académico (opcional)
-            <input
-              name="academicLevel"
-              defaultValue={profile.academicLevel ?? ""}
-              placeholder="Ej.: Grado, Máster, Doctorado"
-              maxLength={40}
-              className={inputClass}
-            />
-          </label>
+            <label className={fieldClass}>
+              Nivel académico (opcional)
+              <input
+                name="academicLevel"
+                defaultValue={profile.academicLevel ?? ""}
+                placeholder="Ej.: Grado, Máster, Doctorado"
+                maxLength={40}
+                className={inputClass}
+              />
+            </label>
 
-          <label className={fieldClass}>
-            Modalidad de idioma (opcional)
-            <input
-              name="languageModality"
-              defaultValue={profile.languageModality ?? ""}
-              placeholder="Ej.: Español, Inglés, Bilingüe"
-              maxLength={40}
-              className={inputClass}
-            />
-          </label>
+            <label className={fieldClass}>
+              Modalidad de idioma (opcional)
+              <input
+                name="languageModality"
+                defaultValue={profile.languageModality ?? ""}
+                placeholder="Ej.: Español, Inglés, Bilingüe"
+                maxLength={40}
+                className={inputClass}
+              />
+            </label>
 
-          <div>
-            <button type="submit" className={primaryButtonClass}>Guardar cambios</button>
-          </div>
-        </form>
+            <div className="sm:col-span-2">
+              <button type="submit" className={primaryButtonClass}>Guardar cambios</button>
+            </div>
+          </form>
 
-        {profile.privacyVersion && (
-          <p>
-            Aviso de privacidad aceptado: versión{" "}
-            <code className="rounded bg-brand-soft/20 px-1.5 py-0.5 font-mono text-[0.9em]">
-              {profile.privacyVersion}
-            </code>
-            {profile.privacyAcceptedAt
-              ? ` el ${dateFormat.format(new Date(profile.privacyAcceptedAt))}`
-              : ""}
-            . <Link href="/privacy" className={inlineLinkClass}>Consultar aviso de privacidad</Link>.
-          </p>
-        )}
-      </section>
+          {profile.privacyVersion && (
+            <p>
+              Aviso de privacidad aceptado: versión{" "}
+              <code className="rounded bg-brand-soft/20 px-1.5 py-0.5 font-mono text-[0.9em]">
+                {profile.privacyVersion}
+              </code>
+              {profile.privacyAcceptedAt
+                ? ` el ${dateFormat.format(new Date(profile.privacyAcceptedAt))}`
+                : ""}
+              . <Link href="/privacy" className={inlineLinkClass}>Consultar aviso de privacidad</Link>.
+            </p>
+          )}
+        </section>
 
-      <nav className="mt-2" aria-label="Opciones de perfil y privacidad">
-        <ul className="m-0 list-none border-t border-brand-primary/30 p-0">
-          {profileLinks.map(({ href, label, description }) => (
-            <li key={href} className="border-b border-brand-primary/30">
-              <Link
-                href={href}
-                className="flex items-center justify-between gap-5 px-3 py-4 text-brand-ink no-underline transition-colors hover:bg-brand-soft/20"
-              >
-                <span className="grid gap-0.5">
-                  <span className="text-[1.18rem] font-bold text-brand-primary underline underline-offset-[0.22em]">
-                    {label}
+        <nav className="grid gap-4 rounded-lg border border-brand-line bg-brand-panel p-5 md:p-6" aria-label="Opciones de perfil y privacidad">
+          <h2 className="flex items-center gap-2">
+            <HugeiconsIcon icon={Settings02Icon} size={21} aria-hidden="true" className="shrink-0 text-brand-primary" />
+            Configuración de la cuenta
+          </h2>
+          <ul className="m-0 grid list-none gap-3 p-0">
+            {profileLinks.map(({ href, label, description, icon }) => (
+              <li key={href}>
+                <Link
+                  href={href}
+                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[4px] border border-brand-line bg-brand-surface px-3 py-3.5 text-brand-ink no-underline transition-colors hover:border-brand-primary"
+                >
+                  <HugeiconsIcon icon={icon} size={20} aria-hidden="true" className="text-brand-primary" />
+                  <span className="grid min-w-0 gap-0.5">
+                    <span className="text-[1.18rem] font-bold text-brand-primary underline underline-offset-[0.22em]">
+                      {label}
+                    </span>
+                    <span>{description}</span>
                   </span>
-                  <span>{description}</span>
-                </span>
-                <HugeiconsIcon
-                  className="shrink-0 text-brand-primary"
-                  icon={ArrowRight02Icon}
-                  size={20}
-                  strokeWidth={2}
-                  aria-hidden="true"
-                  focusable="false"
-                />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+                  <HugeiconsIcon
+                    className="shrink-0 text-brand-primary"
+                    icon={ArrowRight02Icon}
+                    size={20}
+                    strokeWidth={2}
+                    aria-hidden="true"
+                    focusable="false"
+                  />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
     </main>
   );
 }

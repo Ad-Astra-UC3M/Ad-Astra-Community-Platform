@@ -15,3 +15,9 @@ test("la portada no incluye botones ni menciones al antiguo sistema de demostrac
   const html = renderToStaticMarkup(<CommunityLanding />);
   assert.doesNotMatch(html, /demo|ficticios|de prueba|Entrar como estudiante/i);
 });
+
+test("la foto acompaña al encabezado y las dos acciones dentro del hero", () => {
+  const html = renderToStaticMarkup(<CommunityLanding />);
+  assert.match(html, /<section class="[^"]*\bbg-brand-ink\b[^"]*">.*<h1>.*href="\/sign-up"[^>]*>Crear cuenta<\/a>.*<img[^>]*alt="Estudiantes conversan con integrantes de Ad Astra en el campus"[^>]*>.*<\/section>/);
+  assert.match(html, /class="[^"]*bg-brand-accent[^"]*" href="\/sign-up"/);
+});

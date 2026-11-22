@@ -3,6 +3,9 @@
  * y adapta las listas persistidas a controles de texto editables.
  */
 
+import { Folder01Icon, LinkSquare02Icon, User03Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { PageHeading } from "../../../components/page-layout";
 import { BackLink } from "../../../components/back-link";
 import { getMyTalentProfile } from "../../../server/profiles/operations";
 import { saveTalentProfileAction } from "../actions";
@@ -79,7 +82,7 @@ function formatLanguages(languages) {
 }
 
 const panelClass =
-  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
+  "grid min-w-0 gap-3 rounded-lg border border-brand-line bg-brand-surface p-5 md:p-8";
 
 const primaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
@@ -87,7 +90,7 @@ const primaryButtonClass =
 const fieldClass = "grid min-w-0 gap-1.5 font-bold";
 
 const inputClass =
-  "min-h-12 w-full min-w-0 rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
+  "min-h-12 w-full min-w-0 rounded-[4px] border border-brand-control bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
 
 const textareaClass = `${inputClass} resize-y`;
 
@@ -115,7 +118,7 @@ export default async function TalentProfilePage({ searchParams }) {
 
   if (!profile) {
     return (
-      <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
+      <main className="mx-auto grid w-full max-w-[64rem] gap-6 px-4 sm:px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
         <BackLink href="/profile">Volver a mi perfil</BackLink>
         <h1 className="font-display text-[1.75rem] leading-[1.12] font-normal uppercase text-brand-primary md:text-[2.5rem]">
           Perfil de talento voluntario
@@ -136,7 +139,7 @@ export default async function TalentProfilePage({ searchParams }) {
   const formKey = profile.updatedAt ? new Date(profile.updatedAt).toISOString() : "empty";
 
   return (
-    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
+    <main className="mx-auto grid w-full max-w-[64rem] gap-6 px-4 sm:px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
       <BackLink href="/profile">Volver a mi perfil</BackLink>
       <p className="text-[0.9rem] font-bold text-brand-primary">Perfil voluntario y privado</p>
       <h1 className="font-display text-[1.75rem] leading-[1.12] font-normal uppercase text-brand-primary md:text-[2.5rem]">
@@ -164,8 +167,11 @@ export default async function TalentProfilePage({ searchParams }) {
       )}
 
       <section className={panelClass}>
-        <form key={formKey} action={saveTalentProfileAction} className="grid min-w-0 gap-4">
-          <h2 className={sectionHeadingClass}>Formación y trayectoria</h2>
+        <form key={formKey} action={saveTalentProfileAction} className="grid min-w-0 gap-4 sm:grid-cols-2">
+          <h2 className={sectionHeadingClass + " flex items-center gap-2 border-b border-brand-line pb-2 sm:col-span-2"}>
+            <HugeiconsIcon icon={User03Icon} size={20} aria-hidden="true" className="shrink-0 text-brand-primary" />
+            Formación y trayectoria
+          </h2>
 
           <label className={fieldClass}>
             Universidad
@@ -226,7 +232,10 @@ export default async function TalentProfilePage({ searchParams }) {
             />
           </label>
 
-          <h2 className={sectionHeadingClass}>Etiquetas e idiomas</h2>
+          <h2 className={sectionHeadingClass + " flex items-center gap-2 border-b border-brand-line pb-2 sm:col-span-2"}>
+            <HugeiconsIcon icon={Folder01Icon} size={20} aria-hidden="true" className="shrink-0 text-brand-primary" />
+            Etiquetas e idiomas
+          </h2>
           <p>Separa varias entradas con comas.</p>
 
           <label className={fieldClass}>
@@ -289,7 +298,10 @@ export default async function TalentProfilePage({ searchParams }) {
             />
           </label>
 
-          <h2 className={sectionHeadingClass}>Enlaces externos</h2>
+          <h2 className={sectionHeadingClass + " flex items-center gap-2 border-b border-brand-line pb-2 sm:col-span-2"}>
+            <HugeiconsIcon icon={LinkSquare02Icon} size={20} aria-hidden="true" className="shrink-0 text-brand-primary" />
+            Enlaces externos
+          </h2>
           <p>
             Solo se aceptan direcciones <code className={codeClass}>http://</code> o{" "}
             <code className={codeClass}>https://</code>. Borra una dirección y guarda para retirar

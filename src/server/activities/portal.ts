@@ -29,11 +29,12 @@ export async function getMyVisibleActivity(id: string) {
 }
 
 /**
- * Carga las participaciones de la persona conectada para `MyActivitiesPage`.
+ * Carga las participaciones propias para `MyActivitiesPage` y la agenda de `HomePage`.
+ * @param returnTo Pantalla que solicita la agenda, adonde volver si es necesario iniciar sesión.
  * @returns Las reservas y sus opciones de cambio y cancelación calculadas por `listReservations`.
  */
-export async function listMyReservations() {
-  const user = await requireUser("/my-activities");
+export async function listMyReservations(returnTo: "/my-activities" | "/home" = "/my-activities") {
+  const user = await requireUser(returnTo);
   return listReservations(user.personId);
 }
 

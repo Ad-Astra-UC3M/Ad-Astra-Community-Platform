@@ -3,17 +3,14 @@
  * al formulario de acceso.
  */
 
+import { AccessPage } from "../../components/access-page";
+import { primaryButtonClass } from "../../components/form-styles";
 import Link from "next/link";
+import { InstitutionalEmailField, PasswordField } from "../../components/account-code-fields";
 import { readOptionalNextPath } from "../../server/auth/form-context";
 import { signIn } from "../auth-actions";
 
 export const metadata = { title: "Acceder a la comunidad" };
-
-const primaryButtonClass =
-  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface";
-
-const inputClass =
-  "min-h-12 w-full min-w-0 rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
 
 /**
  * Renderiza el formulario conectado a signIn. Sanea next antes de volver a enviarlo como campo oculto.
@@ -26,12 +23,8 @@ export default async function SignInPage({ searchParams }) {
   const safeNext = readOptionalNextPath(next);
 
   return (
-    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
-      <div className="grid gap-2">
-        <p className="text-[0.9rem] font-bold text-brand-primary">Comunidad Ad Astra UC3M</p>
-        <h1>Acceder a la comunidad</h1>
-      </div>
-      <div className="grid min-w-0 gap-4 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8">
+    <AccessPage title="Acceder a la comunidad">
+      <div className="grid min-w-0 gap-4">
         <p className="rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink">
           Inicia sesión con tu cuenta verificada de correo institucional UC3M.
         </p>
@@ -53,30 +46,8 @@ export default async function SignInPage({ searchParams }) {
         )}
         <form action={signIn} className="grid min-w-0 gap-4">
           <input type="hidden" name="next" value={safeNext} />
-          <label className="grid min-w-0 gap-1.5 font-bold">
-            Correo institucional UC3M
-            <input
-              name="email"
-              type="email"
-              placeholder="nombre@alumnos.uc3m.es"
-              autoComplete="email"
-              maxLength={254}
-              required
-              className={inputClass}
-            />
-          </label>
-          <label className="grid min-w-0 gap-1.5 font-bold">
-            Contraseña
-            <input
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              minLength={8}
-              maxLength={128}
-              required
-              className={inputClass}
-            />
-          </label>
+          <InstitutionalEmailField />
+          <PasswordField />
           <button type="submit" className={primaryButtonClass}>Acceder</button>
         </form>
         <div className="flex flex-wrap items-center gap-4">
@@ -87,6 +58,6 @@ export default async function SignInPage({ searchParams }) {
           </Link>
         </div>
       </div>
-    </main>
+    </AccessPage>
   );
 }

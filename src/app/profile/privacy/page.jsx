@@ -3,7 +3,10 @@
  * difusión, además del estado de la solicitud de supresión del titular.
  */
 
+import { DocumentAttachmentIcon, SecurityCheckIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
+import { PageHeading, pageClassName } from "../../../components/page-layout";
 import { BackLink } from "../../../components/back-link";
 import { getMyPrivacySettings } from "../../../server/profiles/operations";
 import { requestDeletionAction, updateDisseminationAction } from "../actions";
@@ -50,13 +53,13 @@ function formatDateTime(timestamp) {
 }
 
 const panelClass =
-  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
+  "grid min-w-0 gap-3 rounded-lg border border-brand-line bg-brand-surface p-5 md:p-8";
 
 const primaryButtonClass =
   "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
 const secondaryButtonClass =
-  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink";
+  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-control bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink";
 
 const noticeClass = "rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink";
 
@@ -86,12 +89,10 @@ export default async function ProfilePrivacyPage({ searchParams }) {
     (deletionRequest.status === "pending" || deletionRequest.status === "in_review");
 
   return (
-    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
+    <main className={pageClassName}>
       <BackLink href="/profile">Volver a mi perfil</BackLink>
       <p className="text-[0.9rem] font-bold text-brand-primary">Control de privacidad</p>
-      <h1 className="font-display text-[1.75rem] leading-[1.12] font-normal uppercase text-brand-primary md:text-[2.5rem]">
-        Difusión y privacidad
-      </h1>
+      <PageHeading title="Difusión y privacidad" />
       <p className="max-w-[48ch] text-[1.2rem] leading-relaxed">
         Gestiona por separado tu decisión sobre la difusión profesional de tu perfil de talento y
         consulta o solicita la supresión de tu cuenta.
@@ -108,139 +109,143 @@ export default async function ProfilePrivacyPage({ searchParams }) {
         </p>
       )}
 
-      <section className={panelClass}>
-        <h2 className="font-display text-[1.25rem] leading-[1.22] font-normal uppercase">
-          Decisión de difusión profesional
-        </h2>
-        <p>
-          <strong>Estado actual:</strong>{" "}
-          {dissemination.granted
-            ? "Autorizada"
-            : dissemination.expired
-              ? "No autorizada (autorización vencida)"
-              : "No autorizada (valor por defecto)"}
-        </p>
-        <p>
-          <strong>Versión de política:</strong>{" "}
-          <code className={codeClass}>{dissemination.policyVersion}</code> ·{" "}
-          <strong>Finalidad:</strong> difusión interna y futura de talento (
-          <code className={codeClass}>{dissemination.purpose}</code>).
-        </p>
-        <p className={noticeClass}>
-          En esta fase del portal no están habilitadas las exportaciones ni el acceso de empresas
-          externas. Negarte o retirar tu decisión no bloquea el uso del portal ni borra tu perfil de
-          talento.
-        </p>
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <section className={panelClass}>
+          <h2 className="flex items-center gap-2 border-b border-brand-line pb-2.5">
+            <HugeiconsIcon icon={SecurityCheckIcon} size={20} aria-hidden="true" className="shrink-0 text-brand-primary" />
+            Decisión de difusión profesional
+          </h2>
+          <p>
+            <strong>Estado actual:</strong>{" "}
+            {dissemination.granted
+              ? "Autorizada"
+              : dissemination.expired
+                ? "No autorizada (autorización vencida)"
+                : "No autorizada (valor por defecto)"}
+          </p>
+          <p>
+            <strong>Versión de política:</strong>{" "}
+            <code className={codeClass}>{dissemination.policyVersion}</code> ·{" "}
+            <strong>Finalidad:</strong> difusión interna y futura de talento (
+            <code className={codeClass}>{dissemination.purpose}</code>).
+          </p>
+          <p className={noticeClass}>
+            En esta fase del portal no están habilitadas las exportaciones ni el acceso de empresas
+            externas. Negarte o retirar tu decisión no bloquea el uso del portal ni borra tu perfil de
+            talento.
+          </p>
 
-        <div className="flex flex-wrap items-center gap-3">
-          {!dissemination.granted ? (
-            <>
-              <form action={updateDisseminationAction}>
-                <input type="hidden" name="granted" value="true" />
-                <button type="submit" className={primaryButtonClass}>
-                  Autorizar difusión profesional
-                </button>
-              </form>
-              {dissemination.history.length === 0 && (
+          <div className="flex flex-wrap items-center gap-3">
+            {!dissemination.granted ? (
+              <>
                 <form action={updateDisseminationAction}>
-                  <input type="hidden" name="granted" value="false" />
-                  <button type="submit" className={secondaryButtonClass}>
-                    Registrar que no autorizo
+                  <input type="hidden" name="granted" value="true" />
+                  <button type="submit" className={primaryButtonClass}>
+                    Autorizar difusión profesional
                   </button>
                 </form>
-              )}
-            </>
-          ) : (
-            <form action={updateDisseminationAction}>
-              <input type="hidden" name="granted" value="false" />
-              <button type="submit" className={secondaryButtonClass}>
-                Retirar autorización de difusión
-              </button>
-            </form>
-          )}
-        </div>
-
-        <h3 className="text-[1.2rem] leading-[1.3]">Historial de decisiones</h3>
-        {dissemination.history.length === 0 ? (
-          <p>Todavía no has registrado cambios; por defecto la difusión no está concedida.</p>
-        ) : (
-          <ul className="grid list-disc gap-2 pl-5">
-            {dissemination.history.map((entry) => (
-              <li key={entry.id}>
-                <strong>{entry.granted ? "Autorizada" : "No autorizada / retirada"}</strong> · versión{" "}
-                <code className={codeClass}>{entry.policyVersion}</code> ·{" "}
-                <time dateTime={new Date(entry.decidedAt).toISOString()}>
-                  {formatDateTime(entry.decidedAt)}
-                </time>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className={panelClass}>
-        <h2 className="font-display text-[1.25rem] leading-[1.22] font-normal uppercase">
-          Solicitud de supresión de cuenta
-        </h2>
-        <p className={noticeClass}>
-          Presentar una solicitud de supresión no ejecuta un borrado automático de tu cuenta. Queda
-          registrada con una referencia para su revisión y tramitación por el equipo responsable.
-        </p>
-
-        {deletionRequest && (
-          <div className="grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-surface p-5 md:p-6">
-            <h3 className="text-[1.2rem] leading-[1.3]">Estado de tu solicitud</h3>
-            <p>
-              <strong>Referencia:</strong>{" "}
-              <code className={codeClass}>{deletionRequest.id}</code>
-            </p>
-            <p>
-              <strong>Estado actual:</strong> {deletionStatusLabels[deletionRequest.status]}
-            </p>
-            <p>
-              <strong>Registrada el:</strong>{" "}
-              <time dateTime={new Date(deletionRequest.createdAt).toISOString()}>
-                {formatDateTime(deletionRequest.createdAt)}
-              </time>
-            </p>
-            {deletionRequest.reason && (
-              <p>
-                <strong>Motivo indicado:</strong> {deletionRequest.reason}
-              </p>
-            )}
-            {deletionRequest.resolutionNote && (
-              <p>
-                <strong>Nota de resolución:</strong> {deletionRequest.resolutionNote}
-              </p>
+                {dissemination.history.length === 0 && (
+                  <form action={updateDisseminationAction}>
+                    <input type="hidden" name="granted" value="false" />
+                    <button type="submit" className={secondaryButtonClass}>
+                      Registrar que no autorizo
+                    </button>
+                  </form>
+                )}
+              </>
+            ) : (
+              <form action={updateDisseminationAction}>
+                <input type="hidden" name="granted" value="false" />
+                <button type="submit" className={secondaryButtonClass}>
+                  Retirar autorización de difusión
+                </button>
+              </form>
             )}
           </div>
-        )}
 
-        {hasOpenDeletion ? (
-          <p>
-            Ya existe una solicitud de supresión abierta para tu cuenta; no se generará ninguna copia
-            duplicada mientras siga en trámite.
+          <h3 className="text-[1.2rem] leading-[1.3]">Historial de decisiones</h3>
+          {dissemination.history.length === 0 ? (
+            <p>Todavía no has registrado cambios; por defecto la difusión no está concedida.</p>
+          ) : (
+            <ul className="grid list-disc gap-2 pl-5">
+              {dissemination.history.map((entry) => (
+                <li key={entry.id}>
+                  <strong>{entry.granted ? "Autorizada" : "No autorizada / retirada"}</strong> · versión{" "}
+                  <code className={codeClass}>{entry.policyVersion}</code> ·{" "}
+                  <time dateTime={new Date(entry.decidedAt).toISOString()}>
+                    {formatDateTime(entry.decidedAt)}
+                  </time>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className={panelClass}>
+          <h2 className="flex items-center gap-2 border-b border-brand-line pb-2.5">
+            <HugeiconsIcon icon={DocumentAttachmentIcon} size={20} aria-hidden="true" className="shrink-0 text-brand-primary" />
+            Solicitud de supresión de cuenta
+          </h2>
+          <p className={noticeClass}>
+            Presentar una solicitud de supresión no ejecuta un borrado automático de tu cuenta. Queda
+            registrada con una referencia para su revisión y tramitación por el equipo responsable.
           </p>
-        ) : (
-          <form action={requestDeletionAction} className="grid min-w-0 gap-4">
-            <label className="grid min-w-0 gap-1.5 font-bold">
-              Motivo (opcional)
-              <textarea
-                name="reason"
-                rows={3}
-                maxLength={1000}
-                placeholder="Puedes indicar cualquier detalle útil para la tramitación."
-                className="min-h-12 w-full min-w-0 resize-y rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink"
-              />
-            </label>
-            <div>
-              <button type="submit" className={secondaryButtonClass}>
-                Solicitar supresión de cuenta
-              </button>
+
+          {deletionRequest && (
+            <div className="grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-surface p-5 md:p-6">
+              <h3 className="text-[1.2rem] leading-[1.3]">Estado de tu solicitud</h3>
+              <p>
+                <strong>Referencia:</strong>{" "}
+                <code className={codeClass}>{deletionRequest.id}</code>
+              </p>
+              <p>
+                <strong>Estado actual:</strong> {deletionStatusLabels[deletionRequest.status]}
+              </p>
+              <p>
+                <strong>Registrada el:</strong>{" "}
+                <time dateTime={new Date(deletionRequest.createdAt).toISOString()}>
+                  {formatDateTime(deletionRequest.createdAt)}
+                </time>
+              </p>
+              {deletionRequest.reason && (
+                <p>
+                  <strong>Motivo indicado:</strong> {deletionRequest.reason}
+                </p>
+              )}
+              {deletionRequest.resolutionNote && (
+                <p>
+                  <strong>Nota de resolución:</strong> {deletionRequest.resolutionNote}
+                </p>
+              )}
             </div>
-          </form>
-        )}
-      </section>
+          )}
+
+          {hasOpenDeletion ? (
+            <p>
+              Ya existe una solicitud de supresión abierta para tu cuenta; no se generará ninguna copia
+              duplicada mientras siga en trámite.
+            </p>
+          ) : (
+            <form action={requestDeletionAction} className="grid min-w-0 gap-4">
+              <label className="grid min-w-0 gap-1.5 font-bold">
+                Motivo (opcional)
+                <textarea
+                  name="reason"
+                  rows={3}
+                  maxLength={1000}
+                  placeholder="Puedes indicar cualquier detalle útil para la tramitación."
+                  className="min-h-12 w-full min-w-0 resize-y rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink"
+                />
+              </label>
+              <div>
+                <button type="submit" className={secondaryButtonClass}>
+                  Solicitar supresión de cuenta
+                </button>
+              </div>
+            </form>
+          )}
+        </section>
+      </div>
 
       <p>
         <Link

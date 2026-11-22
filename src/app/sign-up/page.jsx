@@ -3,7 +3,10 @@
  * valida y persiste lo que envía el formulario.
  */
 
+import { AccessPage } from "../../components/access-page";
+import { primaryButtonClass, inputClass } from "../../components/form-styles";
 import Link from "next/link";
+import { InstitutionalEmailField, PasswordField } from "../../components/account-code-fields";
 import { BackLink } from "../../components/back-link";
 import { signUp } from "../auth-actions";
 
@@ -18,12 +21,6 @@ const errors = {
   provider: "No hemos podido completar el registro en este momento. Inténtalo de nuevo más tarde.",
 };
 
-const primaryButtonClass =
-  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface";
-
-const inputClass =
-  "min-h-12 w-full min-w-0 rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
-
 /**
  * Next.js renderiza el registro y conecta el formulario a la Server Action signUp.
  *
@@ -37,12 +34,8 @@ export default async function SignUpPage({ searchParams }) {
       : null;
 
   return (
-    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
-      <div className="grid gap-2">
-        <p className="text-[0.9rem] font-bold text-brand-primary">Comunidad Ad Astra UC3M</p>
-        <h1>Crear cuenta</h1>
-      </div>
-      <div className="grid min-w-0 gap-4 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8">
+    <AccessPage title="Crear cuenta" artwork="registration">
+      <div className="grid min-w-0 gap-4">
         <p className="rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink">
           Regístrate con tu correo institucional UC3M (<code>@alumnos.uc3m.es</code> o{" "}
           <code>@uc3m.es</code>). Te enviaremos un código para verificar tu dirección antes de acceder.
@@ -58,7 +51,7 @@ export default async function SignUpPage({ searchParams }) {
             <Link href="/verify-email">Solicitar un código de verificación</Link>
           </div>
         )}
-        <form action={signUp} className="grid min-w-0 gap-4">
+        <form action={signUp} className="grid min-w-0 gap-4 sm:grid-cols-2">
           <label className="grid min-w-0 gap-1.5 font-bold">
             Nombre
             <input
@@ -81,18 +74,7 @@ export default async function SignUpPage({ searchParams }) {
               className={inputClass}
             />
           </label>
-          <label className="grid min-w-0 gap-1.5 font-bold">
-            Correo institucional UC3M
-            <input
-              name="email"
-              type="email"
-              placeholder="nombre@alumnos.uc3m.es"
-              autoComplete="email"
-              maxLength={254}
-              required
-              className={inputClass}
-            />
-          </label>
+          <InstitutionalEmailField className="sm:col-span-2" />
           <label className="grid min-w-0 gap-1.5 font-bold">
             Titulación
             <input
@@ -113,23 +95,12 @@ export default async function SignUpPage({ searchParams }) {
               className={inputClass}
             />
           </label>
-          <label className="grid min-w-0 gap-1.5 font-bold">
-            Contraseña
-            <input
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              minLength={8}
-              maxLength={128}
-              required
-              className={inputClass}
-            />
-          </label>
-          <div id="privacy-notice">
+          <PasswordField autoComplete="new-password" className="sm:col-span-2" />
+          <div id="privacy-notice" className="sm:col-span-2">
             Tu cuenta se activará cuando verifiques el correo. Después, la dirección quedará
             vinculada a tu identidad e historial en la comunidad.
           </div>
-          <label className="cursor-pointer">
+          <label className="cursor-pointer sm:col-span-2">
             <input
               type="checkbox"
               name="privacy"
@@ -144,6 +115,6 @@ export default async function SignUpPage({ searchParams }) {
         </form>
         <Link href="/sign-in">Ya tengo una cuenta</Link>
       </div>
-    </main>
+    </AccessPage>
   );
 }

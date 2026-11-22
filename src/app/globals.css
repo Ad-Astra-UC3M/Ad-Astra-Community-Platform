@@ -32,6 +32,9 @@
   --color-brand-surface: var(--color-astra-cream);
   --color-brand-ink: var(--color-astra-navy);
   --color-brand-accent: var(--color-astra-yellow);
+  --color-brand-panel: #edeefc;
+  --color-brand-line: #9b9dbe;
+  --color-brand-control: #74789d;
 
   --font-display: "Wild World", "Arial Black", system-ui, sans-serif;
   --font-serif: "Bodoni 72", "Bodoni 72 Smallcaps", "Bodoni MT", Didot, "Bodoni Moda", Georgia, serif;
@@ -60,9 +63,20 @@
   }
 
   h1 {
-    color: var(--color-brand-primary);
+    color: var(--color-brand-ink);
     font-size: 1.75rem;
     line-height: 1.12;
+    text-wrap: balance;
+  }
+
+  #main-content h1::after {
+    display: block;
+    width: clamp(74px, 10vw, 142px);
+    height: 6px;
+    margin: 0.75rem 0 0.125rem 2px;
+    transform: skewX(-24deg);
+    background: var(--color-brand-accent);
+    content: "";
   }
 
   h2 {
@@ -102,6 +116,10 @@
   }
 
   @media print {
+    #main-content h1::after {
+      display: none;
+    }
+
     body {
       background: white;
       color: black;
