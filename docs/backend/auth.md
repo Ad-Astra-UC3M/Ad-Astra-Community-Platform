@@ -157,7 +157,7 @@ Estas funciones devuelven JSX para que App Router lo renderice. Pasar una Server
 | --- | --- | --- |
 | `RootLayout` | `children`, la ruta renderizada por Next | Obtiene `currentUser` y construye sus elementos de navegación y sesión alrededor de la página. |
 | `CommunityPage` | Sin parámetros | La portada obtiene `currentUser`. Envía a `/home` cuando hay sesión. En otro caso muestra la portada pública. |
-| `HomePage` | Sin parámetros | Exige sesión con retorno a `/home`. Usa las capacidades para mostrar el enlace al panel. |
+| `HomePage` | Sin parámetros | `loadMyHome` exige sesión con retorno a `/home`. La página usa sus reservas y capacidades para mostrar la agenda y el acceso al panel. |
 | `CommunityBar` | Propiedad `user`, usuario de Comunidad ya resuelto | Muestra su nombre y correo. Muestra Gestión según las capacidades y envía el formulario de cierre a `signOut`. |
 | `SignUpPage` | `searchParams`, con un error de alta opcional | Muestra el registro y asigna `signUp` al formulario. |
 | `SignInPage` | `searchParams` con error, destino y avisos de cuenta | Sanea el destino con `readOptionalNextPath` y presenta el formulario que llama a `signIn`. |
