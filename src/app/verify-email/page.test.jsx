@@ -56,3 +56,10 @@ test("un código caducado permite confirmar o solicitar otro y descarta destinos
   assert.match(html, /href="\/sign-in"/);
   assert.doesNotMatch(html, /external\.invalid/);
 });
+
+test("el panel editorial de acceso describe la plataforma gestionada con AnimatedWordmark", async () => {
+  const html = renderToStaticMarkup(await SignInPage({ searchParams: Promise.resolve({}) }));
+
+  assert.match(html, /La plataforma gestionada por.*<svg\b.*actividades que organizamos.*conectar con empresas del sector/s);
+  assert.doesNotMatch(html, /Cuaderno aeroespacial universitario/i);
+});

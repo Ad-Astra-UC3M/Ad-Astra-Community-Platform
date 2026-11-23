@@ -1,10 +1,11 @@
 /**
  * @file Contenedor editorial compartido por todas las pantallas de autenticación y recuperación.
- * Combina el formulario enmarcable de v2 con la columna de cuaderno aeroespacial, motivo orbital
+ * Combina el formulario enmarcable de v2 con la columna editorial de la plataforma, motivo orbital
  * e ilustración de v1.
  */
 
 import Image from "next/image";
+import AnimatedWordmark from "../institutional/components/brand/AnimatedWordmark";
 import { PageHeading, pageClassName } from "./page-layout";
 import { OrbitalMotif, portalBlueprintPanelClassName } from "./portal-ui";
 
@@ -32,11 +33,15 @@ export function AccessPage({ title, children, artwork = "access" }) {
         <aside className={portalBlueprintPanelClassName + " content-between gap-6 p-6 sm:p-8"}>
           <div className="flex items-start justify-between gap-4">
             <div className="grid gap-3">
-              <p className="inline-block w-fit bg-brand-accent px-3.5 py-1 font-serif text-sm font-bold italic text-brand-ink [clip-path:polygon(8px_0,100%_0,calc(100%-8px)_100%,0_100%)]">
-                Cuaderno aeroespacial universitario
+              <p className="inline-flex w-fit flex-wrap items-center gap-x-1 bg-brand-accent px-3.5 py-1 font-serif text-sm font-bold text-brand-ink [clip-path:polygon(8px_0,100%_0,calc(100%-8px)_100%,0_100%)]">
+                <span>Comunidad</span>{" "}
+                <AnimatedWordmark inline ariaLabel="Ad Astra" className="h-[0.86em] align-[-0.06em]" />{" "}
+                <span>UC3M</span>
               </p>
               <p className="border-s-[3px] border-brand-primary ps-3 text-[0.98rem] text-brand-ink">
-                Un espacio de la UC3M para compartir talleres, reservas, oportunidades y proyectos del sector aeroespacial.
+                La plataforma gestionada por{" "}
+                <AnimatedWordmark inline ariaLabel="Ad Astra" className="mx-0.5 h-[0.76em] align-[-0.05em]" />{" "}
+                para apuntarte a las actividades que organizamos, descubrir prácticas e investigación de nuestros partners y mostrar tu perfil para conectar con empresas del sector.
               </p>
             </div>
             <OrbitalMotif className="hidden h-11 w-20 text-brand-primary/65 sm:block" />
