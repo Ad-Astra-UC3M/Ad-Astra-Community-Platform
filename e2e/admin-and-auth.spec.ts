@@ -187,3 +187,41 @@ test("CA-06, CA-10 y CA-11: alta en puerta, confirmación manual, actividad con 
   await expect(page.getByRole("status")).toContainText("Solicitud resuelta con resultado motivado");
   await expect(page.getByText("Resuelta por")).toBeVisible();
 });
+
+/**
+ * Comprueba que una cuenta ya autenticada no puede volver a las rutas de acceso, alta,
+ * verificación o recuperación y redirige a /home, conservando /privacy con vuelta al perfil.
+ */
+test("una sesión activa redirige desde las rutas de acceso a /home", async ({ page }) => {
+  await signInAs(page, E2E_ACCOUNTS.student);
+  await expect(page).toHaveURL(/\/home$/);
+
+  for (const authRoute of [
+    "/sign-in",
+    "/sign-in?next=%2Fbookmarks",
+    "/sign-up",
+    "/verify-email",
+    "/forgot-password",
+    "/reset-password",
+  ]) {
+    await page.goto(authRoute);
+    await expect(page).toHaveURL(/\/home$/);
+  }
+
+  await page.goto("/privacy");
+  await expect(page).toHaveURL(/\/privacy$/);
+  await expect(page.getByRole("heading", { name: "Aviso de privacidad" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Volver a difusión y privacidad" })).toHaveAttribute(
+    "href",
+    "/profile/privacy",
+  );
+
+  await signOut(page);
+  await signInAs(page, E2E_ACCOUNTS.admin);
+  await expect(page).toHaveURL(/\/admin$/);
+
+  for (const authRoute of ["/sign-in", "/sign-up"]) {
+    await page.goto(authRoute);
+    await expect(page).toHaveURL(/\/home$/);
+  }
+});

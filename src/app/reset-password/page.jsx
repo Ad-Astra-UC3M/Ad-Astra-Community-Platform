@@ -12,6 +12,7 @@ import {
   PasswordField,
 } from "../../components/account-code-fields";
 import { BackLink } from "../../components/back-link";
+import { redirectIfAuthenticated } from "../../server/auth/access";
 import { readAccountCodeEmail } from "../../server/auth/form-context";
 import { resetPasswordAction } from "../auth-actions";
 
@@ -24,11 +25,15 @@ const errors = {
 };
 
 /**
- * Renderiza el formulario conectado a resetPasswordAction. Lee el correo sugerido con readAccountCodeEmail.
+ * Comprueba que no exista sesión activa y renderiza el formulario conectado a `resetPasswordAction`. Lee el
+ * correo sugerido con `readAccountCodeEmail`.
  *
+ * @param props Propiedades de ruta suministradas por Next.js.
  * @param props.searchParams - Promesa con el aviso de envío y el error de recuperación, si los hay.
+ * @returns Vista de restablecimiento de contraseña cuando la petición no está autenticada.
  */
 export default async function ResetPasswordPage({ searchParams }) {
+  await redirectIfAuthenticated();
   const { sent, error } = await searchParams;
   const email = await readAccountCodeEmail("recovery");
   const message =

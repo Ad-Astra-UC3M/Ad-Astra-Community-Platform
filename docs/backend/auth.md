@@ -33,6 +33,7 @@ El archivo es el punto de entrada de formularios de autenticación. `redirect()`
 | --- | --- | --- |
 | `readFormString` | `formData` y `key`, el nombre del campo | Ayuda privada usada por las acciones. Devuelve el texto o una cadena vacía cuando falta el campo o es un archivo. La validación efectiva ocurre en el servicio. |
 | `redirectWithNext` | Ruta, parámetros de resultado y destino opcional | Ayuda de navegación. Construye la cadena de consulta con el destino interno validado por `readOptionalNextPath` y llama a `redirect`. |
+| `redirectIfAuthenticated` | Sin parámetros. Lee cookies y sesión | Ayuda privada que comprueba `resolveCurrentUser` al inicio de `signUp`, `signIn`, `verifyEmailAction`, `resendVerificationAction`, `requestPasswordResetAction` y `resetPasswordAction`. Si hay sesión activa redirige a `/home`. |
 | `accountDestination` | Usuario de Comunidad y destino sanitizado | Si hay destino, lo conserva. Si no, devuelve `/admin` para una cuenta con capacidades o `/home` para el resto. Lo usan acceso y verificación. |
 | `signUp` | `FormData` de `/sign-up`, con nombre, apellidos, correo, grado, curso, nivel y modalidad opcionales, contraseña y aceptación del aviso | Obtiene la base y el proveedor, llama a `registerAccount` y redirige con el resultado. Si requiere código, guarda el correo en el contexto de verificación y abre `/verify-email`. |
 | `signIn` | `FormData` con correo, contraseña y `next` opcional | Llama a `authenticateAccount`. Continúa al destino si se creó sesión. Si el correo sigue pendiente, lo conserva en la cookie de verificación y dirige al formulario de código. |
@@ -42,7 +43,7 @@ El archivo es el punto de entrada de formularios de autenticación. `redirect()`
 | `requestPasswordResetAction` | `FormData` con correo | Llama a `requestPasswordReset`, guarda el contexto de recuperación y abre `/reset-password`. Ofrece la misma respuesta para solicitudes válidas y no elegibles. |
 | `resetPasswordAction` | `FormData` con correo, código, contraseña y confirmación | Llama a `completePasswordReset`. Conserva el contexto si falla. En éxito limpia la cookie temporal, cierra la sesión del navegador y vuelve a acceso. |
 
-Las páginas de alta, acceso, verificación y recuperación importan estas funciones para asignarlas a `<form action={...}>`. La verificación usa `verify-email/view.jsx` para renderizar los formularios y pasarles el correo leído en `verify-email/page.jsx`. La estructura JSX sigue siendo la de la aplicación.
+Las páginas de alta, acceso, verificación y recuperación llaman primero a `redirectIfAuthenticated()` en el servidor e importan estas funciones para asignarlas a `<form action={...}>`. El acceso y la verificación usan `sign-in/view.jsx` y `verify-email/view.jsx` para renderizar los formularios sin acoplarlos a `cookies()`. La página `/privacy` adapta su enlace de vuelta hacia `/profile/privacy` cuando `currentUser()` resuelve una sesión. La estructura JSX sigue siendo la de la aplicación.
 
 ## `src/server/auth/access.ts`
 
@@ -50,8 +51,9 @@ El archivo usa `server-only` para que Next.js impida importarlo desde un compone
 
 | Función | Parámetros | Efecto y relación |
 | --- | --- | --- |
-| `currentUser` | Sin parámetros. Lee las cookies de la petición con `cookies()` | Devuelve `null` si no hay usuario válido. Con cookies, obtiene base y proveedor y llama a `resolveCurrentUser`. Lo usan el layout, la portada y las comprobaciones de acceso. |
+| `currentUser` | Sin parámetros. Lee las cookies de la petición con `cookies()` | Devuelve `null` si no hay usuario válido. Con cookies, obtiene base y proveedor y llama a `resolveCurrentUser`. Lo usan el layout, la portada, `/privacy` y las comprobaciones de acceso. |
 | `requireUser` | `nextPath?`, destino interno al volver | Llama a `currentUser`. Devuelve `AuthUser` o redirige a acceso, conservando un destino seguro cuando se proporcionó. |
+| `redirectIfAuthenticated` | Sin parámetros | Llama a `currentUser` y redirige a `/home` si existe sesión activa. Lo usan `/`, `/sign-in`, `/sign-up`, `/verify-email`, `/forgot-password` y `/reset-password`. |
 | `requireAdminAny` | Sin parámetros | Devuelve al usuario activo con al menos una capacidad. Si no hay acceso, llama a `notFound()`. Lo usa la portada del panel. |
 | `requireCapability` | `capability`, un código de `CapabilityCode` | Devuelve al usuario activo que tiene esa capacidad o produce un 404. Cada módulo pide la capacidad correspondiente a la operación. |
 | `revokeUserSessions` | `authUserId`, identificador del proveedor | Pide al adaptador que cierre las sesiones de esa identidad. La desactivación de cuenta lo usa después de persistir el estado local. |

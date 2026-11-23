@@ -7,15 +7,19 @@ import { AccessPage } from "../../components/access-page";
 import { primaryButtonClass } from "../../components/form-styles";
 import { InstitutionalEmailField } from "../../components/account-code-fields";
 import { BackLink } from "../../components/back-link";
+import { redirectIfAuthenticated } from "../../server/auth/access";
 import { requestPasswordResetAction } from "../auth-actions";
 
 export const metadata = { title: "Recuperar contraseña" };
 
 /**
- * Muestra el campo de correo institucional y lo envía a requestPasswordResetAction. Next.js convierte el
- * envío del formulario en una llamada al servidor.
+ * Comprueba que no exista sesión activa, muestra el campo de correo institucional y lo envía a
+ * `requestPasswordResetAction`. Si hay sesión vigente, redirige a `/home`.
+ *
+ * @returns Vista de solicitud de recuperación cuando la petición no está autenticada.
  */
-export default function ForgotPasswordPage() {
+export default async function ForgotPasswordPage() {
+  await redirectIfAuthenticated();
   return (
     <AccessPage title="Recuperar contraseña">
       <div className="grid min-w-0 gap-4">

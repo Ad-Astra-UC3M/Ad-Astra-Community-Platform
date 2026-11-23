@@ -9,6 +9,7 @@ import Link from "next/link";
 import { InstitutionalEmailField, PasswordField } from "../../components/account-code-fields";
 import { BackLink } from "../../components/back-link";
 import AnimatedWordmark from "../../institutional/components/brand/AnimatedWordmark";
+import { redirectIfAuthenticated } from "../../server/auth/access";
 import { signUp } from "../auth-actions";
 
 export const metadata = { title: "Crear cuenta" };
@@ -23,13 +24,15 @@ const errors = {
 };
 
 /**
- * Next.js renderiza el registro y conecta el formulario a la Server Action signUp.
+ * Next.js renderiza el registro y conecta el formulario a la Server Action signUp. Si ya existe una
+ * sesión activa de Comunidad, `redirectIfAuthenticated` redirige a `/home`.
  *
  * @param props Propiedades de ruta de App Router.
  * @param props.searchParams Promesa con el código de error opcional devuelto por la acción.
  * @returns Vista de registro alojada en `AccessPage` con aceptación explícita de privacidad.
  */
 export default async function SignUpPage({ searchParams }) {
+  await redirectIfAuthenticated();
   const { error } = await searchParams;
   const message =
     typeof error === "string" && Object.hasOwn(errors, error)

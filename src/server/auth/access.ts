@@ -51,6 +51,17 @@ export async function requireUser(nextPath?: string): Promise<AuthUser> {
 }
 
 /**
+ * Comprueba mediante currentUser si la petición ya mantiene una sesión activa y verificada de
+ * Comunidad. Si existe, redirige a `/home` para impedir volver a la portada pública o a las
+ * rutas de acceso, registro, verificación y recuperación.
+ */
+export async function redirectIfAuthenticated(): Promise<void> {
+  if (await currentUser()) {
+    redirect("/home");
+  }
+}
+
+/**
  * Entrega al adaptador la revocación que solicita el módulo de cuentas después de desactivar un perfil.
  *
  * @param authUserId - Identificador de la identidad de Neon, distinto del ID de perfil de Comunidad.

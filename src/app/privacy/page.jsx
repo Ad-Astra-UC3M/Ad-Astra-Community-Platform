@@ -9,6 +9,7 @@ import { BackLink } from "../../components/back-link";
 import { OrbitalMotif, portalPanelClassName } from "../../components/portal-ui";
 import AnimatedWordmark from "../../institutional/components/brand/AnimatedWordmark";
 import TextSpanWrapper2 from "../../institutional/components/ui/TextSpanWrapper2";
+import { currentUser } from "../../server/auth/access";
 import { PRIVACY_VERSION } from "../../server/auth/service";
 
 export const metadata = { title: "Aviso de privacidad" };
@@ -16,13 +17,21 @@ export const metadata = { title: "Aviso de privacidad" };
 const panelClass = portalPanelClassName + " md:p-7";
 
 /**
- * Next.js renderiza el aviso y el enlace de vuelta al registro. Lee PRIVACY_VERSION del servicio de cuenta.
+ * Next.js renderiza el aviso y adapta el enlace superior de retorno según exista una sesión activa
+ * (`currentUser`): vuelve a `/profile/privacy` cuando hay sesión o a `/sign-up` para visitantes.
+ *
  * @returns Vista pública `<main>` con las cuatro secciones informativas del tratamiento de datos.
  */
-export default function PrivacyNoticePage() {
+export default async function PrivacyNoticePage() {
+  const user = await currentUser();
+
   return (
     <main className="mx-auto grid w-full max-w-[52rem] gap-7 px-4 pt-8 pb-16 sm:px-6 md:px-8 md:pt-12 md:pb-20">
-      <BackLink href="/sign-up">Volver al registro</BackLink>
+      {user ? (
+        <BackLink href="/profile/privacy">Volver a difusión y privacidad</BackLink>
+      ) : (
+        <BackLink href="/sign-up">Volver al registro</BackLink>
+      )}
       <PageHeading
         eyebrow={
           <span className="inline-flex flex-wrap items-center gap-x-1">
