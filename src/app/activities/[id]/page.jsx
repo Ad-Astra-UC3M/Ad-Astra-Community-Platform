@@ -11,12 +11,15 @@ import { primaryButtonClass, secondaryButtonClass } from "../../../components/fo
 import { PageHeading, pageClassName } from "../../../components/page-layout";
 import {
   ActivityDates,
+  accentRibbonBaseClassName,
+  portalBlueprintPanelClassName,
   portalFeedbackClassName,
   PortalFigure,
   PortalIcon,
   PortalMeta,
-  portalPanelClassName,
 } from "../../../components/portal-ui";
+import AnimatedWordmark from "../../../institutional/components/brand/AnimatedWordmark";
+import TextSpanWrapper2 from "../../../institutional/components/ui/TextSpanWrapper2";
 import { getMyVisibleActivity } from "../../../server/activities/portal";
 import { ShiftSchedule } from "../shift-schedule";
 import { reserveActivityShift } from "./actions";
@@ -36,7 +39,7 @@ const messages = new Map([
  * @param props.reserve Server Action vinculada a la actividad. El formulario añade shiftId.
  * @param props.singleShift Activa el aviso cuando la actividad tiene un solo turno.
  * @param props.now Hora de referencia en milisegundos para cerrar la reserva si el turno ya empezó.
- * @returns Fila de turno con sus acciones, si están disponibles.
+ * @returns Ficha de turno enmarcada con su estado y acción de reserva.
  */
 function ShiftCard({ shift, reserve, singleShift, now }) {
   const closed = new Date(shift.startsAt).getTime() <= now;
@@ -45,9 +48,11 @@ function ShiftCard({ shift, reserve, singleShift, now }) {
   const attendance = shift.booking === "attended";
 
   return (
-    <article className="grid min-w-0 items-center gap-x-3 gap-y-4 border-b border-brand-line py-4 last:border-b-0">
+    <article className="grid min-w-0 items-center gap-3 rounded-md border border-brand-line bg-brand-surface p-4">
       <div className="grid min-w-0 gap-2">
-        <h3 className="font-serif text-xl leading-tight font-bold normal-case">{shift.name}</h3>
+        <h3 className="inline-block w-fit bg-brand-soft/45 px-3 py-0.5 font-serif text-lg leading-tight font-bold text-brand-ink [clip-path:polygon(6px_0,100%_0,calc(100%-6px)_100%,0_100%)]">
+          {shift.name}
+        </h3>
         {singleShift && (
           <p className="text-sm font-bold text-brand-primary">
             Turno único seleccionado automáticamente
@@ -117,9 +122,9 @@ export default async function ActivityPage({ params, searchParams }) {
       />
       {message && <p className={portalFeedbackClassName} role="status">{message}</p>}
 
-      <div className="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+      <div className="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
         <div className="grid min-w-0 content-start gap-6">
-          {activity.images.length > 0 && (
+          {activity.images.length > 0 ? (
             <section className="grid min-w-0 gap-3 sm:grid-cols-2" aria-label="Imágenes de la actividad">
               {activity.images.map((image, index) => (
                 <PortalFigure
@@ -131,30 +136,56 @@ export default async function ActivityPage({ params, searchParams }) {
                 />
               ))}
             </section>
+          ) : (
+            <PortalFigure
+              image={{
+                imageUrl: "/brand/rocket-a4-concept-blueprint.png",
+                imageAlt: "Representación conceptual aeroespacial del proyecto",
+              }}
+              caption={
+                <>
+                  <AnimatedWordmark inline ariaLabel="Ad Astra" className="me-1 h-[0.8em] align-[-0.05em]" />{" "}
+                  UC3M · Visual técnico
+                </>
+              }
+              eager
+            />
           )}
           <section aria-labelledby="about-activity-heading" className="grid min-w-0 gap-3">
-            <h2 id="about-activity-heading" className="border-b border-brand-line pb-2.5">Sobre la actividad</h2>
+            <TextSpanWrapper2
+              as="h2"
+              id="about-activity-heading"
+              className="border-b border-brand-line pb-2.5 text-xl"
+            >
+              Sobre la actividad
+            </TextSpanWrapper2>
             <p className="whitespace-pre-line [overflow-wrap:anywhere]">{activity.description}</p>
           </section>
         </div>
 
-        <section className={portalPanelClassName + " gap-0 bg-brand-panel"} aria-labelledby="turnos">
-          <h2 id="turnos" className="flex items-center gap-2.5 border-b border-brand-line pb-2.5">
-            <PortalIcon icon={Calendar03Icon} className="text-brand-primary" size={22} />
-            {singleShift ? "Inscripción" : "Turnos disponibles"}
+        <section className={portalBlueprintPanelClassName + " gap-4"} aria-labelledby="turnos">
+          <h2 id="turnos" className={accentRibbonBaseClassName + " w-full justify-start px-4 py-2 text-lg"}>
+            <PortalIcon icon={Calendar03Icon} className="text-brand-ink" size={21} />
+            <TextSpanWrapper2 as="span" className="min-w-0">
+              {singleShift ? "Inscripción" : "Turnos disponibles"}
+            </TextSpanWrapper2>
           </h2>
           {activity.shifts.length === 0 ? (
-            <p className="pt-4">Esta actividad todavía no tiene turnos publicados.</p>
+            <p className="rounded-md border border-brand-line bg-brand-surface p-4">
+              Esta actividad todavía no tiene turnos publicados.
+            </p>
           ) : (
-            activity.shifts.map((shift) => (
-              <ShiftCard
-                key={shift.id}
-                shift={shift}
-                reserve={reserve}
-                singleShift={singleShift}
-                now={now}
-              />
-            ))
+            <div className="grid gap-3">
+              {activity.shifts.map((shift) => (
+                <ShiftCard
+                  key={shift.id}
+                  shift={shift}
+                  reserve={reserve}
+                  singleShift={singleShift}
+                  now={now}
+                />
+              ))}
+            </div>
           )}
         </section>
       </div>

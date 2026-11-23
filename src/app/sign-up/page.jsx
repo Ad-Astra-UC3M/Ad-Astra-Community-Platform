@@ -8,6 +8,7 @@ import { primaryButtonClass, inputClass } from "../../components/form-styles";
 import Link from "next/link";
 import { InstitutionalEmailField, PasswordField } from "../../components/account-code-fields";
 import { BackLink } from "../../components/back-link";
+import AnimatedWordmark from "../../institutional/components/brand/AnimatedWordmark";
 import { signUp } from "../auth-actions";
 
 export const metadata = { title: "Crear cuenta" };
@@ -24,7 +25,9 @@ const errors = {
 /**
  * Next.js renderiza el registro y conecta el formulario a la Server Action signUp.
  *
- * @param props.searchParams - Promesa con el código de error opcional devuelto por la acción.
+ * @param props Propiedades de ruta de App Router.
+ * @param props.searchParams Promesa con el código de error opcional devuelto por la acción.
+ * @returns Vista de registro alojada en `AccessPage` con aceptación explícita de privacidad.
  */
 export default async function SignUpPage({ searchParams }) {
   const { error } = await searchParams;
@@ -109,7 +112,9 @@ export default async function SignUpPage({ searchParams }) {
               required
               className="mr-1.5 inline-block size-[1.15em] align-[-0.15em] accent-brand-primary"
             />{" "}
-            Acepto el <Link href="/privacy">aviso de privacidad</Link> de la Comunidad Ad Astra UC3M.
+            Acepto el <Link href="/privacy">aviso de privacidad</Link> de la Comunidad{" "}
+            <AnimatedWordmark inline ariaLabel="Ad Astra" className="mx-0.5 h-[0.76em] align-[-0.05em]" />{" "}
+            UC3M.
           </label>
           <button type="submit" className={primaryButtonClass}>Crear cuenta</button>
         </form>

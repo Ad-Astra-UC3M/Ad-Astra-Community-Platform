@@ -9,6 +9,7 @@ import { inputClass, primaryButtonClass, secondaryButtonClass } from "../../comp
 import { PageHeading, pageClassName } from "../../components/page-layout";
 import { portalFeedbackClassName, portalPanelClassName, PortalIcon } from "../../components/portal-ui";
 import { ReservationAgendaCard, ReservationHistoryRow } from "../../components/reservation-agenda";
+import TextSpanWrapper2 from "../../institutional/components/ui/TextSpanWrapper2";
 import { listMyReservations } from "../../server/activities/portal";
 import { cancelActivityReservation, changeActivityShift } from "./actions";
 
@@ -35,6 +36,9 @@ const nodeClass =
 /**
  * Renderiza los controles de la tarjeta. Las Server Actions reciben el identificador del turno
  * y vuelven a comprobar los permisos y el estado de la reserva.
+ * @param props Propiedades de los controles de reserva.
+ * @param props.reservation Reserva activa con `shiftId`, `otherShifts` y permisos de cambio/baja.
+ * @returns Botonera y selector de turno disponibles según el estado de la reserva.
  */
 function ReservationActions({ reservation }) {
   return (
@@ -87,18 +91,33 @@ function ReservationActions({ reservation }) {
   );
 }
 
+/**
+ * Encabezado de bloque temporal para las secciones de la agenda personal con cinta amarilla y filete.
+ * @param props Propiedades del encabezado.
+ * @param props.id Identificador referenciado por `aria-labelledby`.
+ * @param props.icon Descriptor Hugeicons de la sección.
+ * @param props.children Título de la sección animada.
+ * @returns Titular `<h2>` con icono, cinta amarilla y texto animado.
+ */
 function TimelineHeading({ id, icon, children }) {
   return (
     <h2 id={id} className="flex items-center gap-3 text-[clamp(1rem,2.1vw,1.5rem)] sm:after:h-px sm:after:flex-1 sm:after:bg-brand-ink">
       <span className="inline-flex min-w-0 items-center gap-2.5 bg-brand-accent px-4 py-2 [clip-path:polygon(10px_0,100%_0,calc(100%_-_10px)_100%,0_100%)]">
         <PortalIcon icon={icon} size={22} />
-        {children}
+        <TextSpanWrapper2 as="span" className="min-w-0">
+          {children}
+        </TextSpanWrapper2>
       </span>
     </h2>
   );
 }
 
-/** Muestra las reservas activas con los controles que el servidor autoriza para cada turno. */
+/**
+ * Muestra la lista ordenada de reservas activas (en curso o futuras) sobre la línea temporal vertical.
+ * @param props Propiedades de la cronología.
+ * @param props.reservations Reservas pertenecientes a un mismo tramo temporal.
+ * @returns Lista ordenada `<ol>` con tarjetas de agenda y controles permitidos.
+ */
 function ActiveReservationTimeline({ reservations }) {
   return (
     <ol className={railClass} role="list">

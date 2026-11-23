@@ -16,10 +16,12 @@ import {
 import { PageHeading, pageClassName } from "../../../components/page-layout";
 import {
   portalFeedbackClassName,
-  portalPanelClassName,
+  portalMutedPanelClassName,
   PortalIcon,
   PortalMeta,
 } from "../../../components/portal-ui";
+import AnimatedWordmark from "../../../institutional/components/brand/AnimatedWordmark";
+import TextSpanWrapper2 from "../../../institutional/components/ui/TextSpanWrapper2";
 import { getVisibleOpportunity } from "../../../server/opportunities/operations";
 
 export const metadata = { title: "Detalle de oportunidad" };
@@ -66,7 +68,9 @@ export default async function OpportunityDetailPage({ params, searchParams }) {
           )}
 
           <section className="grid gap-3" aria-labelledby="opportunity-details">
-            <h2 id="opportunity-details" className="border-b border-brand-line pb-2.5">Descripción</h2>
+            <TextSpanWrapper2 as="h2" id="opportunity-details" className="border-b border-brand-line pb-2.5 text-xl">
+              Descripción
+            </TextSpanWrapper2>
             <p className="whitespace-pre-line [overflow-wrap:anywhere]">{opportunity.description}</p>
             {opportunity.researchLead && <p><strong>Responsable</strong> · {opportunity.researchLead}</p>}
             {opportunity.publishedAt && (
@@ -76,14 +80,18 @@ export default async function OpportunityDetailPage({ params, searchParams }) {
 
           {opportunity.requirements && (
             <section className="grid gap-3" aria-labelledby="opportunity-requirements">
-              <h2 id="opportunity-requirements" className="border-b border-brand-line pb-2.5">Requisitos</h2>
+              <TextSpanWrapper2 as="h2" id="opportunity-requirements" className="border-b border-brand-line pb-2.5 text-xl">
+                Requisitos
+              </TextSpanWrapper2>
               <p className="whitespace-pre-line [overflow-wrap:anywhere]">{opportunity.requirements}</p>
             </section>
           )}
 
           {opportunity.infoUrl && (
             <section className="grid gap-3" aria-labelledby="opportunity-info">
-              <h2 id="opportunity-info" className="border-b border-brand-line pb-2.5">Más información</h2>
+              <TextSpanWrapper2 as="h2" id="opportunity-info" className="border-b border-brand-line pb-2.5 text-xl">
+                Más información
+              </TextSpanWrapper2>
               <a
                 className={secondaryButtonClass}
                 href={opportunity.infoUrl}
@@ -96,28 +104,41 @@ export default async function OpportunityDetailPage({ params, searchParams }) {
           )}
         </div>
 
-        <section className={portalPanelClassName + " bg-brand-panel"} aria-labelledby="opportunity-apply">
+        <section className={portalMutedPanelClassName} aria-labelledby="opportunity-apply">
           <h2 id="opportunity-apply" className="flex items-center gap-2.5 border-b border-brand-line pb-2.5">
             <PortalIcon icon={Note01Icon} className="text-brand-primary" size={22} />
-            Cómo solicitar
+            <TextSpanWrapper2 as="span" className="min-w-0">
+              Cómo solicitar
+            </TextSpanWrapper2>
           </h2>
-          {(opportunity.workModality || opportunity.deadlineAt) && (
-            <dl className="grid gap-3">
-              {opportunity.workModality && (
-                <div className="border-b border-brand-line pb-2">
-                  <dt className="font-bold">Modalidad</dt>
-                  <dd className="[overflow-wrap:anywhere]">{opportunity.workModality}</dd>
-                </div>
-              )}
-              {opportunity.deadlineAt && (
-                <div className="border-b border-brand-line pb-2">
-                  <dt className="font-bold">Fecha límite</dt>
-                  <dd><OpportunityDate date={opportunity.deadlineAt} /></dd>
-                </div>
-              )}
-            </dl>
-          )}
-          <p>La solicitud se gestiona fuera de Comunidad Ad Astra. Guardar un marcador no envía ninguna candidatura.</p>
+          <dl className="grid gap-3">
+            <div className="border-b border-brand-line pb-2">
+              <dt className="font-bold">Organización</dt>
+              <dd className="[overflow-wrap:anywhere]">{opportunity.organization}</dd>
+            </div>
+            {opportunity.location && (
+              <div className="border-b border-brand-line pb-2">
+                <dt className="font-bold">Ubicación</dt>
+                <dd className="[overflow-wrap:anywhere]">{opportunity.location}</dd>
+              </div>
+            )}
+            {opportunity.workModality && (
+              <div className="border-b border-brand-line pb-2">
+                <dt className="font-bold">Modalidad</dt>
+                <dd className="[overflow-wrap:anywhere]">{opportunity.workModality}</dd>
+              </div>
+            )}
+            {opportunity.deadlineAt && (
+              <div className="border-b border-brand-line pb-2">
+                <dt className="font-bold">Fecha límite</dt>
+                <dd><OpportunityDate date={opportunity.deadlineAt} /></dd>
+              </div>
+            )}
+          </dl>
+          <p>
+            La solicitud se gestiona fuera de Comunidad{" "}
+            <AnimatedWordmark inline ariaLabel="Ad Astra" className="ms-0.5 h-[0.76em] align-[-0.05em]" />. Guardar un marcador no envía ninguna candidatura.
+          </p>
           <div className="flex flex-wrap items-center gap-3">
             {opportunity.applicationUrl && (
               <a

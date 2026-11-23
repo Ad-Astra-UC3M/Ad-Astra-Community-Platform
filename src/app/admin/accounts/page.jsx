@@ -1,12 +1,16 @@
 /**
- * Ruta /admin/accounts del App Router. Muestra la búsqueda de cuentas para administración
+ * @file Ruta `/admin/accounts` del App Router. Muestra la búsqueda de cuentas para administración
  * general y enlaza cada resultado con su ficha.
  */
 
 import Link from "next/link";
-import { AdminTable } from "../admin-table";
 import { BackLink } from "../../../components/back-link";
+import { inputClass, primaryButtonClass, secondaryButtonClass } from "../../../components/form-styles";
+import { PageHeading, pageClassName } from "../../../components/page-layout";
+import { portalMutedPanelClassName, portalPanelClassName } from "../../../components/portal-ui";
+import TextSpanWrapper2 from "../../../institutional/components/ui/TextSpanWrapper2";
 import { searchAdminAccounts } from "../../../server/accounts/operations";
+import { AdminTable } from "../admin-table";
 
 export const metadata = { title: "Cuentas y permisos" };
 
@@ -22,15 +26,7 @@ const statusLabels = {
   deactivated: "Desactivada",
 };
 
-const panelClass =
-  "grid min-w-0 gap-4 rounded-lg border border-brand-primary/40 bg-brand-surface p-5 md:p-6";
 const fieldClass = "grid min-w-0 gap-1.5 font-bold";
-const inputClass =
-  "min-h-12 w-full min-w-0 rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
-const primaryButtonClass =
-  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
-const secondaryButtonClass =
-  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
 /**
  * Next.js ejecuta este Server Component para traducir los filtros de la URL y consultar
@@ -61,19 +57,18 @@ export default async function AdminAccountsPage({ searchParams }) {
   });
 
   return (
-    <main className="mx-auto grid w-full max-w-[1280px] gap-6 px-4 pt-8 pb-16 sm:px-6 md:px-12 md:pt-12">
+    <main className={pageClassName}>
       <BackLink href="/admin">Volver al panel</BackLink>
-      <header className="grid min-w-0 gap-3 border-b border-brand-primary/40 pb-6">
-        <p className="text-[0.9rem] font-bold text-brand-primary">Administración general</p>
-        <h1>Cuentas y permisos</h1>
-        <p className="max-w-[48ch] text-[1.2rem] leading-[1.55]">
-          Busca y filtra cuentas verificadas, gestiona sus capacidades independientes y activa o desactiva su acceso.
-          Los perfiles de talento permanecen aislados bajo la capacidad de consulta de talento.
-        </p>
-      </header>
+      <PageHeading
+        eyebrow="Administración general"
+        title="Cuentas y permisos"
+        description="Busca y filtra cuentas verificadas, gestiona sus capacidades independientes y activa o desactiva su acceso. Los perfiles de talento permanecen aislados bajo la capacidad de consulta de talento."
+      />
 
-      <section className={panelClass} aria-label="Filtros de búsqueda de cuentas">
-        <h2>Buscar y filtrar</h2>
+      <section className={portalMutedPanelClassName} aria-label="Filtros de búsqueda de cuentas">
+        <TextSpanWrapper2 as="h2" className="border-b border-brand-line pb-2.5 text-xl">
+          Buscar y filtrar
+        </TextSpanWrapper2>
         <form method="get" className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">
           <label className={fieldClass}>
             Nombre o correo
@@ -103,7 +98,7 @@ export default async function AdminAccountsPage({ searchParams }) {
               <option value="no">Sin reservas</option>
             </select>
           </label>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-end gap-3">
             <button type="submit" className={primaryButtonClass}>Aplicar filtros</button>
             <Link className={secondaryButtonClass} href="/admin/accounts">Limpiar</Link>
           </div>
@@ -111,20 +106,54 @@ export default async function AdminAccountsPage({ searchParams }) {
       </section>
 
       <section className="grid min-w-0 gap-4" aria-label="Listado de cuentas">
-        <h2>Resultados ({accounts.length})</h2>
+        <TextSpanWrapper2 as="h2" className="border-b border-brand-line pb-2.5 text-xl">
+          {`Resultados (${accounts.length})`}
+        </TextSpanWrapper2>
         {accounts.length === 0 ? (
-          <section className={panelClass}>
+          <section className={portalPanelClassName}>
             <p>No se han encontrado cuentas con los filtros indicados.</p>
           </section>
         ) : (
           <AdminTable label="Resultados de cuentas" headers={["Cuenta", "Estado", "Participación", "Capacidades", "Acción"]}>
             {accounts.map((account) => (
               <tr key={account.id}>
-                <td><strong>{account.name}</strong><br />{account.email}{(account.degree || account.course) && <><br />{account.degree}{account.course ? ` (${account.course})` : ""}</>}</td>
-                <td>{statusLabels[account.status]} · {account.capabilities.length > 0 ? "Organización" : "Estudiante"}</td>
+                <td>
+                  <strong>{account.name}</strong>
+                  <br />
+                  {account.email}
+                  {(account.degree || account.course) && (
+                    <>
+                      <br />
+                      {account.degree}
+                      {account.course ? ` (${account.course})` : ""}
+                    </>
+                  )}
+                </td>
+                <td>
+                  <span
+                    className={
+                      "inline-block rounded-sm border px-2.5 py-0.5 text-sm font-bold " +
+                      (account.status === "active"
+                        ? "border-[#b79b30] bg-brand-accent text-brand-ink"
+                        : "border-brand-line bg-brand-soft/45 text-brand-ink")
+                    }
+                  >
+                    {statusLabels[account.status]}
+                  </span>
+                  <br />
+                  <span className="text-sm">{account.capabilities.length > 0 ? "Organización" : "Estudiante"}</span>
+                </td>
                 <td>{account.reservationCount} reservas · {account.attendedCount} asistencias</td>
-                <td>{account.capabilities.length ? account.capabilities.map((cap) => capabilityLabels[cap] ?? cap).join(", ") : "Sin capacidades administrativas"}</td>
-                <td><Link className={secondaryButtonClass} href={`/admin/accounts/${account.id}`}>Ver ficha y permisos</Link></td>
+                <td>
+                  {account.capabilities.length
+                    ? account.capabilities.map((cap) => capabilityLabels[cap] ?? cap).join(", ")
+                    : "Sin capacidades administrativas"}
+                </td>
+                <td>
+                  <Link className={secondaryButtonClass} href={`/admin/accounts/${account.id}`}>
+                    Ver ficha y permisos
+                  </Link>
+                </td>
               </tr>
             ))}
           </AdminTable>

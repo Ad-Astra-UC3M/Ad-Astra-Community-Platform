@@ -5,9 +5,12 @@
 
 "use client";
 
-import { Camera01Icon } from "@hugeicons/core-free-icons";
+import { Camera01Icon, QrCodeIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useActionState, useEffect, useRef, useState } from "react";
+import { inputClass, primaryButtonClass, secondaryButtonClass } from "../../../../components/form-styles";
+import { portalAlertClassName, portalFeedbackClassName, portalPanelClassName } from "../../../../components/portal-ui";
+import TextSpanWrapper2 from "../../../../institutional/components/ui/TextSpanWrapper2";
 
 /**
  * `AttendancePage` monta el lector con una Server Action vinculada al turno. Usa `useActionState` para
@@ -17,7 +20,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
  * nuevo mensaje.
  * @returns El lector de cámara y el formulario manual con su estado de validación.
  */
-export function Scanner({action}) {
+export function Scanner({ action }) {
   const [result, submit, pending] = useActionState(action, "");
   const [active, setActive] = useState(false);
   const [cameraError, setCameraError] = useState("");
@@ -36,7 +39,7 @@ export function Scanner({action}) {
      * el temporizador y desconectar el vídeo.
      */
     function stop() {
-      stream?.getTracks().forEach(track => track.stop());
+      stream?.getTracks().forEach((track) => track.stop());
       if (timer) clearTimeout(timer);
       if (preview) preview.srcObject = null;
     }
@@ -50,9 +53,13 @@ export function Scanner({action}) {
         const { default: decode } = await import("jsqr");
         if (closed || !preview) return;
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } }, audio: false
+          video: { facingMode: { ideal: "environment" } },
+          audio: false,
         });
-        if (closed) { stop(); return; }
+        if (closed) {
+          stop();
+          return;
+        }
         preview.srcObject = stream;
         await preview.play();
         const canvas = document.createElement("canvas");
@@ -89,15 +96,23 @@ export function Scanner({action}) {
       }
     }
     void scan();
-    return () => { closed = true; stop(); };
+    return () => {
+      closed = true;
+      stop();
+    };
   }, [active]);
 
   return (
-    <section className="grid min-w-0 gap-4 rounded-lg border border-brand-primary/40 bg-brand-surface p-5 md:p-6">
-      <h2>Leer tarjeta</h2>
+    <section className={portalPanelClassName}>
+      <h2 className="flex items-center gap-2 border-b border-brand-line pb-2.5">
+        <HugeiconsIcon icon={QrCodeIcon} size={20} aria-hidden="true" className="shrink-0 text-brand-primary" />
+        <TextSpanWrapper2 as="span" className="min-w-0">
+          Leer tarjeta
+        </TextSpanWrapper2>
+      </h2>
       <button
         type="button"
-        className="inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start gap-2 rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink"
+        className={secondaryButtonClass + " disabled:cursor-default disabled:border-brand-line disabled:bg-brand-panel disabled:text-brand-ink"}
         disabled={pending}
         onClick={() => {
           setCameraError("");
@@ -109,7 +124,7 @@ export function Scanner({action}) {
       </button>
       {active && (
         <div className="grid gap-2">
-          <div className="relative grid w-full max-w-lg place-items-center overflow-hidden rounded-lg bg-brand-ink">
+          <div className="relative grid w-full max-w-lg place-items-center overflow-hidden rounded-lg bg-brand-ink p-2">
             <video
               ref={video}
               muted
@@ -117,22 +132,26 @@ export function Scanner({action}) {
               aria-label="Vista de cámara"
               className="aspect-video w-full object-contain"
             />
+            <span aria-hidden="true" className="pointer-events-none absolute top-3 left-3 size-5 border-t-2 border-s-2 border-brand-surface/80" />
+            <span aria-hidden="true" className="pointer-events-none absolute top-3 right-3 size-5 border-t-2 border-e-2 border-brand-surface/80" />
+            <span aria-hidden="true" className="pointer-events-none absolute bottom-3 left-3 size-5 border-b-2 border-s-2 border-brand-surface/80" />
+            <span aria-hidden="true" className="pointer-events-none absolute right-3 bottom-3 size-5 border-e-2 border-b-2 border-brand-surface/80" />
             <div aria-hidden="true" className="pointer-events-none absolute aspect-square w-2/5 max-w-44 rounded-sm border-2 border-brand-accent" />
           </div>
-          <p>Centra el código QR en el recuadro amarillo.</p>
+          <p className="text-[0.95rem]">Centra el código QR en el recuadro amarillo.</p>
         </div>
       )}
       {cameraError && (
-        <p className="rounded-[4px] bg-brand-accent/35 px-4 py-3.5 text-brand-ink" role="alert">
+        <p className={portalAlertClassName} role="alert">
           {cameraError}
         </p>
       )}
-      <form className="grid min-w-0 gap-4 border-t border-brand-primary/30 pt-4" action={submit} ref={form}>
+      <form className="grid min-w-0 gap-4 border-t border-brand-line pt-4" action={submit} ref={form}>
         <p>También puedes introducir el código manualmente.</p>
         <label className="grid min-w-0 gap-1.5 font-bold">
           Código de la tarjeta
           <textarea
-            className="min-h-12 w-full min-w-0 resize-y rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink"
+            className={inputClass + " min-h-[5.5rem] resize-y"}
             required
             name="token"
             maxLength={2048}
@@ -141,14 +160,14 @@ export function Scanner({action}) {
           />
         </label>
         <button
-          className="inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink"
+          className={primaryButtonClass + " disabled:cursor-default disabled:border-brand-line disabled:bg-brand-panel disabled:text-brand-ink"}
           disabled={pending}
         >
           {pending ? "Validando…" : "Validar tarjeta"}
         </button>
       </form>
       <p
-        className="rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink empty:hidden"
+        className={portalFeedbackClassName + " empty:hidden"}
         role="status"
         aria-live="polite"
       >

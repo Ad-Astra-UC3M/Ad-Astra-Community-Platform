@@ -1,13 +1,15 @@
 /**
- * Ruta /profile del App Router. Presenta el perfil básico del titular identificado por la
+ * @file Ruta `/profile` del App Router. Presenta el perfil básico del titular identificado por la
  * sesión y enlaza con sus opciones de talento y privacidad.
  */
 
 import { ArrowRight02Icon, Folder01Icon, SecurityCheckIcon, Settings02Icon, User03Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
-import { inputClass } from "../../components/form-styles";
+import { inputClass, primaryButtonClass } from "../../components/form-styles";
 import { PageHeading, pageClassName } from "../../components/page-layout";
+import { OrbitalMotif, portalAlertClassName, portalFeedbackClassName, portalPanelClassName } from "../../components/portal-ui";
+import TextSpanWrapper2 from "../../institutional/components/ui/TextSpanWrapper2";
 import { getMyProfile } from "../../server/profiles/operations";
 import { saveBasicProfileAction } from "./actions";
 
@@ -42,17 +44,23 @@ const profileLinks = [
   },
 ];
 
-const primaryButtonClass =
-  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
-
 const fieldClass = "grid min-w-0 gap-1.5 font-bold";
-
-const noticeClass = "rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink";
-
-const alertClass = "rounded-[4px] bg-brand-accent/35 px-4 py-3.5 text-brand-ink";
-
 const inlineLinkClass =
   "text-brand-primary underline underline-offset-[0.22em] transition-colors hover:text-brand-ink";
+
+/**
+ * Calcula el monograma de dos letras usado en la cabecera de `ProfilePage`.
+ *
+ * @param firstName Nombre del titular.
+ * @param lastName Apellidos del titular.
+ * @returns Iniciales en mayúsculas o `"AA"` como respaldo si faltan ambos campos.
+ */
+function buildInitials(firstName = "", lastName = "") {
+  const first = firstName.trim().charAt(0);
+  const last = lastName.trim().charAt(0);
+  const combined = `${first}${last}`.toUpperCase();
+  return combined || "AA";
+}
 
 /**
  * Next.js ejecuta este Server Component para leer getMyProfile y preparar el formulario que
@@ -74,37 +82,62 @@ export default async function ProfilePage({ searchParams }) {
     return (
       <main className={pageClassName}>
         <PageHeading title="Mi perfil" />
-        <p className={alertClass} role="alert">
+        <p className={portalAlertClassName} role="alert">
           No se ha encontrado la cuenta asociada a esta sesión.
         </p>
       </main>
     );
   }
 
+  const initials = buildInitials(profile.firstName, profile.lastName);
+
   return (
     <main className={pageClassName}>
-      <PageHeading title="Mi perfil" />
-      <p className="max-w-[48ch] text-[1.2rem] leading-relaxed">
-        Actualiza tus datos básicos académicos. Tu correo UC3M permanece fijo para conservar tu
-        identidad e historial en la comunidad.
-      </p>
+      <PageHeading
+        title="Mi perfil"
+        description="Actualiza tus datos básicos académicos. Tu correo UC3M permanece fijo para conservar tu identidad e historial en la comunidad."
+        actions={<OrbitalMotif className="hidden h-12 w-24 text-brand-primary/60 sm:block" />}
+      />
+
+      <section
+        className="flex flex-wrap items-center gap-4 rounded-lg border border-brand-line bg-brand-soft/45 px-5 py-4 sm:gap-6 sm:px-6"
+        aria-label="Resumen de identidad universitaria"
+      >
+        <span
+          aria-hidden="true"
+          className="font-serif text-3xl font-bold tracking-tight text-brand-ink sm:text-4xl"
+        >
+          {initials}
+        </span>
+        <span aria-hidden="true" className="hidden h-10 w-px bg-brand-ink/40 sm:block" />
+        <div className="grid min-w-0 gap-0.5">
+          <p className="font-serif text-xl font-bold text-brand-ink sm:text-2xl">
+            {profile.firstName} {profile.lastName}
+          </p>
+          <p className="font-serif text-[0.98rem] italic text-brand-ink">
+            Correo UC3M verificado · {profile.email}
+          </p>
+        </div>
+      </section>
 
       {saved && (
-        <p className={noticeClass} role="status">
+        <p className={portalFeedbackClassName} role="status">
           Has actualizado tu perfil básico correctamente.
         </p>
       )}
       {errorMessage && (
-        <p className={alertClass} role="alert">
+        <p className={portalAlertClassName} role="alert">
           {errorMessage}
         </p>
       )}
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-        <section className="grid min-w-0 gap-4 rounded-lg border border-brand-line p-5 md:p-6">
+        <section className={portalPanelClassName + " md:p-6"}>
           <h2 className="flex items-center gap-2 border-b border-brand-line pb-2.5">
             <HugeiconsIcon icon={User03Icon} size={21} aria-hidden="true" className="shrink-0 text-brand-primary" />
-            Datos básicos
+            <TextSpanWrapper2 as="span" className="min-w-0">
+              Datos básicos
+            </TextSpanWrapper2>
           </h2>
           <form
             key={`${profile.firstName}|${profile.lastName}|${profile.degree}|${profile.course}|${profile.academicLevel ?? ""}|${profile.languageModality ?? ""}`}
@@ -120,10 +153,10 @@ export default async function ProfilePage({ searchParams }) {
                 readOnly
                 aria-readonly="true"
                 aria-describedby="email-immutable-help"
-                className={`${inputClass} read-only:bg-brand-soft/15`}
+                className={`${inputClass} read-only:bg-brand-panel`}
               />
             </label>
-            <p id="email-immutable-help" className={noticeClass + " sm:col-span-2"}>
+            <p id="email-immutable-help" className={portalFeedbackClassName + " sm:col-span-2"}>
               El correo institucional identifica tu cuenta y no puede editarse desde el perfil.
             </p>
 
@@ -199,9 +232,9 @@ export default async function ProfilePage({ searchParams }) {
           </form>
 
           {profile.privacyVersion && (
-            <p>
+            <p className="border-t border-brand-line pt-3 text-[0.95rem]">
               Aviso de privacidad aceptado: versión{" "}
-              <code className="rounded bg-brand-soft/20 px-1.5 py-0.5 font-mono text-[0.9em]">
+              <code className="rounded bg-brand-panel px-1.5 py-0.5 font-mono text-[0.9em]">
                 {profile.privacyVersion}
               </code>
               {profile.privacyAcceptedAt
@@ -213,23 +246,25 @@ export default async function ProfilePage({ searchParams }) {
         </section>
 
         <nav className="grid gap-4 rounded-lg border border-brand-line bg-brand-panel p-5 md:p-6" aria-label="Opciones de perfil y privacidad">
-          <h2 className="flex items-center gap-2">
+          <h2 className="flex items-center gap-2 border-b border-brand-line pb-2.5">
             <HugeiconsIcon icon={Settings02Icon} size={21} aria-hidden="true" className="shrink-0 text-brand-primary" />
-            Configuración de la cuenta
+            <TextSpanWrapper2 as="span" className="min-w-0">
+              Configuración de la cuenta
+            </TextSpanWrapper2>
           </h2>
           <ul className="m-0 grid list-none gap-3 p-0">
             {profileLinks.map(({ href, label, description, icon }) => (
               <li key={href}>
                 <Link
                   href={href}
-                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[4px] border border-brand-line bg-brand-surface px-3 py-3.5 text-brand-ink no-underline transition-colors hover:border-brand-primary"
+                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[4px] border border-brand-line bg-brand-surface px-3.5 py-3.5 text-brand-ink no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft/20"
                 >
                   <HugeiconsIcon icon={icon} size={20} aria-hidden="true" className="text-brand-primary" />
                   <span className="grid min-w-0 gap-0.5">
-                    <span className="text-[1.18rem] font-bold text-brand-primary underline underline-offset-[0.22em]">
+                    <span className="text-[1.12rem] font-bold text-brand-primary underline underline-offset-[0.22em]">
                       {label}
                     </span>
-                    <span>{description}</span>
+                    <span className="text-[0.95rem]">{description}</span>
                   </span>
                   <HugeiconsIcon
                     className="shrink-0 text-brand-primary"

@@ -38,6 +38,7 @@
 
   --font-display: "Wild World", "Arial Black", system-ui, sans-serif;
   --font-serif: "Bodoni 72", "Bodoni 72 Smallcaps", "Bodoni MT", Didot, "Bodoni Moda", Georgia, serif;
+  --ease-astra: cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 @layer base {
@@ -53,12 +54,17 @@
   }
 
   h1,
-  h2,
-  h3,
-  h4 {
+  h2 {
     font-family: var(--font-display);
     font-weight: 400;
     text-transform: uppercase;
+    overflow-wrap: anywhere;
+  }
+
+  h3,
+  h4 {
+    font-family: var(--font-serif);
+    font-weight: 700;
     overflow-wrap: anywhere;
   }
 
@@ -85,8 +91,8 @@
   }
 
   h3 {
-    font-size: 1.2rem;
-    line-height: 1.3;
+    font-size: 1.25rem;
+    line-height: 1.28;
   }
 
   main a {
@@ -131,4 +137,11 @@
   to {
     transform: rotate(-360deg);
   }
+}
+
+.astra-blueprint-grid {
+  background-image:
+    linear-gradient(to right, rgb(76 82 179 / 0.065) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(76 82 179 / 0.065) 1px, transparent 1px);
+  background-size: 24px 24px;
 }

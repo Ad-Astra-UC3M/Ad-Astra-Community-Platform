@@ -1,11 +1,15 @@
 /**
- * Ruta dinámica /admin/accounts/[id]. Presenta la ficha de la cuenta y los formularios de
+ * @file Ruta dinámica `/admin/accounts/[id]`. Presenta la ficha de la cuenta y los formularios de
  * capacidades y estado para administración general.
  */
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../../components/back-link";
+import { secondaryButtonClass } from "../../../../components/form-styles";
+import { PageHeading, pageClassName } from "../../../../components/page-layout";
+import { portalAlertClassName, portalFeedbackClassName, portalPanelClassName } from "../../../../components/portal-ui";
+import TextSpanWrapper2 from "../../../../institutional/components/ui/TextSpanWrapper2";
 import { CAPABILITY_CODES } from "../../../../db/schema";
 import { getAdminAccount } from "../../../../server/accounts/operations";
 import { setAccountStatusAction, toggleAccountCapabilityAction } from "../actions";
@@ -61,11 +65,6 @@ const deletionLabels = {
   resolved: "Resuelta",
 };
 
-const panelClass =
-  "grid min-w-0 gap-4 rounded-lg border border-brand-primary/40 bg-brand-surface p-5 md:p-6";
-const secondaryButtonClass =
-  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
-
 /**
  * Next.js ejecuta este Server Component y consulta getAdminAccount. Llama a notFound si el
  * perfil no está disponible.
@@ -89,127 +88,162 @@ export default async function AdminAccountDetailPage({ params, searchParams }) {
   const activeCapabilities = new Set(account.capabilities);
 
   return (
-    <main className="mx-auto grid w-full max-w-[1280px] gap-6 px-4 pt-8 pb-16 sm:px-6 md:px-12 md:pt-12">
+    <main className={pageClassName}>
       <BackLink href="/admin/accounts">Volver a cuentas</BackLink>
-      <header className="grid min-w-0 gap-3 border-b border-brand-primary/40 pb-6">
-        <p className="text-[0.9rem] font-bold text-brand-primary">
-          Administración general · {account.status === "active" ? "Cuenta activa" : "Cuenta desactivada"}
-        </p>
-        <h1>{account.name}</h1>
-        <p>
-          {account.email}
-          {account.degree ? ` · ${account.degree}` : ""}
-          {account.course ? ` (${account.course})` : ""}
-        </p>
-      </header>
+      <PageHeading
+        eyebrow={`Administración general · ${account.status === "active" ? "Cuenta activa" : "Cuenta desactivada"}`}
+        title={account.name}
+        description={`${account.email}${account.degree ? ` · ${account.degree}` : ""}${account.course ? ` (${account.course})` : ""}`}
+      />
 
       {statusMessage && (
-        <p className="rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink empty:hidden" role="status">
+        <p className={portalFeedbackClassName + " empty:hidden"} role="status">
           {statusMessage}
         </p>
       )}
       {errorMessage && (
-        <p className="rounded-[4px] bg-brand-accent/35 px-4 py-3.5 text-brand-ink" role="alert">
+        <p className={portalAlertClassName} role="alert">
           {errorMessage}
         </p>
       )}
 
-      <section className={panelClass} aria-label="Estado de la cuenta">
-        <h2>Estado y acceso</h2>
-        <p>
-          Estado actual: <strong>{account.status === "active" ? "Activa" : "Desactivada"}</strong>. Desactivar una
-          cuenta cierra inmediatamente todas sus sesiones e impide el inicio de sesión y la validación QR.
-        </p>
-        <form action={setAccountStatusAction}>
-          <input type="hidden" name="accountId" value={account.id} />
-          <input type="hidden" name="status" value={account.status === "active" ? "deactivated" : "active"} />
-          <button type="submit" className={secondaryButtonClass}>
-            {account.status === "active" ? "Desactivar cuenta" : "Reactivar cuenta"}
-          </button>
-        </form>
-      </section>
-
-      <section className={panelClass} aria-label="Capacidades administrativas">
-        <h2>Capacidades independientes</h2>
-        <p>
-          Cada capacidad habilita exclusivamente su módulo. La administración general nunca implica consulta de
-          talento.
-        </p>
-        <ul className="m-0 grid list-none gap-4 p-0">
-          {CAPABILITY_CODES.map((capability) => {
-            const enabled = activeCapabilities.has(capability);
-            const info = capabilityDetails[capability];
-            return (
-              <li className={panelClass} key={capability}>
-                <p>
-                  <strong>{info.label}</strong> · {enabled ? "Activa" : "No concedida"}
-                </p>
-                <p>{info.note}</p>
-                <form action={toggleAccountCapabilityAction}>
-                  <input type="hidden" name="accountId" value={account.id} />
-                  <input type="hidden" name="capability" value={capability} />
-                  <input type="hidden" name="enabled" value={enabled ? "false" : "true"} />
-                  <button type="submit" className={secondaryButtonClass}>
-                    {enabled ? `Revocar ${info.label}` : `Conceder ${info.label}`}
-                  </button>
-                </form>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-
-      <section className={panelClass} aria-label="Historial de reservas y asistencias">
-        <h2>Historial de reservas y asistencias ({account.reservations.length})</h2>
-        {account.reservations.length > 0 ? (
-          <ul className="grid list-disc gap-1.5 pl-6">
-            {account.reservations.map((item) => (
-              <li key={item.participationId}>
-                <strong>{item.activityTitle}</strong> · {item.shiftName} ·{" "}
-                {item.status === "attended" ? "Asistido" : "Apuntado"} (reservado el{" "}
-                {dateTimeFormat.format(new Date(item.reservedAt))})
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>Esta cuenta no tiene reservas registradas.</p>
-        )}
-      </section>
-
-      {account.deletionRequests.length > 0 && (
-        <section className={panelClass} aria-label="Solicitudes de supresión asociadas">
-          <h2>Solicitudes de supresión</h2>
-          <ul className="grid list-disc gap-1.5 pl-6">
-            {account.deletionRequests.map((req) => (
-              <li key={req.id}>
-                <Link
-                  className="text-brand-primary underline underline-offset-[0.22em] hover:text-brand-ink"
-                  href={`/admin/deletion-requests/${req.id}`}
-                >
-                  Solicitud {deletionLabels[req.status]} · creada el {dateTimeFormat.format(new Date(req.createdAt))}
-                </Link>
-              </li>
-            ))}
-          </ul>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+        <section className="overflow-hidden rounded-lg border border-brand-line bg-brand-surface" aria-label="Capacidades administrativas">
+          <div className="border-b border-brand-line bg-brand-soft/35 px-5 py-3.5 sm:px-6">
+            <TextSpanWrapper2 as="h2" className="text-xl">
+              Capacidades independientes
+            </TextSpanWrapper2>
+          </div>
+          <div className="grid gap-4 p-5 sm:p-6">
+            <p className="text-[0.95rem]">
+              Cada capacidad habilita exclusivamente su módulo. La administración general nunca implica consulta de talento.
+            </p>
+            <ul className="m-0 grid list-none gap-3 p-0">
+              {CAPABILITY_CODES.map((capability) => {
+                const enabled = activeCapabilities.has(capability);
+                const info = capabilityDetails[capability];
+                return (
+                  <li
+                    className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-brand-line bg-brand-panel/50 p-4"
+                    key={capability}
+                  >
+                    <div className="grid min-w-0 gap-1">
+                      <p>
+                        <strong>{info.label}</strong>{" "}
+                        <span
+                          className={
+                            "ms-1 inline-block rounded-sm border px-2 py-0.5 text-xs font-bold " +
+                            (enabled
+                              ? "border-[#b79b30] bg-brand-accent text-brand-ink"
+                              : "border-brand-line bg-brand-surface text-brand-ink")
+                          }
+                        >
+                          {enabled ? "Activa" : "No concedida"}
+                        </span>
+                      </p>
+                      <p className="text-sm">{info.note}</p>
+                    </div>
+                    <form action={toggleAccountCapabilityAction}>
+                      <input type="hidden" name="accountId" value={account.id} />
+                      <input type="hidden" name="capability" value={capability} />
+                      <input type="hidden" name="enabled" value={enabled ? "false" : "true"} />
+                      <button type="submit" className={secondaryButtonClass}>
+                        {enabled ? `Revocar ${info.label}` : `Conceder ${info.label}`}
+                      </button>
+                    </form>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         </section>
-      )}
 
-      <section className={panelClass} aria-label="Auditoría de permisos">
-        <h2>Auditoría de capacidades</h2>
-        {account.capabilityAudit.length > 0 ? (
-          <ul className="grid list-disc gap-1.5 pl-6">
-            {account.capabilityAudit.map((entry) => (
-              <li key={entry.id}>
-                <strong>{entry.action === "granted" ? "Concedida" : "Revocada"}</strong>:{" "}
-                {capabilityDetails[entry.capability]?.label ?? entry.capability} · por {entry.actorName} el{" "}
-                {dateTimeFormat.format(new Date(entry.createdAt))}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>Sin cambios de capacidades registrados para esta cuenta.</p>
-        )}
-      </section>
+        <div className="grid gap-6">
+          <section className="overflow-hidden rounded-lg border border-brand-line bg-brand-surface" aria-label="Estado de la cuenta">
+            <div className="border-b border-brand-line bg-brand-soft/35 px-5 py-3.5 sm:px-6">
+              <TextSpanWrapper2 as="h2" className="text-xl">
+                Estado y acceso
+              </TextSpanWrapper2>
+            </div>
+            <div className="grid gap-4 p-5 sm:p-6">
+              <p>
+                Estado actual: <strong>{account.status === "active" ? "Activa" : "Desactivada"}</strong>. Desactivar una cuenta cierra inmediatamente todas sus sesiones e impide el inicio de sesión y la validación QR.
+              </p>
+              <form action={setAccountStatusAction}>
+                <input type="hidden" name="accountId" value={account.id} />
+                <input type="hidden" name="status" value={account.status === "active" ? "deactivated" : "active"} />
+                <button type="submit" className={secondaryButtonClass}>
+                  {account.status === "active" ? "Desactivar cuenta" : "Reactivar cuenta"}
+                </button>
+              </form>
+            </div>
+          </section>
+
+          {account.deletionRequests.length > 0 && (
+            <section className="overflow-hidden rounded-lg border border-brand-line bg-brand-surface" aria-label="Solicitudes de supresión asociadas">
+              <div className="border-b border-brand-line bg-brand-soft/35 px-5 py-3.5 sm:px-6">
+                <TextSpanWrapper2 as="h2" className="text-xl">
+                  Solicitudes de supresión
+                </TextSpanWrapper2>
+              </div>
+              <div className="p-5 sm:p-6">
+                <ul className="grid list-disc gap-1.5 pl-6">
+                  {account.deletionRequests.map((req) => (
+                    <li key={req.id}>
+                      <Link
+                        className="text-brand-primary underline underline-offset-[0.22em] hover:text-brand-ink"
+                        href={`/admin/deletion-requests/${req.id}`}
+                      >
+                        Solicitud {deletionLabels[req.status]} · creada el {dateTimeFormat.format(new Date(req.createdAt))}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          )}
+        </div>
+      </div>
+
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <section className={portalPanelClassName} aria-label="Historial de reservas y asistencias">
+          <TextSpanWrapper2 as="h2" className="border-b border-brand-line pb-2.5 text-xl">
+            {`Historial de reservas y asistencias (${account.reservations.length})`}
+          </TextSpanWrapper2>
+          {account.reservations.length > 0 ? (
+            <ul className="grid list-disc gap-1.5 pl-6">
+              {account.reservations.map((item) => (
+                <li key={item.participationId}>
+                  <strong>{item.activityTitle}</strong> · {item.shiftName} ·{" "}
+                  {item.status === "attended" ? "Asistido" : "Apuntado"} (reservado el{" "}
+                  {dateTimeFormat.format(new Date(item.reservedAt))})
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>Esta cuenta no tiene reservas registradas.</p>
+          )}
+        </section>
+
+        <section className={portalPanelClassName} aria-label="Auditoría de permisos">
+          <TextSpanWrapper2 as="h2" className="border-b border-brand-line pb-2.5 text-xl">
+            Auditoría de capacidades
+          </TextSpanWrapper2>
+          {account.capabilityAudit.length > 0 ? (
+            <ul className="grid list-disc gap-1.5 pl-6">
+              {account.capabilityAudit.map((entry) => (
+                <li key={entry.id}>
+                  <strong>{entry.action === "granted" ? "Concedida" : "Revocada"}</strong>:{" "}
+                  {capabilityDetails[entry.capability]?.label ?? entry.capability} · por {entry.actorName} el{" "}
+                  {dateTimeFormat.format(new Date(entry.createdAt))}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>Sin cambios de capacidades registrados para esta cuenta.</p>
+          )}
+        </section>
+      </div>
     </main>
   );
 }

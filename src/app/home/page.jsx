@@ -17,8 +17,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { accentButtonClass, secondaryButtonClass } from "../../components/form-styles";
 import { pageClassName } from "../../components/page-layout";
-import { portalPanelClassName, PortalIcon } from "../../components/portal-ui";
+import { accentRibbonBaseClassName, portalMutedPanelClassName, PortalIcon } from "../../components/portal-ui";
 import { ReservationAgendaCard } from "../../components/reservation-agenda";
+import AnimatedWordmark from "../../institutional/components/brand/AnimatedWordmark";
+import TextSpanWrapper2 from "../../institutional/components/ui/TextSpanWrapper2";
 import { loadMyHome } from "../../server/activities/portal";
 
 export const metadata = { title: "Inicio" };
@@ -47,6 +49,7 @@ const studentLinks = [
     label: "Mi perfil",
     description: "Datos y preferencias",
     icon: UserIcon,
+    highlighted: true,
   },
 ];
 
@@ -55,6 +58,7 @@ const adminLink = {
   label: "Panel de gestión",
   description: "Herramientas de administración",
   icon: DashboardSquare01Icon,
+  highlighted: true,
 };
 
 const sectionHeadingClass = "flex items-center gap-3 border-b border-brand-line pb-2.5 text-[clamp(1.05rem,2.2vw,1.5rem)]";
@@ -63,12 +67,12 @@ const heroImageClass = [
   "relative isolate min-h-[221px] [--diagonal:clamp(56px,9vw,124px)] sm:min-h-[390px]",
   "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:z-10 before:h-7 before:bg-brand-ink before:[clip-path:polygon(0_0,100%_0,0_87%)]",
   "after:pointer-events-none after:absolute after:inset-x-0 after:top-0 after:z-10 after:h-7 after:bg-brand-accent after:[clip-path:polygon(0_87%,100%_0,100%_14%,0_100%)]",
-  "sm:before:inset-y-0 sm:before:right-auto sm:before:h-auto sm:before:w-(--diagonal) sm:before:[clip-path:polygon(0_0,100%_0,0_100%)]",
-  "sm:after:inset-y-0 sm:after:right-auto sm:after:h-auto sm:after:w-[calc(var(--diagonal)_+_6px)] sm:after:[clip-path:polygon(calc(100%_-_6px)_0,100%_0,6px_100%,0_100%)]",
+  "sm:before:inset-y-0 sm:before:left-0 sm:before:right-auto sm:before:h-auto sm:before:w-[var(--diagonal)] sm:before:[clip-path:polygon(0_0,100%_0,0_100%)]",
+  "sm:after:inset-y-0 sm:after:left-0 sm:after:right-auto sm:after:h-auto sm:after:w-[calc(var(--diagonal)+6px)] sm:after:[clip-path:polygon(calc(100%-6px)_0,100%_0,6px_100%,0_100%)]",
 ].join(" ");
 
 /**
- * Next.js ejecuta la página tras acceder al portal. Carga la sesión y muestra la primera próxima
+ * Next.js ejecuta esta página al entrar en el portal. Carga la sesión y muestra la primera próxima
  * reserva de la misma persona. Incluye el panel de gestión para las cuentas con capacidades.
  * @returns El inicio autenticado con la agenda y los accesos disponibles.
  */
@@ -85,10 +89,22 @@ export default async function HomePage() {
   return (
     <main className={pageClassName}>
       <section className="grid overflow-hidden rounded-lg bg-brand-ink text-brand-surface sm:grid-cols-[repeat(2,minmax(0,1fr))]">
-        <div className="grid min-w-0 content-center gap-4 p-[clamp(1.5rem,4vw,3.375rem)] sm:gap-6">
-          <h1 className="text-[clamp(1.55rem,3.35vw,3rem)] text-brand-surface after:h-[7px] after:w-[clamp(92px,13vw,176px)]">
-            Hola, {user.firstName}
-          </h1>
+        <div className="grid min-w-0 content-center gap-4 p-[clamp(1.5rem,4vw,3.375rem)] sm:gap-5">
+          <div className="flex items-center gap-3">
+            <span className="h-px w-10 bg-brand-surface/60" aria-hidden="true" />
+            <span className={accentRibbonBaseClassName + " px-3 py-0.5 text-[0.72rem]"}>
+              Comunidad{" "}
+              <AnimatedWordmark inline ariaLabel="Ad Astra" className="mx-0.5 h-[0.92em] align-[-0.08em]" />{" "}
+              UC3M
+            </span>
+          </div>
+          <TextSpanWrapper2
+            as="h1"
+            animateOnLoad
+            className="text-[clamp(1.55rem,3.35vw,3rem)] text-brand-surface after:h-[7px] after:w-[clamp(92px,13vw,176px)]"
+          >
+            {`Hola, ${user.firstName}`}
+          </TextSpanWrapper2>
           <p className="max-w-[46ch] text-[1.04rem]">
             Consulta tus próximos talleres y encuentra tu siguiente oportunidad.
           </p>
@@ -113,12 +129,14 @@ export default async function HomePage() {
         <section aria-labelledby="home-agenda-heading" className="grid min-w-0 gap-4">
           <h2 id="home-agenda-heading" className={sectionHeadingClass}>
             <PortalIcon icon={Calendar03Icon} size={23} className="text-brand-primary" />
-            Próximas actividades
+            <TextSpanWrapper2 as="span" className="min-w-0">
+              Próximas actividades
+            </TextSpanWrapper2>
           </h2>
           {upcoming ? (
             <ReservationAgendaCard reservation={upcoming}>{agendaLink}</ReservationAgendaCard>
           ) : (
-            <div className={portalPanelClassName + " bg-brand-panel"}>
+            <div className={portalMutedPanelClassName}>
               <p>No tienes próximas reservas.</p>
               {agendaLink}
             </div>
@@ -127,14 +145,19 @@ export default async function HomePage() {
         <nav aria-labelledby="home-shortcuts-heading" className="grid min-w-0 gap-4">
           <h2 id="home-shortcuts-heading" className={sectionHeadingClass}>
             <PortalIcon icon={GridViewIcon} size={23} className="text-brand-primary" />
-            Accesos directos
+            <TextSpanWrapper2 as="span" className="min-w-0">
+              Accesos directos
+            </TextSpanWrapper2>
           </h2>
           <ul className="grid grid-cols-1 gap-2.5 min-[480px]:grid-cols-2 sm:gap-3">
-            {links.map(({ href, label, description, icon }) => (
+            {links.map(({ href, label, description, icon, highlighted }) => (
               <li key={href} className="min-w-0">
                 <Link
                   href={href}
-                  className="grid h-full min-h-[5.2rem] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 rounded-sm border border-brand-line p-3.5 text-brand-ink no-underline transition-colors hover:border-brand-primary hover:bg-brand-panel sm:p-4"
+                  className={
+                    "grid h-full min-h-[5.2rem] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 rounded-sm border border-brand-line border-s-4 border-s-brand-primary p-3.5 text-brand-ink no-underline transition-colors hover:border-brand-primary hover:bg-brand-panel sm:p-4 " +
+                    (highlighted ? "bg-brand-soft/30" : "bg-brand-surface")
+                  }
                 >
                   <PortalIcon icon={icon} className="text-brand-primary" />
                   <span className="grid gap-0.5">

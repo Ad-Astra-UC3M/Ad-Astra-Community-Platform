@@ -1,12 +1,25 @@
 /**
- * Ruta /admin del App Router. Orquesta la vista inicial de administración a partir de las
+ * @file Ruta `/admin` del App Router. Orquesta la vista inicial de administración a partir de las
  * capacidades de sesión y los datos que permite cada una.
  */
 
+import {
+  Briefcase01Icon,
+  Calendar03Icon,
+  Delete02Icon,
+  Folder01Icon,
+  GridViewIcon,
+  QrCodeIcon,
+  User03Icon,
+  UserGroupIcon,
+} from "@hugeicons/core-free-icons";
 import Link from "next/link";
-import { Calendar03Icon, Briefcase01Icon, UserGroupIcon, Delete02Icon, Folder01Icon, QrCodeIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { primaryButtonClass, secondaryButtonClass } from "../../components/form-styles";
+import { PageHeading, pageClassName } from "../../components/page-layout";
+import { OrbitalMotif, PortalIcon, portalMutedPanelClassName, portalPanelClassName } from "../../components/portal-ui";
+import TextSpanWrapper2 from "../../institutional/components/ui/TextSpanWrapper2";
 import { loadAdminDashboard } from "../../server/accounts/operations";
+import { AdminTable } from "./admin-table";
 
 export const metadata = { title: "Panel de administración" };
 
@@ -74,11 +87,6 @@ const activityStatusLabels = {
   archived: "Archivada",
 };
 
-const panelClass =
-  "grid min-w-0 gap-4 rounded-lg border border-brand-primary/40 bg-brand-surface p-5 md:p-6";
-const primaryButtonClass =
-  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
-
 /**
  * Next.js ejecuta este Server Component para consultar loadAdminDashboard y seleccionar los
  * módulos autorizados.
@@ -91,28 +99,73 @@ export default async function AdminPage() {
   const visibleModules = moduleCards.filter((card) => capabilities.includes(card.capability));
 
   return (
-    <main className="mx-auto grid w-full max-w-[1280px] gap-6 px-4 pt-8 pb-16 sm:px-6 md:px-12 md:pt-12">
-      <header className="grid min-w-0 gap-3 border-b border-brand-primary/40 pb-6">
-        <p className="text-[0.9rem] font-bold text-brand-primary">Organización</p>
-        <h1>Panel administrativo</h1>
-        <p className="max-w-[48ch] text-[1.2rem] leading-[1.55]">
-          Accede únicamente a los módulos autorizados para tus capacidades activas:{" "}
-          {capabilities.map((cap) => capabilityLabels[cap] ?? cap).join(", ")}.
-        </p>
-      </header>
+    <main className={pageClassName}>
+      <PageHeading
+        eyebrow="Organización"
+        title="Panel administrativo"
+        description={`Accede únicamente a los módulos autorizados para tus capacidades activas: ${capabilities.map((cap) => capabilityLabels[cap] ?? cap).join(", ")}.`}
+        actions={<OrbitalMotif className="hidden h-12 w-24 text-brand-primary/60 sm:block" />}
+      />
+
+      {capabilities.includes("attendance_validation") && (
+        <section className={portalMutedPanelClassName} aria-label="Acceso rápido a turnos de asistencia">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-brand-line pb-2.5">
+            <h2 className="flex items-center gap-2.5">
+              <PortalIcon icon={Calendar03Icon} size={21} className="text-brand-primary" />
+              <TextSpanWrapper2 as="span" className="min-w-0">
+                Control de asistencia
+              </TextSpanWrapper2>
+            </h2>
+            <Link href="/admin/attendance" className={secondaryButtonClass}>Ver todos los turnos</Link>
+          </div>
+          <p>Elige el turno en el que vas a recibir a los participantes.</p>
+          {shifts.length > 0 ? (
+            <ul className="m-0 grid list-none gap-3 p-0 md:grid-cols-2">
+              {shifts.map((shift) => (
+                <li
+                  className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-brand-line bg-brand-surface p-4"
+                  key={shift.id}
+                >
+                  <div className="grid gap-0.5">
+                    <strong className="text-lg text-brand-ink">{shift.activityTitle}</strong>
+                    <p className="text-[0.95rem]">Turno {shift.name}</p>
+                  </div>
+                  <Link className={primaryButtonClass} href={`/admin/attendance/${shift.id}`}>
+                    Validar {shift.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>Aún no hay turnos disponibles.</p>
+          )}
+        </section>
+      )}
 
       <section className="grid min-w-0 gap-4" aria-label="Módulos administrativos disponibles">
-        <h2>Módulos habilitados</h2>
+        <h2 className="flex items-center gap-2.5 border-b border-brand-line pb-2.5">
+          <PortalIcon icon={GridViewIcon} size={21} className="text-brand-primary" />
+          <TextSpanWrapper2 as="span" className="min-w-0">
+            Módulos habilitados
+          </TextSpanWrapper2>
+        </h2>
         <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
           {visibleModules.map((mod) => (
-            <li className={panelClass} key={mod.href}>
-              <h3 className="flex items-start gap-2">
-                <HugeiconsIcon icon={mod.icon} size={22} aria-hidden="true" className="shrink-0 text-brand-primary" />
-                {mod.title}
-              </h3>
-              <p>{mod.description}</p>
+            <li
+              className="grid min-w-0 content-between gap-4 rounded-lg border border-brand-line bg-brand-surface p-5"
+              key={mod.href}
+            >
+              <div className="grid gap-2.5">
+                <h3 className="flex items-center gap-3 font-serif text-xl font-bold text-brand-ink">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-md bg-brand-soft/40 text-brand-primary">
+                    <PortalIcon icon={mod.icon} size={20} />
+                  </span>
+                  <span>{mod.title}</span>
+                </h3>
+                <p>{mod.description}</p>
+              </div>
               <div>
-                <Link className={primaryButtonClass} href={mod.href}>{mod.cta}</Link>
+                <Link className={secondaryButtonClass} href={mod.href}>{mod.cta}</Link>
               </div>
             </li>
           ))}
@@ -120,46 +173,53 @@ export default async function AdminPage() {
       </section>
 
       {metrics && (
-        <section className={panelClass} aria-label="Resumen de métricas">
-          <h2>Métricas de la comunidad</h2>
-          <p>
-            <strong>{metrics.totalAccounts}</strong> cuentas verificadas ({metrics.activeAccounts} activas,{" "}
-            {metrics.deactivatedAccounts} desactivadas) ·{" "}
-            <strong>{metrics.pendingDeletionRequests}</strong> solicitudes de supresión abiertas.
-          </p>
+        <section className={portalPanelClassName} aria-label="Resumen de métricas">
+          <h2 className="flex items-center gap-2.5 border-b border-brand-line pb-2.5">
+            <PortalIcon icon={User03Icon} size={21} className="text-brand-primary" />
+            <TextSpanWrapper2 as="span" className="min-w-0">
+              Métricas de la comunidad
+            </TextSpanWrapper2>
+          </h2>
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-brand-line bg-brand-line sm:grid-cols-4">
+            <div className="grid gap-1 bg-brand-surface p-4">
+              <strong className="font-serif text-3xl leading-none font-bold text-brand-ink">{metrics.totalAccounts}</strong>
+              <span className="text-sm">Cuentas verificadas</span>
+            </div>
+            <div className="grid gap-1 bg-brand-surface p-4">
+              <strong className="font-serif text-3xl leading-none font-bold text-brand-ink">{metrics.activeAccounts}</strong>
+              <span className="text-sm">Activas</span>
+            </div>
+            <div className="grid gap-1 bg-brand-surface p-4">
+              <strong className="font-serif text-3xl leading-none font-bold text-brand-ink">{metrics.deactivatedAccounts}</strong>
+              <span className="text-sm">Desactivadas</span>
+            </div>
+            <div className="grid gap-1 bg-brand-panel p-4">
+              <strong className="font-serif text-3xl leading-none font-bold text-brand-ink">{metrics.pendingDeletionRequests}</strong>
+              <span className="text-sm">Solicitudes abiertas</span>
+            </div>
+          </div>
           {metrics.shifts.length > 0 ? (
-            <ul className="grid list-disc gap-1.5 pl-6">
+            <AdminTable
+              label="Resumen de ocupación por turno"
+              headers={["Actividad", "Turno", "Estado", "Ocupación", "Asistencias"]}
+            >
               {metrics.shifts.map((shift) => (
-                <li key={shift.shiftId}>
-                  <strong>{shift.activityTitle}</strong> · {shift.shiftName} ({activityStatusLabels[shift.activityStatus]}):{" "}
-                  {shift.capacity === null
-                    ? `${shift.reservedCount} reservas (aforo ilimitado)`
-                    : `${shift.reservedCount}/${shift.capacity} reservas`}{" "}
-                  · {shift.attendedCount} asistencias confirmadas
-                </li>
+                <tr key={shift.shiftId}>
+                  <td><strong>{shift.activityTitle}</strong></td>
+                  <td>{shift.shiftName}</td>
+                  <td>{activityStatusLabels[shift.activityStatus]}</td>
+                  <td>
+                    {shift.capacity === null
+                      ? `${shift.reservedCount} reservas (ilimitado)`
+                      : `${shift.reservedCount}/${shift.capacity} reservas`}
+                  </td>
+                  <td>{shift.attendedCount} confirmadas</td>
+                </tr>
               ))}
-            </ul>
+            </AdminTable>
           ) : (
             <p>Aún no hay turnos registrados.</p>
           )}
-        </section>
-      )}
-
-      {capabilities.includes("attendance_validation") && (
-        <section className="grid min-w-0 gap-4" aria-label="Acceso rápido a turnos de asistencia">
-          <h2>Control de asistencia</h2>
-          <p>Elige el turno en el que vas a recibir a los participantes.</p>
-          <ul className="m-0 grid list-none gap-4 p-0">
-            {shifts.map((shift) => (
-              <li className={panelClass} key={shift.id}>
-                <strong>{shift.activityTitle}</strong>
-                <p>{shift.name}</p>
-                <Link className={primaryButtonClass} href={`/admin/attendance/${shift.id}`}>
-                  Validar {shift.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
         </section>
       )}
     </main>
