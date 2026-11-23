@@ -62,6 +62,13 @@ export default async function PrivacyNoticePage() {
           El correo institucional verificado identifica tu cuenta y permanece inmutable tras el alta
           para conservar tu identidad y tu historial de participación.
         </p>
+        <p>
+          Opcionalmente puedes subir una foto de perfil (<code>JPEG</code>, <code>PNG</code> o{" "}
+          <code>WebP</code>, máx. 2 MB), que se almacena de forma privada en Neon Object Storage
+          sin enlaces públicos, se muestra únicamente en tu cuenta y al equipo autorizado con permiso{" "}
+          <code>talent_consultation</code> si completas tu perfil de talento, y puedes retirar en
+          cualquier momento desde <Link href="/profile">Mi perfil</Link>.
+        </p>
       </section>
 
       <section className={panelClass}>
@@ -75,9 +82,10 @@ export default async function PrivacyNoticePage() {
           portfolio u otros).
         </p>
         <p>
-          La plataforma no admite subida de archivos ni descarga o inspecciona el contenido de tus
-          enlaces: solo acepta direcciones web seguras (<code>http://</code> o <code>https://</code>
-          ) y puedes editarlas o retirarlas en cualquier momento.
+          El perfil de talento no admite subida de documentos (como CV en PDF) ni descarga o
+          inspecciona el contenido de tus enlaces: solo acepta direcciones web seguras (
+          <code>http://</code> o <code>https://</code>) y puedes editarlas o retirarlas en
+          cualquier momento.
         </p>
       </section>
 

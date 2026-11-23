@@ -13,6 +13,7 @@ import { join } from "node:path";
 const baseURL = "http://127.0.0.1:3941";
 const runId = (process.env.AD_ASTRA_E2E_RUN_ID ||= String(process.pid));
 const pgTestDir = (process.env.AD_ASTRA_PG_TEST_DIR ||= join(tmpdir(), `ad-astra-e2e-pg-${runId}`));
+const avatarTestDir = (process.env.AD_ASTRA_AVATAR_TEST_DIR ||= join(tmpdir(), `ad-astra-e2e-avatars-${runId}`));
 const mailboxFile = (process.env.AD_ASTRA_TEST_MAILBOX_FILE ||= join(tmpdir(), `ad-astra-e2e-mailbox-${runId}.jsonl`));
 const qrSecret = "e2e-test-attendance-qr-secret-at-least-32-bytes-long";
 
@@ -30,12 +31,18 @@ export default defineConfig({
     env: {
       AD_ASTRA_TEST_AUTH: "1",
       AD_ASTRA_PG_TEST_DIR: pgTestDir,
+      AD_ASTRA_AVATAR_TEST_DIR: avatarTestDir,
       AD_ASTRA_TEST_MAILBOX_FILE: mailboxFile,
       ATTENDANCE_QR_SECRET: qrSecret,
       APP_ORIGIN: baseURL,
       DATABASE_URL: "",
       NEON_AUTH_BASE_URL: "",
       NEON_AUTH_COOKIE_SECRET: "",
+      AWS_ENDPOINT_URL_S3: "",
+      AWS_ACCESS_KEY_ID: "",
+      AWS_SECRET_ACCESS_KEY: "",
+      AWS_REGION: "",
+      NEON_STORAGE_BUCKET: "",
     },
   },
 });

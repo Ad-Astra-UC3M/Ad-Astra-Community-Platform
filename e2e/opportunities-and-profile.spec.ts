@@ -161,3 +161,154 @@ test("aviso de privacidad, perfil básico, talento voluntario, difusión y solic
   await expect(page.getByRole("status")).toContainText("No se ha ejecutado ningún borrado automático.");
   await expect(page.getByText("Pendiente de revisión")).toBeVisible();
 });
+
+/**
+ * Recorre el flujo completo de foto de perfil privada: bloqueo 401/404 sin sesión o sin imagen,
+ * rechazo de SVG, subida de PNG, sustitución por WebP, consulta interna protegida por
+ * `talent_consultation` y retirada con vuelta al monograma de iniciales.
+ */
+test("foto de perfil privada: subida, validación, sustitución, consulta de talento y retirada", async ({ page }, info) => {
+  const email = `foto.${info.project.name}@alumnos.uc3m.es`;
+  const password = "FotoPassword2026!";
+  const lastName = `Orbital ${info.project.name}`;
+  const fullName = `Lucas ${lastName}`;
+
+  const unauthRes = await page.request.get("/api/profile/avatar");
+  expect(unauthRes.status()).toBe(401);
+  expect(unauthRes.headers()["cache-control"]).toBe("no-store");
+
+  await registerVerifyAndSignIn(page, {
+    firstName: "Lucas",
+    lastName,
+    email,
+    password,
+  });
+
+  const emptyAvatarRes = await page.request.get("/api/profile/avatar");
+  expect(emptyAvatarRes.status()).toBe(404);
+
+  await page.goto("/profile");
+  const summarySection = page.locator("section[aria-label='Resumen de identidad universitaria']");
+  await expect(summarySection).toContainText("LO");
+
+  const fileInput = page.getByLabel("Foto de perfil (JPEG, PNG o WebP, máx. 2 MB)", { exact: true });
+
+  // Rechaza SVG antes de persistir nada
+  await fileInput.setInputFiles({
+    name: "malicioso.svg",
+    mimeType: "image/svg+xml",
+    buffer: Buffer.from("<svg xmlns='http://www.w3.org/2000/svg'><script>alert(1)</script></svg>"),
+  });
+  await page.getByRole("button", { name: "Guardar foto" }).click();
+  await expect(page).toHaveURL(/\/profile\?error=invalid_image$/);
+  await expect(page.getByRole("main").getByRole("alert")).toContainText("JPEG, PNG o WebP");
+  expect((await page.request.get("/api/profile/avatar")).status()).toBe(404);
+
+  // Subida válida de PNG 1x1
+  const png1x1 = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+    "base64",
+  );
+  await fileInput.setInputFiles({
+    name: "perfil.png",
+    mimeType: "image/png",
+    buffer: png1x1,
+  });
+  await page.getByRole("button", { name: "Guardar foto" }).click();
+  await expect(page).toHaveURL(/\/profile\?status=avatar_saved$/);
+  await expect(page.getByRole("status")).toContainText("Has actualizado tu foto de perfil correctamente.");
+
+  const summaryImg = page.getByAltText(`Foto de perfil de ${fullName}`);
+  await expect(summaryImg).toBeVisible();
+  const firstSrc = await summaryImg.getAttribute("src");
+  expect(firstSrc).toMatch(/^\/api\/profile\/avatar\?v=\d+$/);
+  await expect(async () => {
+    const loaded = await summaryImg.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0);
+    expect(loaded).toBe(true);
+  }).toPass();
+
+  const barImg = page.locator("aside[aria-label='Sesión activa'] img");
+  await expect(barImg).toHaveAttribute("src", firstSrc!);
+  await expect(async () => {
+    const loaded = await barImg.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0);
+    expect(loaded).toBe(true);
+  }).toPass();
+
+  const ownPngRes = await page.request.get("/api/profile/avatar");
+  expect(ownPngRes.status()).toBe(200);
+  expect(ownPngRes.headers()["content-type"]).toBe("image/png");
+  expect(ownPngRes.headers()["cache-control"]).toBe("private, max-age=3600");
+  expect(ownPngRes.headers()["x-content-type-options"]).toBe("nosniff");
+  expect(ownPngRes.headers()["content-disposition"]).toBe("inline");
+  expect(ownPngRes.headers()["vary"]).toContain("Cookie");
+
+  // Sustitución por WebP 1x1 válido
+  const webp1x1 = Buffer.from(
+    "UklGRh4AAABXRUJQVlA4TBEAAAAvAAAAAAfQ//73v/+BiOh/AAA=",
+    "base64",
+  );
+  await fileInput.setInputFiles({
+    name: "perfil.webp",
+    mimeType: "image/webp",
+    buffer: webp1x1,
+  });
+  await page.getByRole("button", { name: "Cambiar foto" }).click();
+  await expect(summaryImg).not.toHaveAttribute("src", firstSrc!);
+  await expect(page).toHaveURL(/\/profile\?status=avatar_saved$/);
+
+  const secondSrc = await summaryImg.getAttribute("src");
+  expect(secondSrc).toMatch(/^\/api\/profile\/avatar\?v=\d+$/);
+  expect(secondSrc).not.toBe(firstSrc);
+  await expect(async () => {
+    const loaded = await summaryImg.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0);
+    expect(loaded).toBe(true);
+  }).toPass();
+
+  const ownWebpRes = await page.request.get("/api/profile/avatar");
+  expect(ownWebpRes.status()).toBe(200);
+  expect(ownWebpRes.headers()["content-type"]).toBe("image/webp");
+
+  // Completa perfil de talento y comprueba acceso autorizado vs denegado en /admin/talent
+  await page.goto("/profile/talent");
+  await page.getByLabel("Universidad", { exact: true }).fill("UC3M");
+  await page.getByRole("button", { name: "Guardar perfil de talento" }).click();
+  await expect(page.getByRole("status")).toContainText("Has guardado tu perfil de talento voluntario.");
+
+  await signOut(page);
+  await signInAs(page, E2E_ACCOUNTS.admin);
+  await expect(page).toHaveURL(/\/admin$/);
+  await page.goto(`/admin/talent?q=${encodeURIComponent(lastName)}`);
+  await page.getByRole("row").filter({ hasText: fullName }).getByRole("link", { name: "Ver perfil de talento" }).click();
+  await expect(page).toHaveURL(/\/admin\/talent\/.+$/);
+
+  const talentAvatarPath = `/api${new URL(page.url()).pathname}/avatar`;
+  const adminImg = page.getByAltText(`Foto de perfil de ${fullName}`);
+  await expect(adminImg).toBeVisible();
+  await expect(async () => {
+    const loaded = await adminImg.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0);
+    expect(loaded).toBe(true);
+  }).toPass();
+  const talentAvatarRes = await page.request.get(talentAvatarPath);
+  expect(talentAvatarRes.status()).toBe(200);
+  expect(talentAvatarRes.headers()["cache-control"]).toBe("private, max-age=3600");
+  expect(talentAvatarRes.headers()["x-content-type-options"]).toBe("nosniff");
+
+  await signOut(page);
+  await signInAs(page, E2E_ACCOUNTS.generalAdminOnly);
+  await expect(page).toHaveURL(/\/admin$/);
+  const deniedTalentAvatarRes = await page.request.get(talentAvatarPath);
+  expect(deniedTalentAvatarRes.status()).toBe(404);
+  expect(deniedTalentAvatarRes.headers()["cache-control"]).toBe("no-store");
+
+  // El titular retira la foto y vuelve al monograma de iniciales
+  await signOut(page);
+  await signInAs(page, { email, password });
+  await expect(page).toHaveURL(/\/home$/);
+  await page.goto("/profile");
+  await page.getByRole("button", { name: "Quitar foto" }).click();
+  await expect(page).toHaveURL(/\/profile\?status=avatar_removed$/);
+  await expect(page.getByRole("status")).toContainText("Has eliminado tu foto de perfil.");
+  expect((await page.request.get("/api/profile/avatar")).status()).toBe(404);
+  await expect(summarySection.locator("img")).toHaveCount(0);
+  await expect(summarySection).toContainText("LO");
+});

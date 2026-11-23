@@ -31,6 +31,7 @@ export type AuthUser = {
   email: string;
   status: AccountStatus;
   capabilities: CapabilityCode[];
+  avatarUpdatedAt: Date | null;
 };
 
 export type RegisterAccountInput = {
@@ -212,6 +213,7 @@ function buildAuthUser(
     email: profile.email,
     status: profile.status,
     capabilities,
+    avatarUpdatedAt: profile.avatarUpdatedAt ?? null,
   };
 }
 

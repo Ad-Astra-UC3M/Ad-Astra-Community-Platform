@@ -6,7 +6,9 @@
 import { DashboardSquare01Icon, Logout03Icon, UserIcon } from "@hugeicons/core-free-icons";
 import Link from "next/link";
 import { signOut } from "../app/auth-actions";
+import { buildOwnAvatarUrl } from "../server/profiles/avatar-validation";
 import { PortalIcon } from "./portal-ui";
+import { ProfileAvatar } from "./profile-avatar";
 
 const linkClass =
   "inline-flex min-h-[44px] items-center gap-1.5 py-2 text-brand-primary underline underline-offset-4 transition-colors hover:text-brand-ink";
@@ -23,6 +25,7 @@ const textButtonClass =
  */
 export function CommunityBar({ user }) {
   const hasAdmin = Array.isArray(user?.capabilities) && user.capabilities.length > 0;
+  const avatarUrl = buildOwnAvatarUrl(user?.avatarUpdatedAt);
 
   return (
     <aside
@@ -31,7 +34,11 @@ export function CommunityBar({ user }) {
     >
       <div className="mx-auto flex w-full max-w-[80rem] flex-wrap items-center justify-between gap-x-6 px-4 py-1 text-[0.94rem] sm:px-6 lg:px-8">
         <p className="inline-flex min-w-0 items-center gap-2 py-1 [overflow-wrap:anywhere]">
-          <PortalIcon icon={UserIcon} size={16} className="text-brand-primary" />
+          {avatarUrl ? (
+            <ProfileAvatar size="xs" decorative src={avatarUrl} name={user.name} />
+          ) : (
+            <PortalIcon icon={UserIcon} size={16} className="text-brand-primary" />
+          )}
           <span>
             <strong>{user.name}</strong> · <span>{user.email}</span>
           </span>

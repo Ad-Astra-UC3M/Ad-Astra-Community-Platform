@@ -9,9 +9,12 @@ import Link from "next/link";
 import { inputClass, primaryButtonClass } from "../../components/form-styles";
 import { PageHeading, pageClassName } from "../../components/page-layout";
 import { OrbitalMotif, portalAlertClassName, portalFeedbackClassName, portalPanelClassName } from "../../components/portal-ui";
+import { ProfileAvatar } from "../../components/profile-avatar";
 import TextSpanWrapper2 from "../../institutional/components/ui/TextSpanWrapper2";
+import { buildOwnAvatarUrl } from "../../server/profiles/avatar-validation";
 import { getMyProfile } from "../../server/profiles/operations";
-import { saveBasicProfileAction } from "./actions";
+import { removeProfileAvatarAction, saveBasicProfileAction, uploadProfileAvatarAction } from "./actions";
+import { AvatarForm } from "./avatar-form";
 
 export const metadata = { title: "Mi perfil" };
 
@@ -22,11 +25,22 @@ const dateFormat = new Intl.DateTimeFormat("es-ES", {
   timeZone: "Europe/Madrid",
 });
 
+const statusMessages = new Map([
+  ["saved", "Has actualizado tu perfil básico correctamente."],
+  ["avatar_saved", "Has actualizado tu foto de perfil correctamente."],
+  ["avatar_removed", "Has eliminado tu foto de perfil."],
+]);
+
 const errorMessages = new Map([
   ["email_immutable", "El correo institucional UC3M no se puede modificar tras el alta."],
   ["identity_immutable", "No se puede modificar el identificador ni el estado de la cuenta."],
   ["fields", "Completa nombre, apellidos, titulación y curso respetando los límites de longitud."],
   ["missing", "No se ha encontrado la cuenta asociada a esta sesión."],
+  ["empty_file", "Selecciona una imagen válida antes de guardar."],
+  ["file_too_large", "La imagen supera el límite máximo de 2 MB."],
+  ["invalid_image", "Formato no admitido. Usa una imagen real en formato JPEG, PNG o WebP."],
+  ["storage_unavailable", "El almacenamiento de fotos de perfil no está configurado todavía en este entorno."],
+  ["storage_error", "No se pudo guardar la foto en este momento. Inténtalo de nuevo."],
 ]);
 
 const profileLinks = [
@@ -49,34 +63,19 @@ const inlineLinkClass =
   "text-brand-primary underline underline-offset-[0.22em] transition-colors hover:text-brand-ink";
 
 /**
- * Calcula el monograma de dos letras usado en la cabecera de `ProfilePage`.
- *
- * @param firstName Nombre del titular.
- * @param lastName Apellidos del titular.
- * @returns Iniciales en mayúsculas o `"AA"` como respaldo si faltan ambos campos.
- */
-function buildInitials(firstName = "", lastName = "") {
-  const first = firstName.trim().charAt(0);
-  const last = lastName.trim().charAt(0);
-  const combined = `${first}${last}`.toUpperCase();
-  return combined || "AA";
-}
-
-/**
- * Next.js ejecuta este Server Component para leer getMyProfile y preparar el formulario que
- * invoca saveBasicProfileAction.
+ * Next.js ejecuta este Server Component para leer getMyProfile y preparar los formularios de datos
+ * básicos y foto de perfil que invocan las acciones de cuenta.
  *
  * @param props - Propiedades de ruta suministradas por Next.js.
- * @param props.searchParams - Promesa con status y error que muestran el resultado del
- *   guardado.
- * @returns Perfil y formulario en JSX, con un aviso cuando no se encuentra la cuenta de la
- *   sesión.
+ * @param props.searchParams - Promesa con status y error que muestran el resultado del guardado.
+ * @returns Perfil, gestión opcional de foto privada y formularios en JSX, o un aviso si falta la
+ *   cuenta de la sesión.
  */
 export default async function ProfilePage({ searchParams }) {
   const profile = await getMyProfile();
   const { status, error } = await searchParams;
   const errorMessage = typeof error === "string" ? errorMessages.get(error) : undefined;
-  const saved = status === "saved";
+  const statusMessage = typeof status === "string" ? statusMessages.get(status) : undefined;
 
   if (!profile) {
     return (
@@ -89,7 +88,8 @@ export default async function ProfilePage({ searchParams }) {
     );
   }
 
-  const initials = buildInitials(profile.firstName, profile.lastName);
+  const avatarUrl = buildOwnAvatarUrl(profile.avatarUpdatedAt);
+  const hasAvatar = Boolean(avatarUrl);
 
   return (
     <main className={pageClassName}>
@@ -103,12 +103,12 @@ export default async function ProfilePage({ searchParams }) {
         className="flex flex-wrap items-center gap-4 rounded-lg border border-brand-line bg-brand-soft/45 px-5 py-4 sm:gap-6 sm:px-6"
         aria-label="Resumen de identidad universitaria"
       >
-        <span
-          aria-hidden="true"
-          className="font-serif text-3xl font-bold tracking-tight text-brand-ink sm:text-4xl"
-        >
-          {initials}
-        </span>
+        <ProfileAvatar
+          size="lg"
+          src={avatarUrl}
+          firstName={profile.firstName}
+          lastName={profile.lastName}
+        />
         <span aria-hidden="true" className="hidden h-10 w-px bg-brand-ink/40 sm:block" />
         <div className="grid min-w-0 gap-0.5">
           <p className="font-serif text-xl font-bold text-brand-ink sm:text-2xl">
@@ -120,9 +120,9 @@ export default async function ProfilePage({ searchParams }) {
         </div>
       </section>
 
-      {saved && (
+      {statusMessage && (
         <p className={portalFeedbackClassName} role="status">
-          Has actualizado tu perfil básico correctamente.
+          {statusMessage}
         </p>
       )}
       {errorMessage && (
@@ -245,7 +245,25 @@ export default async function ProfilePage({ searchParams }) {
           )}
         </section>
 
-        <nav className="grid gap-4 rounded-lg border border-brand-line bg-brand-panel p-5 md:p-6" aria-label="Opciones de perfil y privacidad">
+        <div className="grid min-w-0 gap-6">
+          <section className={portalPanelClassName + " md:p-6"} aria-label="Foto de perfil">
+            <h2 className="border-b border-brand-line pb-2.5">
+              <TextSpanWrapper2 as="span" className="min-w-0">
+                Foto de perfil
+              </TextSpanWrapper2>
+            </h2>
+            <AvatarForm
+              key={avatarUrl ?? "none"}
+              currentAvatarUrl={avatarUrl}
+              firstName={profile.firstName}
+              lastName={profile.lastName}
+              hasAvatar={hasAvatar}
+              uploadAction={uploadProfileAvatarAction}
+              removeAction={removeProfileAvatarAction}
+            />
+          </section>
+
+          <nav className="grid gap-4 rounded-lg border border-brand-line bg-brand-panel p-5 md:p-6" aria-label="Opciones de perfil y privacidad">
           <h2 className="flex items-center gap-2 border-b border-brand-line pb-2.5">
             <HugeiconsIcon icon={Settings02Icon} size={21} aria-hidden="true" className="shrink-0 text-brand-primary" />
             <TextSpanWrapper2 as="span" className="min-w-0">
@@ -278,7 +296,8 @@ export default async function ProfilePage({ searchParams }) {
               </li>
             ))}
           </ul>
-        </nav>
+          </nav>
+        </div>
       </div>
     </main>
   );

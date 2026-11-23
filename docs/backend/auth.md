@@ -20,7 +20,7 @@ Una identidad de Neon y un perfil de Comunidad se relacionan por `authUserId`. E
 
 - `db` es una conexión `AppDb` de Drizzle. En despliegue apunta a Neon PostgreSQL y en pruebas a PGlite.
 - `authProvider` tiene el contrato `AuthProvider`. Las pruebas pueden inyectar un proveedor de prueba sin cambiar el servicio.
-- `AuthUser` es lo que consume la aplicación tras resolver la sesión. Incluye los identificadores de perfil e identidad, el nombre de pila para el saludo, el nombre completo, el correo, el estado y las capacidades.
+- `AuthUser` es lo que consume la aplicación tras resolver la sesión. Incluye los identificadores de perfil e identidad, el nombre de pila para el saludo, el nombre completo, el correo, el estado, las capacidades y `avatarUpdatedAt` para enlazar la foto privada.
 - `next` es un destino interno opcional. Se sanitiza al volver a una pantalla protegida.
 - `options.now` fija la hora en una prueba. Cuando se omite se usa la hora actual.
 - Los códigos de verificación y recuperación tienen seis dígitos. El servicio mantiene separados propósito, correo e identidad.
@@ -160,7 +160,7 @@ Estas funciones devuelven JSX para que App Router lo renderice. Pasar una Server
 | `RootLayout` | `children`, la ruta renderizada por Next | Obtiene `currentUser` y construye sus elementos de navegación y sesión alrededor de la página. |
 | `CommunityPage` | Sin parámetros | La portada obtiene `currentUser`. Envía a `/home` cuando hay sesión. En otro caso muestra la portada pública. |
 | `HomePage` | Sin parámetros | `loadMyHome` exige sesión con retorno a `/home`. La página usa sus reservas y capacidades para mostrar la agenda y el acceso al panel. |
-| `CommunityBar` | Propiedad `user`, usuario de Comunidad ya resuelto | Muestra su nombre y correo. Muestra Gestión según las capacidades y envía el formulario de cierre a `signOut`. |
+| `CommunityBar` | Propiedad `user`, usuario de Comunidad ya resuelto | Muestra su miniatura de perfil privada cuando existe (`avatarUpdatedAt`), su nombre y correo. Muestra Gestión según las capacidades y envía el formulario de cierre a `signOut`. |
 | `SignUpPage` | `searchParams`, con un error de alta opcional | Muestra el registro y asigna `signUp` al formulario. |
 | `SignInPage` | `searchParams` con error, destino y avisos de cuenta | Sanea el destino con `readOptionalNextPath` y presenta el formulario que llama a `signIn`. |
 | `VerifyEmailPage` | `searchParams` de la verificación | Obtiene el correo de la cookie con `readAccountCodeEmail` y pasa ambos valores a `VerifyEmailView`. |

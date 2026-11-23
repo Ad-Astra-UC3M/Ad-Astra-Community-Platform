@@ -6,6 +6,7 @@
 
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   parseLanguageList,
@@ -13,7 +14,14 @@ import {
   type TalentLink,
   type TalentLinkKind,
 } from "../../server/profiles/repository";
-import { requestMyAccountDeletion, saveMyTalentProfile, updateMyDissemination, updateMyProfile } from "../../server/profiles/operations";
+import {
+  removeMyProfileAvatar,
+  requestMyAccountDeletion,
+  saveMyTalentProfile,
+  updateMyDissemination,
+  updateMyProfile,
+  uploadMyProfileAvatar,
+} from "../../server/profiles/operations";
 
 const fixedLinks: { field: string; kind: TalentLinkKind; label: string }[] = [
   { field: "linkCvUrl", kind: "cv", label: "CV" },
@@ -76,6 +84,51 @@ export async function saveBasicProfileAction(formData: FormData) {
   }
 
   redirect("/profile?status=saved");
+}
+
+/**
+ * Revalida las rutas que muestran la foto de perfil o el monograma de reserva (`CommunityBar`,
+ * `/profile` y las vistas internas de consulta de talento).
+ */
+function revalidateAvatarViews() {
+  revalidatePath("/", "layout");
+  revalidatePath("/profile");
+  revalidatePath("/admin/talent");
+  revalidatePath("/admin/talent/[id]", "page");
+}
+
+/**
+ * Server Action del formulario de subida o cambio de foto de perfil en `ProfilePage`. Delega en
+ * `uploadMyProfileAvatar` (que exige sesión antes de validar tamaño o leer bytes) y revalida el
+ * layout común (`CommunityBar`), `/profile` y la consulta administrativa de talento.
+ *
+ * @param formData - Formulario multipart con el campo `avatar` de tipo `File`.
+ * @returns Termina con una redirección a `/profile` indicando `avatar_saved` o el código de error.
+ */
+export async function uploadProfileAvatarAction(formData: FormData) {
+  const result = await uploadMyProfileAvatar(formData.get("avatar"));
+  if (!result.ok) {
+    redirect(`/profile?error=${result.error}`);
+  }
+
+  revalidateAvatarViews();
+  redirect("/profile?status=avatar_saved");
+}
+
+/**
+ * Server Action del botón de retirada de foto de perfil en `ProfilePage`. Borra el objeto privado
+ * y la referencia en PostgreSQL, revalidando `CommunityBar`, `/profile` y `/admin/talent`.
+ *
+ * @returns Termina con una redirección a `/profile` indicando `avatar_removed` o error.
+ */
+export async function removeProfileAvatarAction() {
+  const result = await removeMyProfileAvatar();
+  if (!result.ok) {
+    redirect(`/profile?error=${result.error}`);
+  }
+
+  revalidateAvatarViews();
+  redirect("/profile?status=avatar_removed");
 }
 
 /**

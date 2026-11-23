@@ -1,10 +1,10 @@
 /**
- * Ejecutor del SQL inicial del esquema público. db:migrate lo usa para preparar
- * PostgreSQL en Neon. El cliente de pruebas reutiliza el mismo archivo para PGlite.
- * El ejecutor actual aplica drizzle/0000_initial.sql directamente.
+ * Ejecutor de migraciones SQL del esquema público en orden lexicográfico. `db:migrate` lo usa para
+ * preparar PostgreSQL en Neon y el cliente de pruebas reutiliza los mismos archivos `.sql` de
+ * `drizzle/` para PGlite de forma idempotente.
  */
 
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type { PGlite } from "@electric-sql/pglite";
@@ -18,31 +18,65 @@ export type MigrationExecutor =
   | { execute: (query: SQL) => Promise<unknown> }
   | { query: (query: string) => Promise<unknown> };
 
+export interface MigrationSqlFile {
+  name: string;
+  sql: string;
+}
+
 /**
- * Localiza el SQL que lee getInitialMigrationSql. Busca primero desde el
- * directorio de trabajo y después respecto a este módulo.
- * @returns La ruta absoluta prevista de drizzle/0000_initial.sql.
+ * Localiza el directorio `drizzle/` del repositorio comprobando que contenga `0000_initial.sql`.
+ * Busca primero respecto al directorio de trabajo y después respecto a este módulo.
+ *
+ * @returns Ruta absoluta del directorio de migraciones SQL.
  */
-function resolveInitialMigrationPath(): string {
-  const fromCwd = path.resolve(process.cwd(), "drizzle", "0000_initial.sql");
-  if (existsSync(fromCwd)) {
+function resolveMigrationsDir(): string {
+  const fromCwd = path.resolve(process.cwd(), "drizzle");
+  if (existsSync(path.join(fromCwd, "0000_initial.sql"))) {
     return fromCwd;
   }
   const currentDir = path.dirname(fileURLToPath(import.meta.url));
-  return path.resolve(currentDir, "..", "..", "drizzle", "0000_initial.sql");
+  return path.resolve(currentDir, "..", "..", "drizzle");
 }
 
 /**
- * Lee el SQL inicial del repositorio para runMigrations.
- * @returns El archivo completo en UTF-8, con los separadores de sentencias intactos.
+ * Enumera los archivos `.sql` de `drizzle/` en orden lexicográfico ascendente (`0000_*`, `0001_*`, ...).
+ *
+ * @returns Lista ordenada de rutas absolutas de archivos de migración SQL.
+ */
+function listMigrationPaths(): string[] {
+  const dir = resolveMigrationsDir();
+  const names = readdirSync(/*turbopackIgnore: true*/ dir)
+    .filter((entry) => entry.endsWith(".sql"))
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  return names.map((name) => path.join(/*turbopackIgnore: true*/ dir, name));
+}
+
+/**
+ * Lee el SQL inicial del repositorio (`drizzle/0000_initial.sql`).
+ *
+ * @returns El archivo inicial en UTF-8 con sus marcadores de sentencia intactos.
  */
 export function getInitialMigrationSql(): string {
-  return readFileSync(resolveInitialMigrationPath(), "utf8");
+  return readFileSync(path.join(resolveMigrationsDir(), "0000_initial.sql"), "utf8");
 }
 
 /**
- * Separa el SQL inicial para los ejecutores que procesan una sentencia por llamada.
- * @param rawSql Texto leído del archivo inicial con marcadores statement-breakpoint.
+ * Carga todas las migraciones `.sql` de `drizzle/` en el orden en que debe aplicarlas `runMigrations`.
+ *
+ * @returns Lista ordenada de pares `{ name, sql }` en UTF-8.
+ */
+export function getMigrationSqlFiles(): MigrationSqlFile[] {
+  return listMigrationPaths().map((filePath) => ({
+    name: path.basename(filePath),
+    sql: readFileSync(/*turbopackIgnore: true*/ filePath, "utf8"),
+  }));
+}
+
+/**
+ * Separa un archivo SQL de migración por `statement-breakpoint` para los ejecutores que procesan una
+ * sentencia por llamada.
+ *
+ * @param rawSql Texto leído del archivo `.sql` con marcadores statement-breakpoint.
  * @returns Las sentencias no vacías, recortadas y en el orden del archivo.
  */
 export function splitMigrationStatements(rawSql: string): string[] {
@@ -53,23 +87,26 @@ export function splitMigrationStatements(rawSql: string): string[] {
 }
 
 /**
- * Aplica el esquema inicial en el arranque de PGlite y en db:migrate. Si abre
+ * Aplica todas las migraciones SQL de `drizzle/` en el arranque de PGlite y en `db:migrate`. Si abre
  * su propia conexión, la cierra al terminar, incluso en caso de error.
- * @param executor Motor o cliente opcional. exec recibe el SQL completo y execute o
- * query reciben una sentencia cada vez. Sin ejecutor usa el directorio PGlite si
- * está configurado o la conexión de Neon, priorizando DATABASE_URL_UNPOOLED.
- * @returns Una promesa que finaliza al aplicar todo el SQL y rechaza si falla la ejecución.
+ *
+ * @param executor Motor o cliente opcional. `exec` recibe cada archivo SQL completo y `execute` o
+ *   `query` reciben cada sentencia por separado. Sin ejecutor usa `AD_ASTRA_PG_TEST_DIR` o la conexión
+ *   de Neon, priorizando `DATABASE_URL_UNPOOLED`.
+ * @returns Una promesa que finaliza al aplicar todas las migraciones y rechaza si falla una sentencia.
  */
 export async function runMigrations(executor?: MigrationExecutor): Promise<void> {
-  const rawSql = getInitialMigrationSql();
+  const files = getMigrationSqlFiles();
 
   if (executor) {
     if ("exec" in executor && typeof executor.exec === "function") {
-      await executor.exec(rawSql);
+      for (const file of files) {
+        await executor.exec(file.sql);
+      }
       return;
     }
 
-    const statements = splitMigrationStatements(rawSql);
+    const statements = files.flatMap((file) => splitMigrationStatements(file.sql));
 
     if ("execute" in executor && typeof executor.execute === "function") {
       for (const statement of statements) {
@@ -98,7 +135,9 @@ export async function runMigrations(executor?: MigrationExecutor): Promise<void>
     const client = new PGliteCtor(pgliteDir);
     try {
       await client.waitReady;
-      await client.exec(rawSql);
+      for (const file of files) {
+        await client.exec(file.sql);
+      }
     } finally {
       await client.close();
     }
@@ -115,8 +154,10 @@ export async function runMigrations(executor?: MigrationExecutor): Promise<void>
 
   const pool = new Pool({ connectionString });
   try {
-    for (const statement of splitMigrationStatements(rawSql)) {
-      await pool.query(statement);
+    for (const file of files) {
+      for (const statement of splitMigrationStatements(file.sql)) {
+        await pool.query(statement);
+      }
     }
   } finally {
     await pool.end();

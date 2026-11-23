@@ -1,7 +1,8 @@
 /**
- * Pruebas de integración del esquema PostgreSQL con Node y PGlite. Aplican el
- * SQL inicial y ejercitan las restricciones, índices y tipos con consultas
- * Drizzle. También comprueban el bootstrap administrativo y getDb en pruebas.
+ * Pruebas de integración del esquema PostgreSQL con Node y PGlite. Aplican las
+ * migraciones SQL incrementales (`drizzle/*.sql`) y ejercitan las restricciones,
+ * índices y tipos con consultas Drizzle. También comprueban el bootstrap
+ * administrativo y getDb en pruebas.
  */
 
 import { describe, it } from "node:test";
@@ -77,7 +78,7 @@ async function insertValidProfile(
 }
 
 describe("PostgreSQL MVP schema (13 tables) on PGlite", () => {
-  it("applies drizzle/0000_initial.sql idempotently and creates the exact 13 MVP tables in public", async () => {
+  it("applies drizzle/*.sql migrations idempotently and preserves the exact 13 MVP tables in public", async () => {
     const db = await createTestDb();
     try {
       const result = await db.execute<{ table_name: string }>(sql`
@@ -174,6 +175,66 @@ describe("PostgreSQL MVP schema (13 tables) on PGlite", () => {
           email: "badqr@uc3m.es",
           qrVersion: 0,
         }),
+      );
+    } finally {
+      await db.close();
+    }
+  });
+
+  it("enforces profiles avatar_key format and avatar_updated_at consistency across migrations", async () => {
+    const db = await createTestDb();
+    try {
+      const profile = await insertValidProfile(db, {
+        email: "avatar.check@alumnos.uc3m.es",
+      });
+      assert.equal(profile.avatarKey, null);
+      assert.equal(profile.avatarUpdatedAt, null);
+
+      const now = new Date("2026-11-24T10:00:00Z");
+      const validKey = `avatars/${profile.id}/${randomUUID()}.webp`;
+      const [withAvatar] = await db
+        .update(profiles)
+        .set({ avatarKey: validKey, avatarUpdatedAt: now })
+        .where(eq(profiles.id, profile.id))
+        .returning();
+      assert.equal(withAvatar.avatarKey, validKey);
+      assert.equal(withAvatar.avatarUpdatedAt?.toISOString(), now.toISOString());
+
+      // Re-running migrations preserves avatar columns and values idempotently
+      await runMigrations(db);
+      const [afterMigrate] = await db
+        .select()
+        .from(profiles)
+        .where(eq(profiles.id, profile.id));
+      assert.equal(afterMigrate.avatarKey, validKey);
+
+      // Invalid keys (SVG, traversal, non-UUID) rejected
+      for (const badKey of [
+        `avatars/${profile.id}/${randomUUID()}.svg`,
+        `avatars/../etc/passwd.png`,
+        `avatars/not-a-uuid/${randomUUID()}.jpg`,
+        `other/${profile.id}/${randomUUID()}.png`,
+      ]) {
+        await assert.rejects(() =>
+          db
+            .update(profiles)
+            .set({ avatarKey: badKey, avatarUpdatedAt: now })
+            .where(eq(profiles.id, profile.id)),
+        );
+      }
+
+      // Consistency CHECK: non-null key with null timestamp rejected, and vice versa
+      await assert.rejects(() =>
+        db
+          .update(profiles)
+          .set({ avatarKey: `avatars/${profile.id}/${randomUUID()}.png`, avatarUpdatedAt: null })
+          .where(eq(profiles.id, profile.id)),
+      );
+      await assert.rejects(() =>
+        db
+          .update(profiles)
+          .set({ avatarKey: null, avatarUpdatedAt: now })
+          .where(eq(profiles.id, profile.id)),
       );
     } finally {
       await db.close();

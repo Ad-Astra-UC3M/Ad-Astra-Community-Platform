@@ -7,7 +7,9 @@ import { notFound } from "next/navigation";
 import { BackLink } from "../../../../components/back-link";
 import { PageHeading, pageClassName } from "../../../../components/page-layout";
 import { portalPanelClassName } from "../../../../components/portal-ui";
+import { ProfileAvatar } from "../../../../components/profile-avatar";
 import TextSpanWrapper2 from "../../../../institutional/components/ui/TextSpanWrapper2";
+import { buildTalentAvatarUrl } from "../../../../server/profiles/avatar-validation";
 import { getTalentForConsultation } from "../../../../server/profiles/operations";
 
 export const metadata = { title: "Detalle de perfil de talento" };
@@ -57,6 +59,13 @@ export default async function AdminTalentDetailPage({ params }) {
           profile.headline
             ? `${profile.headline} — ${profile.email}${profile.degree ? ` · ${profile.degree}` : ""}${profile.course ? ` (${profile.course})` : ""}`
             : `${profile.email}${profile.degree ? ` · ${profile.degree}` : ""}${profile.course ? ` (${profile.course})` : ""}`
+        }
+        actions={
+          <ProfileAvatar
+            size="md"
+            src={buildTalentAvatarUrl(profile.personId, profile.avatarUpdatedAt)}
+            name={profile.name}
+          />
         }
       />
 

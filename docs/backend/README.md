@@ -67,10 +67,10 @@ En administración, `requireCapability("content_editing")` exige una cuenta acti
 
 ## Decisiones que explican la estructura
 
-- **Un solo Next.js.** Las páginas de servidor consultan el módulo de la funcionalidad. Las Server Actions permiten reutilizar las operaciones y la sesión desde el portal y el panel. Se puede añadir un Route Handler explícito cuando aparezca un consumidor HTTP. [Server Actions](https://nextjs.org/docs/app/guides/server-actions)
+- **Un solo Next.js.** Las páginas de servidor consultan el módulo de la funcionalidad. Las Server Actions permiten reutilizar las operaciones y la sesión desde el portal y el panel. Las fotos de perfil privadas añaden dos Route Handlers explícitos (`/api/profile/avatar` y `/api/admin/talent/[id]/avatar`) para servir binarios autorizados con cabeceras `nosniff` y caché privada sin exponer URLs públicas del bucket. [Server Actions](https://nextjs.org/docs/app/guides/server-actions) · [Almacenamiento de objetos](../../src/server/storage/neon-object-storage.ts)
 - **Autorización cerca de la operación.** El nombre de la pantalla solo indica dónde se inicia el flujo. La operación comprueba la sesión y, cuando corresponde, la capacidad. La transacción comprueba reglas como el aforo con los datos actuales. [Acceso a datos](https://nextjs.org/docs/app/guides/data-security#data-access-layer) · [Reserva en PostgreSQL](../../src/server/activities/booking.ts)
 - **Identidad gestionada por Neon.** El proveedor gestiona la sesión y los códigos de alta y recuperación. La aplicación decide el dominio UC3M, el perfil local y las capacidades. Los formularios llaman al adaptador desde el servidor. [Acceso](../../src/server/auth/access.ts) · [Adaptador](../../src/server/auth/neon-auth.ts)
-- **PostgreSQL en desarrollo y producción, PGlite para pruebas.** El código de Drizzle y el SQL inicial permiten probar reglas de datos sin tocar el entorno de despliegue. [Cliente](../../src/db/client.ts) · [Guía de migraciones en el código](../../drizzle.config.ts)
+- **PostgreSQL en desarrollo y producción, PGlite para pruebas.** El código de Drizzle y las migraciones SQL ordenadas de `drizzle/` (`0000_*`, `0001_*`, ...) permiten evolucionar el esquema en Neon y probar reglas de datos localmente sin tocar el entorno de despliegue. [Cliente](../../src/db/client.ts) · [Migraciones](../../src/db/migrate.ts) · [Guía de migraciones en el código](../../drizzle.config.ts)
 
 ## Qué archivo tocar
 

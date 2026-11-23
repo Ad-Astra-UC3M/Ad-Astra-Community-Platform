@@ -8,7 +8,9 @@ import { BackLink } from "../../../components/back-link";
 import { inputClass, primaryButtonClass, secondaryButtonClass } from "../../../components/form-styles";
 import { PageHeading, pageClassName } from "../../../components/page-layout";
 import { portalMutedPanelClassName, portalPanelClassName } from "../../../components/portal-ui";
+import { ProfileAvatar } from "../../../components/profile-avatar";
 import TextSpanWrapper2 from "../../../institutional/components/ui/TextSpanWrapper2";
+import { buildTalentAvatarUrl } from "../../../server/profiles/avatar-validation";
 import { searchTalentForConsultation } from "../../../server/profiles/operations";
 import { AdminTable } from "../admin-table";
 
@@ -81,13 +83,23 @@ export default async function AdminTalentPage({ searchParams }) {
             {profiles.map((profile) => (
               <tr key={profile.personId}>
                 <td>
-                  <strong>{profile.name}</strong>
-                  {profile.headline && (
-                    <>
-                      <br />
-                      <em>{profile.headline}</em>
-                    </>
-                  )}
+                  <div className="flex items-center gap-3">
+                    <ProfileAvatar
+                      size="sm"
+                      decorative
+                      src={buildTalentAvatarUrl(profile.personId, profile.avatarUpdatedAt)}
+                      name={profile.name}
+                    />
+                    <div className="min-w-0">
+                      <strong>{profile.name}</strong>
+                      {profile.headline && (
+                        <>
+                          <br />
+                          <em>{profile.headline}</em>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </td>
                 <td>{[profile.degree, profile.course, profile.university, profile.expectedGraduationYear].filter(Boolean).join(" · ") || "Sin especificar"}</td>
                 <td>
