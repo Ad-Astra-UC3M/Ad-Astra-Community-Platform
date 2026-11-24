@@ -7,13 +7,23 @@
 
 import { ArrowDown01Icon, Logout03Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
+import {
+	Menu,
+	MenuButton,
+	MenuHeading,
+	MenuItem,
+	MenuItems,
+	MenuSection,
+	MenuSeparator,
+} from "@headlessui/react";
 import { useRef } from "react";
 import { ProfileAvatar } from "../../../components/profile-avatar";
 import { NavLink } from "./NavLink";
 
+// Headless UI deja el foco en el contenedor y marca la opción activa con `data-focus`: el anillo, el
+// subrayado y el color hacen visible esa opción, no solo el fondo claro.
 const itemClassName =
-	"flex min-h-11 w-full items-center rounded-sm px-3 py-2 text-left no-underline data-[focus]:bg-brand-panel";
+	"flex min-h-11 w-full items-center rounded-sm px-3 py-2 text-left no-underline data-[focus]:bg-brand-panel data-[focus]:text-brand-primary data-[focus]:underline data-[focus]:ring-2 data-[focus]:ring-inset data-[focus]:ring-brand-primary";
 
 /**
  * Renderiza el botón con el avatar y, al abrirse, el nombre, el correo, los enlaces de cuenta y el botón de
@@ -40,35 +50,36 @@ export function AccountMenu({ account, links, activeHref, signOutAction }) {
 				anchor="bottom end"
 				className="z-[1000] w-72 rounded-lg border border-brand-line bg-brand-surface p-2 text-brand-ink shadow-lg [--anchor-gap:0.75rem] focus:outline-none"
 			>
-				<div className="mb-1 border-b border-brand-line px-3 pt-1 pb-2">
-					<p className="font-bold">{account.name}</p>
-					<p className="text-sm [overflow-wrap:anywhere]">{account.email}</p>
-				</div>
-				{links.map(({ label, href }) => (
-					<MenuItem key={href}>
-						<NavLink
-							href={href}
-							active={href === activeHref}
-							className={itemClassName}
-							activeClassName="font-bold text-brand-primary"
-							inactiveClassName="text-brand-ink"
-						>
-							{label}
-						</NavLink>
-					</MenuItem>
-				))}
-				<div className="mt-1 border-t border-brand-line pt-1">
-					<MenuItem>
-						<button
-							type="button"
-							onClick={() => signOutForm.current?.requestSubmit()}
-							className={`${itemClassName} cursor-pointer gap-2 border-0 bg-transparent text-brand-ink`}
-						>
-							<HugeiconsIcon icon={Logout03Icon} size={16} aria-hidden="true" focusable="false" />
-							Cerrar sesión
-						</button>
-					</MenuItem>
-				</div>
+				<MenuSection>
+					<MenuHeading className="mb-1 border-b border-brand-line px-3 pt-1 pb-2">
+						<span className="block font-bold">{account.name}</span>
+						<span className="block text-sm [overflow-wrap:anywhere]">{account.email}</span>
+					</MenuHeading>
+					{links.map(({ label, href }) => (
+						<MenuItem key={href}>
+							<NavLink
+								href={href}
+								active={href === activeHref}
+								className={itemClassName}
+								activeClassName="font-bold text-brand-primary"
+								inactiveClassName="text-brand-ink"
+							>
+								{label}
+							</NavLink>
+						</MenuItem>
+					))}
+				</MenuSection>
+				<MenuSeparator className="my-1 h-px bg-brand-line" />
+				<MenuItem>
+					<button
+						type="button"
+						onClick={() => signOutForm.current?.requestSubmit()}
+						className={`${itemClassName} cursor-pointer gap-2 border-0 bg-transparent text-brand-ink`}
+					>
+						<HugeiconsIcon icon={Logout03Icon} size={16} aria-hidden="true" focusable="false" />
+						Cerrar sesión
+					</button>
+				</MenuItem>
 			</MenuItems>
 			{/* El formulario vive fuera de MenuItems: Headless UI desmonta el menú al elegir una opción y
 			    un formulario desmontado no llega a enviarse. */}
