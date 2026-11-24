@@ -269,6 +269,37 @@ async function postPasswordOtp(
 }
 
 /**
+ * Lee la sesión remota sin escribir cookies durante el render de un Server Component.
+ * El getSession del SDK de Next intenta aplicar Set-Cookie y falla en RootLayout. Su handler
+ * en memoria devuelve una Response, sin tocar cookies() de Next. Desactivamos caché y renovación
+ * para comprobar revocaciones en Neon y mantener esta consulta como lectura de la sesión.
+ * Las escrituras de cookie de inicio/cierre de sesión siguen en sus Server Actions.
+ *
+ * @param neonAuth Instancia configurada del SDK usada por createNeonAuthProvider.
+ * @param cookieHeader Cookies entrantes de la petición; solo se entregan al handler de Neon.
+ * @returns Sesión e identidad normalizadas, o null si no hay una sesión válida.
+ */
+export async function readNeonSession(neonAuth: NeonAuth, cookieHeader: string): Promise<AuthProviderSession | null> {
+  if (!cookieHeader) return null;
+  const origin = process.env.APP_ORIGIN?.trim() || "https://comunidad.adastrauc3m.es";
+  const url = new URL("/api/auth/get-session", origin);
+  url.searchParams.set("disableCookieCache", "true");
+  url.searchParams.set("disableRefresh", "true");
+  const response = await neonAuth.handler().GET(new Request(url, {
+    headers: { cookie: cookieHeader },
+    cache: "no-store",
+  }), { params: Promise.resolve({ path: ["get-session"] }) });
+  if (!response.ok) return null;
+  const data = await response.json().catch(() => null);
+  const user = toProviderUser(data?.user);
+  const session = data?.session;
+  if (!user || typeof session?.id !== "string" || typeof session?.userId !== "string") return null;
+  const expiresAt = new Date(session.expiresAt);
+  if (!Number.isFinite(expiresAt.getTime())) return null;
+  return { session: { id: session.id, userId: session.userId, expiresAt }, user };
+}
+
+/**
  * Construye el adaptador que comparten el servicio y las pruebas de transporte.
  *
  * @param neonAuth - Instancia de Neon Auth que ejecuta la operación y gestiona la sesión.
@@ -351,36 +382,12 @@ export function createNeonAuthProvider(neonAuth: NeonAuth): AuthProvider {
     },
 
     /**
-     * Recupera la sesión de la petición a través del SDK de servidor de Next.js.
+     * Recupera la sesión mediante la lectura sin efectos de readNeonSession, válida también en layouts.
      *
      * @returns Sesión e identidad normalizadas o null.
      */
     async getSession(): Promise<AuthProviderSession | null> {
-      const result = await neonAuth.getSession({
-        query: { disableCookieCache: true },
-      });
-
-      if (result.error || !result.data?.session || !result.data?.user) {
-        return null;
-      }
-
-      const user = toProviderUser(result.data.user);
-      if (!user) return null;
-
-      const sessionObj = result.data.session as {
-        id: string;
-        userId: string;
-        expiresAt: string | Date;
-      };
-
-      return {
-        session: {
-          id: sessionObj.id,
-          userId: sessionObj.userId,
-          expiresAt: new Date(sessionObj.expiresAt),
-        },
-        user,
-      };
+      return readNeonSession(neonAuth, (await cookies()).toString());
     },
 
     /**

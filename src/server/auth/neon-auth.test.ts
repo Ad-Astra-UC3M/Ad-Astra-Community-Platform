@@ -5,9 +5,10 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
+import { NEON_AUTH_SESSION_COOKIE_NAME } from "@neondatabase/auth/server";
 import { createNeonAuth, type NeonAuth } from "@neondatabase/auth/next/server";
 
-import { createNeonAuthProvider } from "./neon-auth";
+import { createNeonAuthProvider, readNeonSession } from "./neon-auth";
 
 const email = "alumna@uc3m.es";
 const otp = "012345";
@@ -93,4 +94,33 @@ test("Neon's server proxy sends the recovery and completion requests to the Bett
     [baseUrl + "/email-otp/request-password-reset", "POST", { email }],
     [baseUrl + "/email-otp/reset-password", "POST", { email, otp, password: "a-new-password" }],
   ]);
+});
+
+
+test("session reads bypass cookie caches and tolerate upstream Set-Cookie without a Next cookie writer", async (t) => {
+  const baseUrl = "https://auth.example.test/db/auth";
+  const neonAuth = createNeonAuth({ baseUrl, cookies: { secret: "a-test-cookie-secret-at-least-32-bytes" } });
+  const session = { id: "session-id", userId: "auth-user", expiresAt: "2030-01-01T00:00:00Z" };
+  const user = { id: "auth-user", email, name: "Alumna", emailVerified: true };
+  const calls: URL[] = [];
+  t.mock.method(globalThis, "fetch", async (url: string | URL, init?: RequestInit) => {
+    calls.push(new URL(url));
+    assert.match(new Headers(init?.headers).get("cookie") ?? "", /session_token=opaque-test-session/);
+    return Response.json({ session, user }, { headers: { "set-cookie": "__Secure-neon-auth.local.session_data=cache; HttpOnly; Path=/" } });
+  });
+  assert.deepEqual(await readNeonSession(neonAuth, `${NEON_AUTH_SESSION_COOKIE_NAME}=opaque-test-session`), {
+    session: { ...session, expiresAt: new Date(session.expiresAt) }, user,
+  });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].pathname, "/db/auth/get-session");
+  assert.equal(calls[0].searchParams.get("disableCookieCache"), "true");
+  assert.equal(calls[0].searchParams.get("disableRefresh"), "true");
+});
+
+test("session reads return null for missing, expired or revoked sessions", async (t) => {
+  const neonAuth = createNeonAuth({ baseUrl: "https://auth.example.test/db/auth", cookies: { secret: "a-test-cookie-secret-at-least-32-bytes" } });
+  const replies = [Response.json(null), Response.json({ message: "invalid session" }, { status: 401 }), Response.json({ session: { id: "bad", userId: "a", expiresAt: "not-a-date" }, user: { id: "a", email, name: "Alumna", emailVerified: true } })];
+  t.mock.method(globalThis, "fetch", async () => replies.shift()!);
+  assert.equal(await readNeonSession(neonAuth, ""), null);
+  for (let i = 0; i < 3; i++) assert.equal(await readNeonSession(neonAuth, `${NEON_AUTH_SESSION_COOKIE_NAME}=opaque-test-session`), null);
 });

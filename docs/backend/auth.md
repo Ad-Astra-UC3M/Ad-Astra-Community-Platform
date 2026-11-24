@@ -95,7 +95,9 @@ El servicio contiene las reglas de Comunidad. Acepta base y proveedor como pará
 
 ## `src/server/auth/neon-auth.ts`
 
-El adaptador aísla el SDK. Normaliza datos y errores al contrato de Comunidad. La recuperación usa el handler del SDK con dos rutas determinadas porque la versión instalada carece del helper de solicitud OTP y el helper de confirmación apunta a otra ruta. Se trata de una llamada en memoria desde el servidor, que sigue usando Neon como destino real.
+El adaptador aísla el SDK y normaliza sus respuestas al contrato de Comunidad. La consulta compartida por páginas, acciones y Route Handlers usa el handler del SDK invocado en memoria. En todos esos puntos consulta la sesión en Neon con la caché y la renovación desactivadas (`disableCookieCache=true`, `disableRefresh=true`). Los encabezados de la respuesta interna se quedan en el servidor. Las acciones de acceso, verificación y salida actualizan las cookies del navegador.
+
+La recuperación usa el mismo mecanismo de llamada en memoria para las rutas de solicitud y confirmación OTP. El SDK instalado carece del helper de solicitud y el helper de confirmación apunta a otra ruta. Las llamadas llegan a Neon sin publicar una ruta de proxy en Comunidad.
 
 | Función | Parámetros | Efecto y relación |
 | --- | --- | --- |
@@ -106,6 +108,7 @@ El adaptador aísla el SDK. Normaliza datos y errores al contrato de Comunidad. 
 | `otpFailure` | Error opcional del SDK | Construye un fallo OTP del contrato de Comunidad. |
 | `toProviderUser` | Objeto desconocido del SDK | Devuelve la identidad normalizada si puede construirla, o `null`. |
 | `postPasswordOtp` | SDK, operación de recuperación y cuerpo de esa operación | Construye una solicitud interna, llama a `handler().POST` y devuelve un resultado de alcance limitado. Se usa para solicitar código o confirmar contraseña. |
+| `readNeonSession` | SDK y cabecera de cookies de la petición | Invoca `handler().GET` con `get-session`. Normaliza la identidad mediante `toProviderUser` y devuelve la sesión o `null`. La consulta se usa al renderizar Server Components como `RootLayout` y en las comprobaciones de acceso de las acciones y Route Handlers. |
 | `createNextTestCookieStore` | Sin parámetros | Adapta las cookies de Next al proveedor de prueba. `getToken()` lee la cookie, `setToken(token, maxAgeSeconds)` la escribe y `clearToken()` la borra. |
 
 | Método del adaptador | Entrada y resultado |
@@ -113,7 +116,7 @@ El adaptador aísla el SDK. Normaliza datos y errores al contrato de Comunidad. 
 | `signUp` | Recibe nombre, correo y contraseña. Crea la identidad y devuelve usuario y requisito de verificación o un error normalizado. |
 | `signIn` | Recibe correo y contraseña. Inicia sesión con el SDK y devuelve la identidad o un error. |
 | `signOut` | Sin parámetros. Termina la sesión de la petición mediante el SDK. |
-| `getSession` | Sin parámetros. Lee la sesión con el SDK y devuelve sesión e identidad o `null`. |
+| `getSession` | Sin parámetros. Lee las cookies de la petición y delega la consulta remota en `readNeonSession`. |
 | `sendVerificationOtp` | Recibe correo. Solicita el código de verificación. |
 | `verifyEmailOtp` | Recibe correo y código. Devuelve identidad verificada y un booleano que indica si se creó una sesión. El token se usa en el SDK y queda fuera del resultado de Comunidad. |
 | `requestPasswordResetOtp` | Recibe correo. Llama a `postPasswordOtp` con la operación de solicitud. |
@@ -142,9 +145,15 @@ Las suites usan el mismo contrato con una base PGlite desechable. Cada método d
 | `createTestAuthProvider` | Base y opciones de reloj o almacén de cookies. Crea el proveedor de prueba. |
 | `sendOtp` | Correo y propósito. Ayuda interna del proveedor de prueba para validar, emitir y entregar el código al buzón. |
 
+## Primera cuenta administradora
+
+Completa el alta de una cuenta UC3M y verifica su correo con el código. Con la conexión PostgreSQL del mismo entorno, ejecuta `npm run db:bootstrap-admin -- correo@uc3m.es` desde la raíz. El CLI carga la configuración de Next.js y exige un perfil activo, vinculado a Neon Auth y con correo verificado. La primera concesión registra el origen `bootstrap` en auditoría. Una segunda ejecución sobre el mismo perfil conserva la concesión existente.
+
+La persona puede acceder después al panel de cuentas en `/admin/accounts`. Edición de contenido, validación de asistencia y consulta de talento se conceden por separado. [Script de arranque](../../scripts/bootstrap-admin.ts) · [Consulta de arranque para el editor SQL de Neon](bootstrap-admin.sql)
+
 ## Seguir el flujo en una prueba
 
-1. `neon-auth.test.ts` comprueba qué recibe y devuelve el adaptador de Neon, incluidos los endpoints que usa internamente para recuperación.
+1. `neon-auth.test.ts` comprueba el transporte de recuperación y la lectura de sesión con el SDK. Incluye una respuesta con `Set-Cookie` y respuestas sin sesión válida.
 2. `service.test.ts` comprueba las reglas de registro, códigos, sesión y perfil con PGlite.
 3. `test-auth-provider.test.ts` comprueba caducidad, separación de propósito y reenvío.
 4. `e2e/email-otp.spec.ts` recorre la página, abre la sesión y comprueba que el portal devuelve 404 en la antigua ruta de proxy. El proveedor de pruebas usa el buzón JSONL. La prueba manual con Neon de desarrollo comprueba entrega a un buzón real y la cookie del proveedor.
