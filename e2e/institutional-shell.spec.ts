@@ -40,12 +40,12 @@ const bottomLinks: Destination[] = [
 ];
 
 /**
- * Indica si el proyecto de Playwright usa la composición móvil, que cambia a partir de 890 px.
+ * Indica si el proyecto de Playwright usa la composición móvil, que cambia a partir de 1080 px.
  * @param page Página bajo prueba.
- * @returns `true` por debajo de 890 px de ancho.
+ * @returns `true` por debajo de 1080 px de ancho.
  */
 function isNarrow(page: Page): boolean {
-  return (page.viewportSize()?.width ?? 1280) < 890;
+  return (page.viewportSize()?.width ?? 1280) < 1080;
 }
 
 /**

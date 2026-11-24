@@ -27,7 +27,7 @@ export default async function RootLayout({ children }) {
   const account = user
     ? { name: user.name, email: user.email, avatarUrl: buildOwnAvatarUrl(user.avatarUpdatedAt) }
     : null;
-  const bottomNavSpace = user ? " pb-[calc(3.5rem+env(safe-area-inset-bottom))] min-[890px]:pb-0" : "";
+  const bottomNavSpace = user ? " pb-[calc(3.5rem+env(safe-area-inset-bottom))] min-[1080px]:pb-0" : "";
 
   return (
     <html lang="es">

@@ -22,12 +22,12 @@ const icons = {
 };
 
 const linkClassName =
-	"flex min-h-14 flex-col items-center justify-center gap-1 px-1 py-1.5 text-center text-[0.72rem] leading-tight transition-colors hover:text-brand-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary";
+	"flex min-h-14 flex-col items-center justify-center gap-1 px-1 py-1.5 text-center text-[0.66rem] leading-tight tracking-tight transition-colors hover:text-brand-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary";
 
 const activeLinkClassName = "font-bold text-brand-primary";
 
 /**
- * Renderiza la barra fija inferior. Se oculta desde 890 px, donde la barra superior muestra los enlaces, y al
+ * Renderiza la barra fija inferior. Se oculta desde 1080 px, donde la barra superior muestra los enlaces, y al
  * imprimir. Queda por debajo de los diálogos (`z-[1100]`) y de la barra superior.
  *
  * @param props.links Accesos de `getCommunityNav().bottomLinks`, con `icon` como clave de pictograma.
@@ -38,7 +38,7 @@ export function MemberBottomNav({ links, activeHref }) {
 	return (
 		<nav
 			aria-label="Accesos rápidos"
-			className="fixed inset-x-0 bottom-0 z-[998] border-t border-brand-line bg-astra-cream pb-[env(safe-area-inset-bottom)] min-[890px]:hidden print:hidden"
+			className="fixed inset-x-0 bottom-0 z-[998] border-t border-brand-line bg-astra-cream pb-[env(safe-area-inset-bottom)] min-[1080px]:hidden print:hidden"
 		>
 			<ul className="mx-auto grid max-w-xl grid-cols-5">
 				{links.map(({ label, href, icon }) => {
@@ -59,7 +59,7 @@ export function MemberBottomNav({ links, activeHref }) {
 									aria-hidden="true"
 									focusable="false"
 								/>
-								<span className="max-w-full [overflow-wrap:anywhere]">{label}</span>
+								<span className="max-w-full">{label}</span>
 							</NavLink>
 						</li>
 					);
