@@ -29,12 +29,24 @@ export async function getMyVisibleActivity(id: string) {
 }
 
 /**
- * Carga las participaciones de la persona conectada para `MyActivitiesPage`.
+ * Carga las participaciones propias para `MyActivitiesPage`.
  * @returns Las reservas y sus opciones de cambio y cancelación calculadas por `listReservations`.
  */
 export async function listMyReservations() {
   const user = await requireUser("/my-activities");
   return listReservations(user.personId);
+}
+
+/**
+ * Resuelve la sesión de Inicio y obtiene la próxima reserva cuyo detalle puede abrir la persona.
+ * @returns El usuario para el saludo y sus accesos, y la primera reserva futura de una actividad publicada.
+ */
+export async function loadMyHome() {
+  const user = await requireUser("/home");
+  const reservations = await listReservations(user.personId);
+  const upcoming = reservations.find((reservation) =>
+    reservation.agendaSection === "upcoming" && reservation.activityStatus === "published");
+  return { user, upcoming };
 }
 
 /**

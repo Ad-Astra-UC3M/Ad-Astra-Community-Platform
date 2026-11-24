@@ -8,11 +8,13 @@ El perfil básico corresponde a la cuenta de Comunidad. El perfil de talento es 
 
 | Página | Lectura y acceso |
 | --- | --- |
-| [`/profile`](../../src/app/profile/page.jsx) | `ProfilePage` llama a `getMyProfile`, que exige sesión y consulta el perfil propio. La página presenta los datos editables. |
+| [`/profile`](../../src/app/profile/page.jsx) | `ProfilePage` llama a `getMyProfile`, que exige sesión y consulta el perfil propio y los borrados de fotos pendientes. La página presenta los datos editables y un resumen de la foto. `AvatarForm` abre el diálogo «Tu foto de perfil» con el selector, la vista previa, el banner de Avatar Studio y el control de retirada o reintento según el estado. |
+| [`GET /api/profile/avatar`](../../src/app/api/profile/avatar/route.ts) | Llama a `readMyProfileAvatar`, responde `401` sin sesión o `404` sin foto, y sirve el binario propio con `Cache-Control: no-store` y `X-Content-Type-Options: nosniff`. |
 | [`/profile/talent`](../../src/app/profile/talent/page.jsx) | `TalentProfilePage` llama a `getMyTalentProfile`. La operación obtiene la identidad de la sesión y la usa como solicitante y titular en `getTalentProfile`. |
 | [`/profile/privacy`](../../src/app/profile/privacy/page.jsx) | `ProfilePrivacyPage` llama a `getMyPrivacySettings`. La operación comprueba la sesión y carga ambas lecturas en paralelo. |
 | [`/admin/talent`](../../src/app/admin/talent/page.jsx) | `AdminTalentPage` lee los filtros de la URL y llama a `searchTalentForConsultation`, que exige `talent_consultation`. |
 | [`/admin/talent/[id]`](../../src/app/admin/talent/%5Bid%5D/page.jsx) | `AdminTalentDetailPage` llama a `getTalentForConsultation(id)`, que exige `talent_consultation`. Devuelve 404 si falta el perfil. |
+| [`GET /api/admin/talent/[id]/avatar`](../../src/app/api/admin/talent/%5Bid%5D/avatar/route.ts) | Llama a `readTalentAvatarForConsultation(id)` verificando `talent_consultation` y la existencia de fila en `talent_profiles`; devuelve `404` en cualquier denegación o ausencia. Todas las respuestas usan `Cache-Control: no-store`. |
 | [`/admin/deletion-requests`](../../src/app/admin/deletion-requests/page.jsx) | `AdminDeletionRequestsPage` llama a `listDeletionRequestsForReview`, que exige `general_admin` y carga la cola. |
 | [`/admin/deletion-requests/[id]`](../../src/app/admin/deletion-requests/%5Bid%5D/page.jsx) | `AdminDeletionRequestDetailPage` llama a `getDeletionRequestForReview(id)`, que exige `general_admin`. La página devuelve 404 si falta. Los formularios invocan la acción de tramitarla. |
 
@@ -29,6 +31,8 @@ Las acciones de Next.js leen `FormData` y deciden qué pantalla mostrar después
 | `textField(formData, key)` | Lee el campo de texto. Devuelve una cadena vacía si el valor falta o es un archivo. |
 | `optionalTextField(formData, key)` | Devuelve `undefined` si falta texto, de modo que el repositorio puede distinguir un campo omitido de uno vacío. |
 | `saveBasicProfileAction(formData)` | Lee los campos editables y los posibles campos de identidad que envíe la petición. Llama a `updateMyProfile` y redirige a `/profile` con `saved` o el código de error. |
+| `uploadProfileAvatarAction(formData)` | Pasa el campo `avatar` a `uploadMyProfileAvatar`, revalida `CommunityBar`, `/profile` y `/admin/talent` tras guardar en Neon Object Storage y redirige con `avatar_saved` o el código de error. |
+| `removeProfileAvatarAction()` | Llama a `removeMyProfileAvatar` y redirige a `/profile` con `avatar_removed` o el código de error. Revalida las vistas compartidas tanto si termina la retirada como si queda pendiente el borrado físico. En ese caso, la página ofrece «Completar retirada». |
 | `saveTalentProfileAction(formData)` | Construye enlaces con sus tipos y etiquetas, admite `graduationYear` como campo anterior, interpreta etiquetas e idiomas y llama a `saveMyTalentProfile`. La vista de talento muestra el resultado tras la redirección. |
 | `updateDisseminationAction(formData)` | Pasa el valor de `granted` a `updateMyDissemination`; redirige a privacidad con la decisión aplicada o el error. |
 | `requestDeletionAction(formData)` | Envía el motivo a `requestMyAccountDeletion` y redirige a privacidad indicando si se creó la solicitud o ya había una abierta. |
@@ -49,6 +53,10 @@ Las acciones de Next.js leen `FormData` y deciden qué pantalla mostrar después
 | Función | Qué hace |
 | --- | --- |
 | `updateMyProfile(input)` | Exige sesión y pasa el `personId` autenticado y los campos a `updateBasicProfile`. |
+| `uploadMyProfileAvatar(input)` | Exige sesión antes de validar el tamaño (2 MiB) o leer bytes; delega en `uploadProfileAvatar` con el adaptador `getAvatarStorage()`. |
+| `removeMyProfileAvatar()` | Exige sesión y llama a `removeProfileAvatar` para desreferenciar el objeto y reintentar su borrado. |
+| `readMyProfileAvatar()` | Comprueba la sesión con `currentUser()` y devuelve `{ authenticated: false }` o el binario leído con `readProfileAvatar`. |
+| `readTalentAvatarForConsultation(id)` | Exige cuenta activa con `talent_consultation` y lee el avatar únicamente si la candidatura tiene fila en `talent_profiles`. |
 | `saveMyTalentProfile(input)` | Exige sesión y llama a `saveTalentProfile` con el `personId` autenticado. |
 | `updateMyDissemination(decision)` | Exige sesión, admite exactamente los textos `"true"` y `"false"` y guarda el booleano. Devuelve `invalid_decision` para otros valores y `missing` si el perfil desapareció. |
 | `requestMyAccountDeletion(reason)` | Exige sesión y solicita la supresión para el `personId` autenticado. |
@@ -95,6 +103,27 @@ Las acciones de Next.js leen `FormData` y deciden qué pantalla mostrar después
 
 La búsqueda y la ficha administrativa se protegen con `talent_consultation`. La decisión de difusión se muestra como información del perfil. Estas lecturas internas incluyen perfiles con y sin difusión activa.
 
+## Foto de perfil privada y Neon Object Storage
+
+El [diálogo de la foto](../../src/app/profile/avatar-form.jsx) muestra los formatos de entrada aceptados y el límite de 2 MiB. Si la acción devuelve un error de foto, la página abre el diálogo para mostrarlo. Cerrar el diálogo descarta el archivo seleccionado. El [banner de Avatar Studio](../../src/components/avatar/AvatarStudioBanner.jsx) enlaza al estudio en otra pestaña y muestra ejemplos de avatares.
+
+[Validación de avatares](../../src/server/profiles/avatar-validation.ts) · [Procesamiento de imágenes](../../src/server/profiles/avatar-image.ts) · [Cola de borrados](../../src/server/profiles/avatar-cleanup.ts) · [Repositorio de avatar](../../src/server/profiles/avatar.ts) · [Utilidades HTTP](../../src/server/profiles/avatar-http.ts) · [Cliente S3 para Neon](../../src/server/storage/neon-object-storage.ts) · [Selector de almacenamiento](../../src/server/storage/avatar-storage.ts)
+
+| Módulo / Función | Responsabilidad |
+| --- | --- |
+| `validateAvatarBytes(bytes)` | Exige entre 1 byte y 2 MiB y comprueba la firma binaria de JPEG, PNG o WebP.
+| `prepareAvatarImage(bytes)` | Decodifica con Sharp, verifica el formato real y rechaza archivos malformados, animados o de más de 25 millones de píxeles. Aplica la orientación EXIF, convierte a sRGB y ajusta a 512 × 512 píxeles como máximo conservando la proporción y sin ampliar. Codifica los píxeles sin metadatos de origen en WebP (calidad 80) y AVIF (55) y conserva el menor archivo. En empate elige WebP. |
+| `buildOwnAvatarUrl` / `buildTalentAvatarUrl` | Generan `/api/profile/avatar?v=<epochMs>` y `/api/admin/talent/<id>/avatar?v=<epochMs>` sin exponer `avatar_key` ni URLs S3 en el navegador. |
+| `signS3Request` / `createNeonObjectStorage` | Implementa firma AWS SigV4 sobre `fetch` con direccionamiento path-style para buckets privados de Neon Object Storage. |
+| `getAvatarStorage()` | Resuelve disco temporal en Playwright (`AD_ASTRA_AVATAR_TEST_DIR`), memoria en `node:test` o Neon Object Storage si están definidas `AWS_ENDPOINT_URL_S3`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` y `NEON_STORAGE_BUCKET` (`AWS_REGION` es opcional y se deduce del endpoint). |
+| `buildEmptyNoStoreResponse` / `buildPrivateAvatarResponse` | Aplican `Cache-Control: no-store` a `200`, `401` y `404`. El `200` con el binario incluye `nosniff`, `Content-Disposition: inline` y `Vary: Cookie`. |
+| `uploadProfileAvatar` | Registra una tarea para la clave nueva antes de subir los bytes procesados. Bloquea esa tarea y el perfil durante la subida. En la misma transacción actualiza la referencia, encola la clave anterior si existe y elimina la tarea de la foto nueva. Si la transacción se revierte, queda la tarea que permite limpiar el objeto nuevo. |
+| `removeProfileAvatar` | Desreferencia la foto y encola su clave en una misma transacción. Después intenta el borrado físico. Si Storage no está disponible o falla la limpieza, devuelve `cleanup_pending` y se puede volver a intentar. |
+| `hasAvatarDeletions` / `flushAvatarDeletions` | Consultan la cola `avatar_deletions` y reintentan el borrado de objetos pendientes. El ejecutor comprueba que la clave ya no esté referenciada y retira la tarea al confirmar el borrado. Si falla, conserva la tarea para otro intento. |
+| `readProfileAvatar` / `readTalentProfileAvatar` | Validan la clave almacenada (`AVATAR_KEY_PATTERN`) y recuperan el binario privado; la lectura de talento exige unión con `talent_profiles`. |
+
+El script [`npm run avatars:cleanup`](../../scripts/cleanup-avatars.ts) reintenta la cola completa con la base y el bucket configurados. Devuelve un código de salida distinto de cero si la limpieza requiere otro intento. La columna `avatar_key` admite las extensiones de fotos anteriores y las actuales (`.jpg`, `.png`, `.webp` y `.avif`).
+
 ## Solicitudes de supresión
 
 [Código del repositorio de supresión](../../src/server/profiles/deletion-requests.ts)
@@ -136,7 +165,7 @@ flowchart TD
 
 Al pulsar «Solicitar supresión» en privacidad, `requestDeletionAction` lee el motivo. `requestMyAccountDeletion` obtiene el titular de la sesión y `requestAccountDeletion` comprueba si ya hay una solicitud en curso antes de insertar. Al volver a privacidad, `getMyDeletionRequest` lee lo persistido. Para tramitarla desde administración, `reviewDeletionRequest` exige `general_admin` y el repositorio guarda la resolución y su auditoría en una transacción. La operación cierra la solicitud registrada. La ejecución material de la supresión queda fuera de esa transición.
 
-Para cambiar campos editables o su validación, empieza por las acciones y el repositorio de perfil. Para tocar la transición de supresión, empieza por `deletion-requests.ts` y sigue la operación y acción administrativa. Las comprobaciones de persistencia viven en [las pruebas del repositorio](../../src/server/profiles/repository.test.ts). Las pantallas de perfil y las capacidades administrativas se recorren en [oportunidades y perfil](../../e2e/opportunities-and-profile.spec.ts) y [administración y acceso](../../e2e/admin-and-auth.spec.ts).
+Para cambiar campos editables o su validación, empieza por las acciones y el repositorio de perfil. Para tocar la transición de supresión, empieza por `deletion-requests.ts` y sigue la operación y acción administrativa. Las comprobaciones de persistencia y avatares viven en [las pruebas del repositorio](../../src/server/profiles/repository.test.ts), [las pruebas de avatar](../../src/server/profiles/avatar.test.ts) y [las pruebas de Neon Object Storage](../../src/server/storage/neon-object-storage.test.ts). Las pantallas de perfil y las capacidades administrativas se recorren en [oportunidades y perfil](../../e2e/opportunities-and-profile.spec.ts) y [administración y acceso](../../e2e/admin-and-auth.spec.ts).
 
 ## Lecturas autorizadas en `operations.ts`
 
@@ -144,7 +173,7 @@ Estas funciones se ejecutan en el servidor. La página las llama directamente pa
 
 | Función | Parámetros | Uso y resultado |
 | --- | --- | --- |
-| `getMyProfile` | Sin parámetros | Exige sesión e identifica el perfil con la sesión. Llama a `getBasicProfile` y entrega los datos básicos a `ProfilePage`. |
+| `getMyProfile` | Sin parámetros | Exige sesión e identifica al titular. Lee `getBasicProfile` y `hasAvatarDeletions` en paralelo y entrega a `ProfilePage` los datos básicos y `avatarCleanupPending`. |
 | `getMyTalentProfile` | Sin parámetros | Exige sesión y lee el talento propio con `getTalentProfile`. Entrega los datos a `TalentProfilePage`. |
 | `getMyPrivacySettings` | Sin parámetros | Exige sesión una sola vez, consulta la difusión y la solicitud de supresión en paralelo y entrega ambas a `ProfilePrivacyPage`. |
 | `searchTalentForConsultation` | `filters` con texto o etiquetas | Exige `talent_consultation` y entrega a la página de resultados lo que devuelve `searchTalentProfiles`. |

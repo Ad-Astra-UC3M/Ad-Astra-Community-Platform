@@ -65,6 +65,7 @@ export interface BasicProfile {
   privacyVersion: string;
   privacyAcceptedAt: Date;
   emailVerifiedAt: Date | null;
+  avatarUpdatedAt: Date | null;
 }
 
 export interface BasicProfileUpdateInput {
@@ -285,6 +286,7 @@ function toBasicProfile(row: ProfileRow): BasicProfile {
     privacyVersion: row.privacyVersion,
     privacyAcceptedAt: row.privacyAcceptedAt,
     emailVerifiedAt: row.emailVerifiedAt ?? null,
+    avatarUpdatedAt: row.avatarUpdatedAt ?? null,
   };
 }
 

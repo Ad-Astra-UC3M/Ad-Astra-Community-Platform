@@ -3,8 +3,13 @@
  * las operaciones manuales y el historial del turno.
  */
 
+import { Ticket01Icon, UserGroupIcon } from "@hugeicons/core-free-icons";
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../../components/back-link";
+import { inputClass, primaryButtonClass, secondaryButtonClass } from "../../../../components/form-styles";
+import { PageHeading, pageClassName } from "../../../../components/page-layout";
+import { portalAlertClassName, portalFeedbackClassName, portalMutedPanelClassName, portalPanelClassName, PortalIcon } from "../../../../components/portal-ui";
+import TextSpanWrapper2 from "../../../../institutional/components/ui/TextSpanWrapper2";
 import { getAttendanceShift } from "../../../../server/activities/attendance";
 import {
   confirmManualAttendanceAction,
@@ -83,18 +88,8 @@ function formatAuditStatusSummary(entry) {
   return "";
 }
 
-const panelClass =
-  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
 const fieldClass = "grid min-w-0 gap-1.5 font-bold";
 const inlineFieldClass = "grid min-w-0 flex-1 basis-56 gap-1.5 font-bold";
-const inputClass =
-  "min-h-12 w-full min-w-0 rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
-const noticeClass = "rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink empty:hidden";
-const alertClass = "rounded-[4px] bg-brand-accent/35 px-4 py-3.5 text-brand-ink";
-const primaryButtonClass =
-  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
-const secondaryButtonClass =
-  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
 /**
  * Next.js llama a esta página de servidor. Consulta `getAttendanceShift`, llama a `notFound` si falta
@@ -119,24 +114,28 @@ export default async function AttendancePage({ params, searchParams }) {
 
   const doorBanner = doorFeedback.get(doorCode);
   const manualBanner = manualFeedback.get(manualCode);
+  const occupationSummary =
+    shift.capacity === null
+      ? `${shift.reservedCount} plazas · aforo ilimitado · ${shift.attendedCount} asistencias`
+      : `${shift.reservedCount}/${shift.capacity} plazas · ${shift.available} disponibles · ${shift.attendedCount} asistencias`;
 
   return (
-    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
+    <main className={pageClassName}>
       <BackLink href="/admin">Volver a turnos</BackLink>
-      <header className="grid min-w-0 gap-4">
-        <p className="text-[0.9rem] font-bold text-brand-primary">Control de asistencia · {shift.name}</p>
-        <h1>{shift.activityTitle}</h1>
-        <p>
-          {dateTimeFormat.format(new Date(shift.startsAt))} – {dateTimeFormat.format(new Date(shift.endsAt))} ·{" "}
-          {shift.capacity === null
-            ? `${shift.reservedCount} plazas ocupadas (aforo ilimitado)`
-            : `${shift.reservedCount}/${shift.capacity} plazas ocupadas (${shift.available} disponibles)`}
-        </p>
-      </header>
+      <PageHeading
+        eyebrow={`Control de asistencia · ${shift.name}`}
+        title={shift.activityTitle}
+        description={`${dateTimeFormat.format(new Date(shift.startsAt))} – ${dateTimeFormat.format(new Date(shift.endsAt))}`}
+        actions={
+          <p className="rounded-md border border-brand-line bg-brand-soft/45 px-4 py-2 text-sm font-bold text-brand-ink">
+            {occupationSummary}
+          </p>
+        }
+      />
 
       {doorBanner && (
         <p
-          className={doorBanner.kind === "alert" ? alertClass : noticeClass}
+          className={doorBanner.kind === "alert" ? portalAlertClassName : portalFeedbackClassName}
           role={doorBanner.kind === "alert" ? "alert" : undefined}
         >
           {doorBanner.text}
@@ -144,70 +143,84 @@ export default async function AttendancePage({ params, searchParams }) {
       )}
       {manualBanner && (
         <p
-          className={manualBanner.kind === "alert" ? alertClass : noticeClass}
+          className={manualBanner.kind === "alert" ? portalAlertClassName : portalFeedbackClassName}
           role={manualBanner.kind === "alert" ? "alert" : undefined}
         >
           {manualBanner.text}
         </p>
       )}
 
-      <Scanner action={validateCard.bind(null, shiftId)} />
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <Scanner action={validateCard.bind(null, shiftId)} />
 
-      <section className={panelClass} aria-label="Inscripción manual en puerta">
-        <h2>Inscripción manual en puerta</h2>
-        <p>
-          Da de alta a una cuenta activa si quedan plazas y el turno no ha finalizado. El alta deja la reserva en estado{" "}
-          <strong>Apuntado</strong>; la asistencia se confirma en una acción separada.
-        </p>
+        <section className={portalPanelClassName} aria-label="Inscripción manual en puerta">
+          <h2 className="flex items-center gap-2 border-b border-brand-line pb-2.5">
+            <PortalIcon icon={Ticket01Icon} size={20} className="text-brand-primary" />
+            <TextSpanWrapper2 as="span" className="min-w-0">
+              Inscripción manual en puerta
+            </TextSpanWrapper2>
+          </h2>
+          <p>
+            Da de alta a una cuenta activa si quedan plazas y el turno no ha finalizado. El alta deja la reserva en estado{" "}
+            <strong>Apuntado</strong>; la asistencia se confirma en una acción separada.
+          </p>
 
-        <form method="get" className="flex flex-wrap items-end gap-3">
-          {query && <input type="hidden" name="q" value={query} />}
-          <label className={inlineFieldClass}>
-            Filtrar cuentas activas
-            <input
-              className={inputClass}
-              name="accountQuery"
-              type="search"
-              defaultValue={accountQuery}
-              placeholder="Nombre, correo o titulación"
-            />
-          </label>
-          <button type="submit" className={secondaryButtonClass}>Buscar cuenta</button>
-        </form>
+          <form method="get" className="flex flex-wrap items-end gap-3">
+            {query && <input type="hidden" name="q" value={query} />}
+            <label className={inlineFieldClass}>
+              Filtrar cuentas activas
+              <input
+                className={inputClass}
+                name="accountQuery"
+                type="search"
+                defaultValue={accountQuery}
+                placeholder="Nombre, correo o titulación"
+              />
+            </label>
+            <button type="submit" className={secondaryButtonClass}>Buscar cuenta</button>
+          </form>
 
-        <form action={registerAtDoorAction} className="grid min-w-0 gap-4">
-          <input type="hidden" name="shiftId" value={shiftId} />
-          <label className={fieldClass}>
-            Cuenta activa a inscribir
-            <select className={inputClass} name="targetAccountId" required defaultValue="">
-              <option value="" disabled>Selecciona una cuenta activa</option>
-              {doorAccounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name} ({account.email}){account.alreadyInShift ? " — ya inscrita en este turno" : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className={fieldClass}>
-            Motivo del alta en puerta
-            <input
-              className={inputClass}
-              name="reason"
-              type="text"
-              required
-              maxLength={500}
-              placeholder="Ejemplo: Alta presencial en puerta con plaza libre"
-            />
-          </label>
-          <div>
-            <button type="submit" className={primaryButtonClass}>Inscribir en puerta</button>
-          </div>
-        </form>
-      </section>
+          <form action={registerAtDoorAction} className="grid min-w-0 gap-4 border-t border-brand-line pt-4">
+            <input type="hidden" name="shiftId" value={shiftId} />
+            <label className={fieldClass}>
+              Cuenta activa a inscribir
+              <select className={inputClass} name="targetAccountId" required defaultValue="">
+                <option value="" disabled>Selecciona una cuenta activa</option>
+                {doorAccounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name} ({account.email}){account.alreadyInShift ? " — ya inscrita en este turno" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={fieldClass}>
+              Motivo del alta en puerta
+              <input
+                className={inputClass}
+                name="reason"
+                type="text"
+                required
+                maxLength={500}
+                placeholder="Ejemplo: Alta presencial en puerta con plaza libre"
+              />
+            </label>
+            <div>
+              <button type="submit" className={primaryButtonClass}>Inscribir en puerta</button>
+            </div>
+          </form>
+        </section>
+      </div>
 
-      <section className={panelClass} aria-label="Personas inscritas y confirmación o corrección manual">
-        <h2>Personas inscritas</h2>
-        <p>{shift.attendedCount} de {shift.reservedCount} asistencias confirmadas</p>
+      <section className="grid min-w-0 gap-4" aria-label="Personas inscritas y confirmación o corrección manual">
+        <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-brand-line pb-2.5">
+          <h2 className="flex items-center gap-2">
+            <PortalIcon icon={UserGroupIcon} size={20} className="text-brand-primary" />
+            <TextSpanWrapper2 as="span" className="min-w-0">
+              Personas inscritas
+            </TextSpanWrapper2>
+          </h2>
+          <p className="text-[0.95rem] font-bold">{shift.attendedCount} de {shift.reservedCount} asistencias confirmadas</p>
+        </div>
 
         <form method="get" className="flex flex-wrap items-end gap-3">
           {accountQuery && <input type="hidden" name="accountQuery" value={accountQuery} />}
@@ -225,67 +238,92 @@ export default async function AttendancePage({ params, searchParams }) {
         </form>
 
         {attendees.length > 0 ? (
-          <ul className="m-0 grid list-none gap-4 p-0">
-            {attendees.map((person) => (
-              <li className={panelClass} key={person.personId}>
-                <p>
-                  <strong>{person.name}</strong> · {person.status === "attended" ? "Asistido" : "Apuntado"}
-                  {person.email ? ` (${person.email})` : ""}
-                </p>
-                {person.status === "booked" ? (
-                  <form action={confirmManualAttendanceAction} className="grid min-w-0 gap-4">
-                    <input type="hidden" name="shiftId" value={shiftId} />
-                    <input type="hidden" name="personId" value={person.personId} />
-                    <label className={fieldClass}>
-                      Motivo de confirmación manual ({person.name})
-                      <input
-                        className={inputClass}
-                        name="reason"
-                        type="text"
-                        required
-                        maxLength={500}
-                        placeholder="Ejemplo: Verificación manual por fallo de cámara"
-                      />
-                    </label>
-                    <div>
+          <div className="overflow-hidden rounded-lg border border-brand-line bg-brand-surface">
+            <div
+              aria-hidden="true"
+              className="hidden bg-brand-ink px-4 py-3 text-sm font-bold text-brand-surface md:grid md:grid-cols-[minmax(0,0.85fr)_auto_minmax(0,1.4fr)] md:gap-4"
+            >
+              <span>Persona</span>
+              <span>Estado</span>
+              <span>Motivo y acción manual</span>
+            </div>
+            <ul className="m-0 grid list-none p-0">
+              {attendees.map((person) => (
+                <li
+                  className="grid gap-3 border-t border-brand-line p-4 first:border-t-0 even:bg-brand-panel md:grid-cols-[minmax(0,0.85fr)_auto_minmax(0,1.4fr)] md:items-center md:gap-4"
+                  key={person.personId}
+                >
+                  <div className="grid gap-0.5 [overflow-wrap:anywhere]">
+                    <strong>{person.name}</strong>
+                    {person.email && <span className="text-sm">{person.email}</span>}
+                  </div>
+                  <div>
+                    <span
+                      className={
+                        "inline-block rounded-sm border px-2.5 py-0.5 text-sm font-bold " +
+                        (person.status === "attended"
+                          ? "border-brand-line bg-brand-soft/45 text-brand-ink"
+                          : "border-[#b79b30] bg-brand-accent text-brand-ink")
+                      }
+                    >
+                      {person.status === "attended" ? "Asistido" : "Apuntado"}
+                    </span>
+                  </div>
+                  {person.status === "booked" ? (
+                    <form action={confirmManualAttendanceAction} className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:gap-3">
+                      <input type="hidden" name="shiftId" value={shiftId} />
+                      <input type="hidden" name="personId" value={person.personId} />
+                      <label className={fieldClass}>
+                        <span className="text-sm">Motivo de confirmación manual ({person.name})</span>
+                        <input
+                          className={inputClass}
+                          name="reason"
+                          type="text"
+                          required
+                          maxLength={500}
+                          placeholder="Ejemplo: Verificación manual por fallo de cámara"
+                        />
+                      </label>
                       <button type="submit" className={secondaryButtonClass}>
                         Confirmar asistencia manualmente
                       </button>
-                    </div>
-                  </form>
-                ) : (
-                  <form action={correctAttendanceAction} className="grid min-w-0 gap-4">
-                    <input type="hidden" name="shiftId" value={shiftId} />
-                    <input type="hidden" name="personId" value={person.personId} />
-                    <input type="hidden" name="targetStatus" value="booked" />
-                    <label className={fieldClass}>
-                      Motivo de rectificación ({person.name})
-                      <input
-                        className={inputClass}
-                        name="reason"
-                        type="text"
-                        required
-                        maxLength={500}
-                        placeholder="Ejemplo: Marcado por error, se devuelve a apuntado"
-                      />
-                    </label>
-                    <div>
+                    </form>
+                  ) : (
+                    <form action={correctAttendanceAction} className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:gap-3">
+                      <input type="hidden" name="shiftId" value={shiftId} />
+                      <input type="hidden" name="personId" value={person.personId} />
+                      <input type="hidden" name="targetStatus" value="booked" />
+                      <label className={fieldClass}>
+                        <span className="text-sm">Motivo de rectificación ({person.name})</span>
+                        <input
+                          className={inputClass}
+                          name="reason"
+                          type="text"
+                          required
+                          maxLength={500}
+                          placeholder="Ejemplo: Marcado por error, se devuelve a apuntado"
+                        />
+                      </label>
                       <button type="submit" className={secondaryButtonClass}>
                         Rectificar a apuntado
                       </button>
-                    </div>
-                  </form>
-                )}
-              </li>
-            ))}
-          </ul>
+                    </form>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : (
-          <p>{query ? "No hay inscritos que coincidan con la búsqueda." : "Aún no hay reservas para este turno."}</p>
+          <p className={portalPanelClassName}>
+            {query ? "No hay inscritos que coincidan con la búsqueda." : "Aún no hay reservas para este turno."}
+          </p>
         )}
       </section>
 
-      <section className={panelClass} aria-label="Historial de correcciones y altas en puerta">
-        <h2>Historial de altas y correcciones</h2>
+      <section className={portalMutedPanelClassName} aria-label="Historial de correcciones y altas en puerta">
+        <TextSpanWrapper2 as="h2" className="border-b border-brand-line pb-2.5 text-xl">
+          Historial de altas y correcciones
+        </TextSpanWrapper2>
         {auditEntries.length > 0 ? (
           <ul className="grid list-disc gap-1.5 pl-6">
             {auditEntries.map((entry) => (

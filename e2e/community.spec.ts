@@ -12,7 +12,7 @@ import { E2E_ACCOUNTS, registerVerifyAndSignIn, signInAs, signOut } from "./help
  * equivocado. Simula la cámara con la imagen emitida por la propia app. Comprueba
  * la validación repetida y el estado de asistencia al volver como miembro.
  */
-test("alta UC3M verificada, reserva, tarjeta digital y control de asistencia", async ({ page }, info) => {
+test("alta UC3M verificada, reserva, tarjeta digital y control de asistencia", async ({ page, isMobile }, info) => {
   const email = `alta.${info.project.name}@alumnos.uc3m.es`;
   const password = "ComunidadAlta2026!";
 
@@ -25,7 +25,17 @@ test("alta UC3M verificada, reserva, tarjeta digital y control de asistencia", a
     password,
   });
 
-  await page.getByRole("navigation", { name: "Accesos directos" }).locator('a[href="/activities"]').click();
+  const agenda = page.getByRole("region", { name: "Próximas actividades" });
+  const shortcuts = page.getByRole("navigation", { name: "Accesos directos" });
+  const rocket = page.getByRole("img", { name: "Cohete universitario sobre una rampa al atardecer" });
+  await expect(page.getByRole("heading", { name: "Hola, Lucía", exact: true })).toBeVisible();
+  await expect(agenda).toContainText("No tienes próximas reservas.");
+  await expect(rocket).toBeVisible();
+  await expect.poll(() => rocket.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  if (isMobile) {
+    expect((await agenda.boundingBox())!.y).toBeLessThan((await shortcuts.boundingBox())!.y);
+  }
+  await page.getByRole("link", { name: "Explorar actividades" }).click();
   await page.locator("article", { hasText: "CubeSat" }).getByRole("link", { name: "Ver turnos" }).click();
   const backToActivities = page.getByRole("link", { name: "Volver a actividades", exact: true });
   await expect(backToActivities).toHaveAttribute("href", "/activities");
@@ -39,8 +49,14 @@ test("alta UC3M verificada, reserva, tarjeta digital y control de asistencia", a
   await page.getByRole("button", { name: /Reservar plaza/ }).click();
   await expect(page.getByText("Tu plaza está reservada.")).toBeVisible();
 
-  await page.getByRole("link", { name: "Ver mis actividades" }).click();
-  await expect(page.getByText("Reserva confirmada")).toBeVisible();
+  await page.getByRole("banner").getByRole("link", { name: "Ad Astra UC3M" }).click();
+  await expect(agenda.getByRole("link", { name: /CubeSat/ })).toBeVisible();
+  await expect(agenda).toContainText("Reserva confirmada");
+  await page.screenshot({ path: info.outputPath("home-with-reservation.png"), fullPage: true });
+  await agenda.getByRole("link", { name: "Ver mis actividades" }).click();
+  const upcoming = page.getByRole("region", { name: "Próximas reservas" });
+  await expect(upcoming).toContainText("Reserva confirmada");
+  await page.screenshot({ path: info.outputPath("my-activities-upcoming.png"), fullPage: true });
   await page.getByRole("banner").getByRole("link", { name: "Mi tarjeta QR" }).click();
   await page.screenshot({ path: info.outputPath("card.png"), fullPage: true });
   await page.getByText("Usar el código sin cámara").click();
@@ -101,9 +117,12 @@ test("alta UC3M verificada, reserva, tarjeta digital y control de asistencia", a
   await signOut(page);
   await signInAs(page, { email, password });
   await expect(page).toHaveURL(/\/home$/);
-  await page.getByRole("navigation", { name: "Accesos directos" }).locator('a[href="/my-activities"]').click();
-  await expect(page.getByText("Asistencia registrada", { exact: true })).toBeVisible();
+  await expect(agenda).toContainText("No tienes próximas reservas.");
+  await agenda.getByRole("link", { name: "Ver mis actividades" }).click();
+  const history = page.getByRole("region", { name: "Historial de asistencia" });
+  await expect(history.getByText("Asistencia registrada", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /Cancelar reserva/ })).toHaveCount(0);
+  await page.screenshot({ path: info.outputPath("my-activities-history.png"), fullPage: true });
 });
 
 /**

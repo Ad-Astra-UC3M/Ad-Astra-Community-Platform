@@ -35,8 +35,8 @@ function readField(form: FormData, name: string): string {
 }
 
 /**
- * Las acciones del turno invalidan con `revalidatePath` el detalle, el panel principal y Mis
- * actividades.
+ * Las acciones del turno invalidan con `revalidatePath` el detalle, el panel principal y
+ * las agendas de Inicio y Mis actividades.
  * @param shiftId ID que identifica el detalle de asistencia que debe revalidarse.
  * @returns Sin valor. Solicita a Next.js actualizar las rutas afectadas.
  */
@@ -44,6 +44,7 @@ function revalidateAttendancePaths(shiftId: string) {
   revalidatePath(`/admin/attendance/${encodeURIComponent(shiftId)}`);
   revalidatePath("/admin");
   revalidatePath("/my-activities");
+  revalidatePath("/home");
 }
 
 /**

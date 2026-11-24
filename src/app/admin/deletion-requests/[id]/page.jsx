@@ -1,11 +1,15 @@
 /**
- * Ruta dinámica /admin/deletion-requests/[id]. Muestra el caso de supresión, su trazabilidad y
+ * @file Ruta dinámica `/admin/deletion-requests/[id]`. Muestra el caso de supresión, su trazabilidad y
  * el formulario que lo pone en revisión o lo resuelve.
  */
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackLink } from "../../../../components/back-link";
+import { inputClass, primaryButtonClass, secondaryButtonClass } from "../../../../components/form-styles";
+import { PageHeading, pageClassName } from "../../../../components/page-layout";
+import { portalAlertClassName, portalFeedbackClassName, portalPanelClassName } from "../../../../components/portal-ui";
+import TextSpanWrapper2 from "../../../../institutional/components/ui/TextSpanWrapper2";
 import { getDeletionRequestForReview } from "../../../../server/profiles/operations";
 import { resolveDeletionRequestAction } from "../actions";
 
@@ -40,15 +44,8 @@ const errorMessages = new Map([
   ["missing", "No se encontró la solicitud indicada."],
 ]);
 
-const panelClass =
-  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
 const fieldClass = "grid min-w-0 gap-1.5 font-bold";
-const textareaClass =
-  "min-h-12 w-full min-w-0 resize-y rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
-const primaryButtonClass =
-  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
-const secondaryButtonClass =
-  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
+const textareaClass = `${inputClass} min-h-[5.5rem] resize-y`;
 
 /**
  * Next.js ejecuta este Server Component para leer getDeletionRequestForReview y preparar el
@@ -73,103 +70,126 @@ export default async function AdminDeletionRequestDetailPage({ params, searchPar
   const errorMessage = errorMessages.get(errorCode);
 
   return (
-    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
+    <main className={pageClassName}>
       <BackLink href="/admin/deletion-requests">Volver a solicitudes</BackLink>
-      <header className="grid min-w-0 gap-4">
-        <p className="text-[0.9rem] font-bold text-brand-primary">
-          Solicitud de supresión · {statusLabels[request.status]}
-        </p>
-        <h1>{request.personName}</h1>
-        <p>
-          {request.personEmail} · Estado de la cuenta:{" "}
-          <strong>{request.personStatus === "active" ? "Activa" : "Desactivada"}</strong>
-        </p>
-        <div>
+      <PageHeading
+        eyebrow={`Solicitud de supresión · ${statusLabels[request.status]}`}
+        title={request.personName}
+        description={`${request.personEmail} · Estado de la cuenta: ${request.personStatus === "active" ? "Activa" : "Desactivada"}`}
+        actions={
           <Link className={secondaryButtonClass} href={`/admin/accounts/${request.personId}`}>
             Ver ficha de la cuenta
           </Link>
-        </div>
-      </header>
+        }
+      />
 
       {statusMessage && (
-        <p className="rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink empty:hidden" role="status">
+        <p className={portalFeedbackClassName + " empty:hidden"} role="status">
           {statusMessage}
         </p>
       )}
       {errorMessage && (
-        <p className="rounded-[4px] bg-brand-accent/35 px-4 py-3.5 text-brand-ink" role="alert">
+        <p className={portalAlertClassName} role="alert">
           {errorMessage}
         </p>
       )}
 
-      <section className={panelClass}>
-        <h2>Datos de la solicitud</h2>
-        <p>Fecha de creación: {dateTimeFormat.format(new Date(request.createdAt))}</p>
-        <p>Motivo aportado: {request.reason || "Sin motivo adicional."}</p>
-        {request.resolutionNote && (
-          <p>Nota / resultado registrado: «{request.resolutionNote}»</p>
-        )}
-        {request.resolvedAt && (
-          <p>
-            Resuelta por <strong>{request.resolvedByName ?? request.resolvedBy}</strong> el{" "}
-            {dateTimeFormat.format(new Date(request.resolvedAt))}.
-          </p>
-        )}
-      </section>
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <section className={portalPanelClassName}>
+          <TextSpanWrapper2 as="h2" className="border-b border-brand-line pb-2.5 text-xl">
+            Datos de la solicitud
+          </TextSpanWrapper2>
+          <span
+            className={
+              "inline-block w-fit rounded-sm border px-2.5 py-0.5 text-sm font-bold " +
+              (request.status === "pending"
+                ? "border-[#b79b30] bg-brand-accent text-brand-ink"
+                : "border-brand-line bg-brand-panel text-brand-ink")
+            }
+          >
+            {statusLabels[request.status]}
+          </span>
+          <dl className="grid gap-3">
+            <div className="border-b border-brand-line pb-2">
+              <dt className="font-bold">Fecha de creación</dt>
+              <dd>{dateTimeFormat.format(new Date(request.createdAt))}</dd>
+            </div>
+            <div className="border-b border-brand-line pb-2">
+              <dt className="font-bold">Motivo aportado</dt>
+              <dd>{request.reason || "Sin motivo adicional."}</dd>
+            </div>
+            {request.resolutionNote && (
+              <div className="border-b border-brand-line pb-2">
+                <dt className="font-bold">Nota / resultado registrado</dt>
+                <dd>«{request.resolutionNote}»</dd>
+              </div>
+            )}
+          </dl>
+          {request.resolvedAt && (
+            <p>
+              Resuelta por <strong>{request.resolvedByName ?? request.resolvedBy}</strong> el{" "}
+              {dateTimeFormat.format(new Date(request.resolvedAt))}.
+            </p>
+          )}
+        </section>
 
-      {request.status !== "resolved" && (
-        <>
-          {request.status === "pending" && (
-            <section className={panelClass} aria-label="Marcar solicitud en revisión">
-              <h2>Pasar a en revisión</h2>
+        {request.status !== "resolved" && (
+          <div className="grid gap-6">
+            {request.status === "pending" && (
+              <section className={portalPanelClassName} aria-label="Marcar solicitud en revisión">
+                <TextSpanWrapper2 as="h2" className="border-b border-brand-line pb-2.5 text-xl">
+                  Pasar a en revisión
+                </TextSpanWrapper2>
+                <form action={resolveDeletionRequestAction} className="grid min-w-0 gap-4">
+                  <input type="hidden" name="requestId" value={request.id} />
+                  <input type="hidden" name="status" value="in_review" />
+                  <label className={fieldClass}>
+                    Nota preliminar de revisión (opcional)
+                    <textarea
+                      className={textareaClass}
+                      name="resolutionNote"
+                      rows={2}
+                      maxLength={2000}
+                      defaultValue={request.resolutionNote ?? ""}
+                    />
+                  </label>
+                  <div>
+                    <button type="submit" className={secondaryButtonClass}>Marcar en revisión</button>
+                  </div>
+                </form>
+              </section>
+            )}
+
+            <section className={portalPanelClassName} aria-label="Resolver solicitud de supresión">
+              <TextSpanWrapper2 as="h2" className="border-b border-brand-line pb-2.5 text-xl">
+                Resolver solicitud
+              </TextSpanWrapper2>
+              <p className={portalFeedbackClassName}>
+                Al resolver se registran de forma permanente el resultado motivado, tu identidad como responsable y la fecha de cierre.
+              </p>
               <form action={resolveDeletionRequestAction} className="grid min-w-0 gap-4">
                 <input type="hidden" name="requestId" value={request.id} />
-                <input type="hidden" name="status" value="in_review" />
+                <input type="hidden" name="status" value="resolved" />
                 <label className={fieldClass}>
-                  Nota preliminar de revisión (opcional)
+                  Resultado motivado de la resolución
                   <textarea
                     className={textareaClass}
                     name="resolutionNote"
-                    rows={2}
+                    required
+                    rows={4}
                     maxLength={2000}
                     defaultValue={request.resolutionNote ?? ""}
+                    placeholder="Describe las actuaciones realizadas y el resultado final conforme al aviso de privacidad."
                   />
                 </label>
                 <div>
-                  <button type="submit" className={secondaryButtonClass}>Marcar en revisión</button>
+                  <button type="submit" className={primaryButtonClass}>Marcar como resuelta</button>
                 </div>
               </form>
             </section>
-          )}
-
-          <section className={panelClass} aria-label="Resolver solicitud de supresión">
-            <h2>Resolver solicitud</h2>
-            <p>
-              Al resolver se registran de forma permanente el resultado motivado, tu identidad como responsable y la
-              fecha de cierre.
-            </p>
-            <form action={resolveDeletionRequestAction} className="grid min-w-0 gap-4">
-              <input type="hidden" name="requestId" value={request.id} />
-              <input type="hidden" name="status" value="resolved" />
-              <label className={fieldClass}>
-                Resultado motivado de la resolución
-                <textarea
-                  className={textareaClass}
-                  name="resolutionNote"
-                  required
-                  rows={4}
-                  maxLength={2000}
-                  defaultValue={request.resolutionNote ?? ""}
-                  placeholder="Describe las actuaciones realizadas y el resultado final conforme al aviso de privacidad."
-                />
-              </label>
-              <div>
-                <button type="submit" className={primaryButtonClass}>Marcar como resuelta</button>
-              </div>
-            </form>
-          </section>
-        </>
-      )}
+          </div>
+        )}
+      </div>
     </main>
   );
 }

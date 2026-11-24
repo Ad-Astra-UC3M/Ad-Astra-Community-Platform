@@ -1,0 +1,14 @@
+# Solo código y recursos necesarios para desplegar Comunidad.
+.env*
+.git/
+.vercel/
+.next/
+node_modules/
+test-results/
+playwright-report/
+e2e/
+docs/
+**/*.test.js
+**/*.test.jsx
+**/*.test.ts
+**/*.test.tsx

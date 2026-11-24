@@ -1,20 +1,20 @@
 /**
- * Ruta /admin/talent del App Router. Permite consultar internamente perfiles de talento con
+ * @file Ruta `/admin/talent` del App Router. Permite consultar internamente perfiles de talento con
  * filtros de texto y etiquetas, e indica si su difusión está autorizada.
  */
 
 import Link from "next/link";
 import { BackLink } from "../../../components/back-link";
+import { inputClass, primaryButtonClass, secondaryButtonClass } from "../../../components/form-styles";
+import { PageHeading, pageClassName } from "../../../components/page-layout";
+import { portalMutedPanelClassName, portalPanelClassName } from "../../../components/portal-ui";
+import { ProfileAvatar } from "../../../components/profile-avatar";
+import TextSpanWrapper2 from "../../../institutional/components/ui/TextSpanWrapper2";
+import { buildTalentAvatarUrl } from "../../../server/profiles/avatar-validation";
 import { searchTalentForConsultation } from "../../../server/profiles/operations";
+import { AdminTable } from "../admin-table";
 
 export const metadata = { title: "Consulta de talento" };
-
-const panelClass =
-  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
-const primaryButtonClass =
-  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
-const secondaryButtonClass =
-  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
 
 /**
  * Next.js ejecuta este Server Component para consultar searchTalentForConsultation con los
@@ -38,24 +38,23 @@ export default async function AdminTalentPage({ searchParams }) {
   const profiles = await searchTalentForConsultation({ query, tags });
 
   return (
-    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
+    <main className={pageClassName}>
       <BackLink href="/admin">Volver al panel</BackLink>
-      <header className="grid min-w-0 gap-4">
-        <p className="text-[0.9rem] font-bold text-brand-primary">Consulta de talento</p>
-        <h1>Perfiles voluntarios de talento</h1>
-        <p className="max-w-[48ch] text-[1.2rem] leading-[1.55]">
-          Acceso restringido exclusivamente a la capacidad de consulta de talento. Filtra por habilidades, herramientas,
-          intereses, sectores o idiomas.
-        </p>
-      </header>
+      <PageHeading
+        eyebrow="Consulta de talento"
+        title="Perfiles voluntarios de talento"
+        description="Acceso restringido exclusivamente a la capacidad de consulta de talento. Filtra por habilidades, herramientas, intereses, sectores o idiomas."
+      />
 
-      <section className={panelClass} aria-label="Buscar perfiles de talento">
-        <h2>Buscar perfiles</h2>
+      <section className={portalMutedPanelClassName} aria-label="Buscar perfiles de talento">
+        <TextSpanWrapper2 as="h2" className="border-b border-brand-line pb-2.5 text-xl">
+          Buscar perfiles
+        </TextSpanWrapper2>
         <form method="get" className="flex flex-wrap items-end gap-3">
           <label className="grid min-w-0 flex-1 basis-56 gap-1.5 font-bold">
             Habilidades, herramientas, intereses o perfil
             <input
-              className="min-h-12 w-full min-w-0 rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink"
+              className={inputClass}
               name="q"
               type="search"
               defaultValue={query}
@@ -68,9 +67,11 @@ export default async function AdminTalentPage({ searchParams }) {
       </section>
 
       <section className="grid min-w-0 gap-4" aria-label="Resultados de talento">
-        <h2>Perfiles encontrados ({profiles.length})</h2>
+        <TextSpanWrapper2 as="h2" className="border-b border-brand-line pb-2.5 text-xl">
+          {`Perfiles encontrados (${profiles.length})`}
+        </TextSpanWrapper2>
         {profiles.length === 0 ? (
-          <section className={panelClass}>
+          <section className={portalPanelClassName}>
             <p>
               {query
                 ? "No hay perfiles de talento que coincidan con esa búsqueda."
@@ -78,31 +79,56 @@ export default async function AdminTalentPage({ searchParams }) {
             </p>
           </section>
         ) : (
-          <ul className="m-0 grid list-none gap-4 p-0">
+          <AdminTable label="Resultados de talento" headers={["Perfil", "Formación", "Competencias", "Difusión", "Acción"]}>
             {profiles.map((profile) => (
-              <li className={panelClass} key={profile.personId}>
-                <p className="text-[0.9rem] font-bold text-brand-primary">
-                  {profile.disseminationGranted ? "Difusión autorizada" : "Sin autorización de difusión"} ·{" "}
-                  {profile.linksCount} enlace{profile.linksCount === 1 ? "" : "s"}
-                </p>
-                <h3>{profile.name}</h3>
-                {profile.headline && <p><strong>{profile.headline}</strong></p>}
-                <p>
-                  {[profile.degree, profile.course, profile.university, profile.expectedGraduationYear]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-                {profile.skills.length > 0 && <p>Habilidades: {profile.skills.join(", ")}</p>}
-                {profile.tools.length > 0 && <p>Herramientas: {profile.tools.join(", ")}</p>}
-                {profile.interests.length > 0 && <p>Intereses: {profile.interests.join(", ")}</p>}
-                <div>
+              <tr key={profile.personId}>
+                <td>
+                  <div className="flex items-center gap-3">
+                    <ProfileAvatar
+                      size="sm"
+                      decorative
+                      src={buildTalentAvatarUrl(profile.personId, profile.avatarUpdatedAt)}
+                      name={profile.name}
+                    />
+                    <div className="min-w-0">
+                      <strong>{profile.name}</strong>
+                      {profile.headline && (
+                        <>
+                          <br />
+                          <em>{profile.headline}</em>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </td>
+                <td>{[profile.degree, profile.course, profile.university, profile.expectedGraduationYear].filter(Boolean).join(" · ") || "Sin especificar"}</td>
+                <td>
+                  {profile.skills.length > 0 && <p><strong>Habilidades:</strong> {profile.skills.join(", ")}</p>}
+                  {profile.tools.length > 0 && <p><strong>Herramientas:</strong> {profile.tools.join(", ")}</p>}
+                  {profile.interests.length > 0 && <p><strong>Intereses:</strong> {profile.interests.join(", ")}</p>}
+                </td>
+                <td>
+                  <span
+                    className={
+                      "inline-block rounded-sm border px-2.5 py-0.5 text-sm font-bold " +
+                      (profile.disseminationGranted
+                        ? "border-brand-line bg-brand-soft/45 text-brand-ink"
+                        : "border-brand-line bg-brand-panel text-brand-ink")
+                    }
+                  >
+                    {profile.disseminationGranted ? "Difusión autorizada" : "Sin autorización de difusión"}
+                  </span>
+                  <br />
+                  <span className="text-sm">{profile.linksCount} enlace{profile.linksCount === 1 ? "" : "s"}</span>
+                </td>
+                <td>
                   <Link className={primaryButtonClass} href={`/admin/talent/${profile.personId}`}>
                     Ver perfil de talento
                   </Link>
-                </div>
-              </li>
+                </td>
+              </tr>
             ))}
-          </ul>
+          </AdminTable>
         )}
       </section>
     </main>

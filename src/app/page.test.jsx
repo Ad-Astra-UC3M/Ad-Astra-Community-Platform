@@ -5,7 +5,7 @@ import { CommunityLanding } from "../components/community-landing";
 
 test("la portada identifica la comunidad y da acceso al registro, al inicio de sesión y a la privacidad", () => {
   const html = renderToStaticMarkup(<CommunityLanding />);
-  assert.match(html, /<h1>Comunidad <span>Ad Astra UC3M<\/span><\/h1>/);
+  assert.match(html, /<h1\b[^>]*>.*Comunidad.*Ad Astra.*<svg\b.*UC3M.*<\/h1>/s);
   assert.match(html, /href="\/sign-up"[^>]*>Crear cuenta<\/a>/);
   assert.match(html, /href="\/sign-in"[^>]*>Acceder<\/a>/);
   assert.match(html, /href="\/privacy"[^>]*>aviso de privacidad<\/a>/);
@@ -14,4 +14,10 @@ test("la portada identifica la comunidad y da acceso al registro, al inicio de s
 test("la portada no incluye botones ni menciones al antiguo sistema de demostración", () => {
   const html = renderToStaticMarkup(<CommunityLanding />);
   assert.doesNotMatch(html, /demo|ficticios|de prueba|Entrar como estudiante/i);
+});
+
+test("la foto acompaña al encabezado y las dos acciones dentro del hero", () => {
+  const html = renderToStaticMarkup(<CommunityLanding />);
+  assert.match(html, /<section class="[^"]*\bbg-brand-ink\b[^"]*">.*<h1>.*href="\/sign-up"[^>]*>Crear cuenta<\/a>.*<img[^>]*alt="Estudiantes conversan con integrantes de Ad Astra en el campus"[^>]*>.*<\/section>/);
+  assert.match(html, /class="[^"]*bg-brand-accent[^"]*" href="\/sign-up"/);
 });

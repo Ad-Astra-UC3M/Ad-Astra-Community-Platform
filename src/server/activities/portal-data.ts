@@ -6,7 +6,14 @@
 import { and, asc, eq, inArray, or, sql } from "drizzle-orm";
 
 import type { AppDb, AppDbOrTx } from "../../db/client";
-import { activities, activityImages, participations, shifts, type ParticipationStatus } from "../../db/schema";
+import {
+  activities,
+  activityImages,
+  participations,
+  shifts,
+  type ParticipationStatus,
+  type PublishStatus,
+} from "../../db/schema";
 import { isUuid } from "../profiles/identity";
 import { computeAvailable, resolveDb } from "./shared";
 
@@ -64,10 +71,12 @@ export type Reservation = {
   activityId: string;
   activitySlug: string;
   activityTitle: string;
+  activityStatus: PublishStatus;
   location: string;
   startsAt: Date;
   endsAt: Date;
   status: BookingStatus;
+  agendaSection: "upcoming" | "ongoing" | "history";
   canCancel: boolean;
   otherShifts: ChangeTargetShift[];
 };
@@ -337,9 +346,9 @@ export async function listShifts(db?: AppDb): Promise<ShiftListItem[]> {
  * cancelación y cambio.
  * @param personId UUID de la persona cuyas participaciones se consultan.
  * @param db Conexión opcional para pruebas.
- * @param now Instante opcional que determina qué turnos siguen abiertos a cambios o cancelaciones.
- * @returns Las reservas ordenadas por inicio y los posibles destinos libres y futuros en la misma
- * actividad publicada.
+ * @param now Instante que sitúa cada reserva en la agenda y determina sus opciones de cambio y cancelación.
+ * @returns Las reservas ordenadas por inicio, el estado editorial para enlazar solo a actividades
+ * publicadas y los posibles destinos libres y futuros en la misma actividad.
  */
 export async function listReservations(
   personId: string,
@@ -395,6 +404,11 @@ export async function listReservations(
 
   return rows.map((row) => {
     const canCancel = row.status === "booked" && row.startsAt.getTime() > nowMs;
+    const agendaSection = canCancel
+      ? "upcoming"
+      : row.status === "booked" && row.endsAt.getTime() > nowMs
+        ? "ongoing"
+        : "history";
     const otherShifts: ChangeTargetShift[] =
       canCancel && row.activityStatus === "published"
         ? (shiftsByActivity.get(row.activityId) ?? [])
@@ -433,10 +447,12 @@ export async function listReservations(
       activityId: row.activityId,
       activitySlug: row.activitySlug,
       activityTitle: row.activityTitle,
+      activityStatus: row.activityStatus,
       location: row.locationOverride ?? row.activityLocation,
       startsAt: row.startsAt,
       endsAt: row.endsAt,
       status: row.status,
+      agendaSection,
       canCancel,
       otherShifts,
     };

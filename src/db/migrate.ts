@@ -1,91 +1,144 @@
 /**
- * Ejecutor del SQL inicial del esquema público. db:migrate lo usa para preparar
- * PostgreSQL en Neon. El cliente de pruebas reutiliza el mismo archivo para PGlite.
- * El ejecutor actual aplica drizzle/0000_initial.sql directamente.
+ * Aplica las migraciones de Drizzle a PostgreSQL y a PGlite. El journal fija el orden
+ * de los archivos SQL y cada base registra los que ya aplicó, junto a sus huellas.
  */
 
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type { PGlite } from "@electric-sql/pglite";
+import { loadEnvConfig } from "@next/env";
 import { Pool } from "@neondatabase/serverless";
 import { sql, type SQL } from "drizzle-orm";
+import { drizzle as drizzleNeon } from "drizzle-orm/neon-serverless";
+import { drizzle as drizzlePglite } from "drizzle-orm/pglite";
 
-const STATEMENT_BREAKPOINT = "--> statement-breakpoint";
+interface MigrationTransaction {
+  execute(query: SQL): Promise<{ rows: Record<string, unknown>[] }>;
+}
 
-export type MigrationExecutor =
-  | { exec: (query: string) => Promise<unknown> }
-  | { execute: (query: SQL) => Promise<unknown> }
-  | { query: (query: string) => Promise<unknown> };
+export interface MigrationExecutor {
+  transaction(
+    callback: (transaction: MigrationTransaction) => Promise<void>,
+    config: { isolationLevel: "read committed" },
+  ): Promise<void>;
+}
+
+interface MigrationSqlFile {
+  name: string;
+  sql: string;
+  checksum: string;
+}
 
 /**
- * Localiza el SQL que lee getInitialMigrationSql. Busca primero desde el
- * directorio de trabajo y después respecto a este módulo.
- * @returns La ruta absoluta prevista de drizzle/0000_initial.sql.
+ * Localiza el directorio de migraciones para db:migrate y las bases PGlite de la aplicación.
+ * @returns Ruta absoluta, primero desde el directorio de trabajo y luego desde este módulo.
  */
-function resolveInitialMigrationPath(): string {
-  const fromCwd = path.resolve(process.cwd(), "drizzle", "0000_initial.sql");
-  if (existsSync(fromCwd)) {
+function resolveMigrationsDir(): string {
+  const fromCwd = path.resolve(process.cwd(), "drizzle");
+  if (existsSync(path.join(fromCwd, "meta", "_journal.json"))) {
     return fromCwd;
   }
   const currentDir = path.dirname(fileURLToPath(import.meta.url));
-  return path.resolve(currentDir, "..", "..", "drizzle", "0000_initial.sql");
+  return path.resolve(currentDir, "..", "..", "drizzle");
 }
 
 /**
- * Lee el SQL inicial del repositorio para runMigrations.
- * @returns El archivo completo en UTF-8, con los separadores de sentencias intactos.
+ * Carga todos los archivos SQL siguiendo el orden del journal de Drizzle Kit.
+ * @param directory Directorio con el journal y los archivos versionados.
+ * @returns SQL y huella de cada archivo, estable entre checkouts con LF o CRLF.
  */
-export function getInitialMigrationSql(): string {
-  return readFileSync(resolveInitialMigrationPath(), "utf8");
+function getMigrationSqlFiles(directory: string): MigrationSqlFile[] {
+  const journalPath = path.join(directory, "meta", "_journal.json");
+  const journal = JSON.parse(readFileSync(/*turbopackIgnore: true*/ journalPath, "utf8")) as {
+    entries: { tag: string }[];
+  };
+  const filenames = journal.entries.map(({ tag }) => tag + ".sql");
+  const filesOnDisk = readdirSync(/*turbopackIgnore: true*/ directory)
+    .filter((entry) => entry.endsWith(".sql"));
+  const journalNames = new Set(filenames);
+  if (
+    journalNames.size !== filenames.length ||
+    filenames.length !== filesOnDisk.length ||
+    filesOnDisk.some((name) => !journalNames.has(name))
+  ) {
+    throw new Error("Migration SQL files do not match drizzle/meta/_journal.json.");
+  }
+
+  return filenames.map((name) => {
+    const filename = path.join(directory, name);
+    const contents = readFileSync(/*turbopackIgnore: true*/ filename, "utf8").replace(/\r\n/g, "\n");
+    return {
+      name,
+      sql: contents,
+      checksum: createHash("sha256").update(contents).digest("hex"),
+    };
+  });
 }
 
 /**
- * Separa el SQL inicial para los ejecutores que procesan una sentencia por llamada.
- * @param rawSql Texto leído del archivo inicial con marcadores statement-breakpoint.
- * @returns Las sentencias no vacías, recortadas y en el orden del archivo.
+ * Verifica el historial y ejecuta solo los archivos pendientes. El bloqueo, el SQL
+ * y su registro comparten transacción para serializar ejecuciones y revertir fallos.
+ * @param database Conexión Drizzle creada o inyectada por runMigrations.
+ * @param files Archivos SQL en el orden del journal.
  */
-export function splitMigrationStatements(rawSql: string): string[] {
-  return rawSql
-    .split(STATEMENT_BREAKPOINT)
-    .map((part) => part.trim())
-    .filter((part) => part.length > 0);
+async function applyMigrations(database: MigrationExecutor, files: MigrationSqlFile[]): Promise<void> {
+  await database.transaction(async (tx) => {
+    await tx.execute(sql`SET LOCAL search_path TO public`);
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('ad-astra-community-migrations'))`);
+    await tx.execute(sql`CREATE SCHEMA IF NOT EXISTS drizzle`);
+    await tx.execute(sql`
+      CREATE TABLE IF NOT EXISTS drizzle.app_migrations (
+        position integer PRIMARY KEY,
+        filename text NOT NULL UNIQUE,
+        checksum text NOT NULL
+      )
+    `);
+
+    const { rows: applied } = await tx.execute(sql`
+      SELECT position, filename, checksum FROM drizzle.app_migrations ORDER BY position
+    `);
+
+    for (const [index, entry] of applied.entries()) {
+      const file = files[index];
+      if (
+        entry.position !== index ||
+        file?.name !== entry.filename ||
+        file?.checksum !== entry.checksum
+      ) {
+        throw new Error("Applied migration does not match the journal: " + String(entry.filename));
+      }
+    }
+
+    for (const [index, file] of files.entries()) {
+      if (index < applied.length) continue;
+      for (const statement of file.sql.split("--> statement-breakpoint")) {
+        const query = statement.trim();
+        if (query) await tx.execute(sql.raw(query));
+      }
+      await tx.execute(sql`
+        INSERT INTO drizzle.app_migrations (position, filename, checksum)
+        VALUES (${index}, ${file.name}, ${file.checksum})
+      `);
+    }
+  }, { isolationLevel: "read committed" });
 }
 
 /**
- * Aplica el esquema inicial en el arranque de PGlite y en db:migrate. Si abre
- * su propia conexión, la cierra al terminar, incluso en caso de error.
- * @param executor Motor o cliente opcional. exec recibe el SQL completo y execute o
- * query reciben una sentencia cada vez. Sin ejecutor usa el directorio PGlite si
- * está configurado o la conexión de Neon, priorizando DATABASE_URL_UNPOOLED.
- * @returns Una promesa que finaliza al aplicar todo el SQL y rechaza si falla la ejecución.
+ * Actualiza el esquema desde el CLI o al iniciar una base PGlite de pruebas.
+ * @param executor Conexión PGlite o Drizzle inyectada. Si se omite, abre y cierra
+ *   la base configurada por AD_ASTRA_PG_TEST_DIR o DATABASE_URL_UNPOOLED / DATABASE_URL.
+ * @param directory Directorio de migraciones. Las pruebas pueden pasar un journal aislado.
  */
-export async function runMigrations(executor?: MigrationExecutor): Promise<void> {
-  const rawSql = getInitialMigrationSql();
-
+export async function runMigrations(
+  executor?: MigrationExecutor | PGlite,
+  directory: string = resolveMigrationsDir(),
+): Promise<void> {
+  const files = getMigrationSqlFiles(directory);
   if (executor) {
-    if ("exec" in executor && typeof executor.exec === "function") {
-      await executor.exec(rawSql);
-      return;
-    }
-
-    const statements = splitMigrationStatements(rawSql);
-
-    if ("execute" in executor && typeof executor.execute === "function") {
-      for (const statement of statements) {
-        await executor.execute(sql.raw(statement));
-      }
-      return;
-    }
-
-    if ("query" in executor && typeof executor.query === "function") {
-      for (const statement of statements) {
-        await executor.query(statement);
-      }
-      return;
-    }
-
-    throw new Error("Unsupported migration executor.");
+    await applyMigrations("exec" in executor ? drizzlePglite(executor) : executor, files);
+    return;
   }
 
   const pgliteDir = process.env.AD_ASTRA_PG_TEST_DIR?.trim();
@@ -98,7 +151,7 @@ export async function runMigrations(executor?: MigrationExecutor): Promise<void>
     const client = new PGliteCtor(pgliteDir);
     try {
       await client.waitReady;
-      await client.exec(rawSql);
+      await applyMigrations(drizzlePglite(client), files);
     } finally {
       await client.close();
     }
@@ -115,30 +168,23 @@ export async function runMigrations(executor?: MigrationExecutor): Promise<void>
 
   const pool = new Pool({ connectionString });
   try {
-    for (const statement of splitMigrationStatements(rawSql)) {
-      await pool.query(statement);
-    }
+    await applyMigrations(drizzleNeon(pool), files);
   } finally {
     await pool.end();
   }
 }
 
 /**
- * Comprueba el punto de entrada para ejecutar db:migrate solo como comando.
- * Los imports desde client.ts y las pruebas se limitan a cargar sus exportaciones.
- * @returns Si la ruta de process.argv[1] coincide con la URL de este módulo.
+ * Comprueba si se ejecuta este módulo como comando db:migrate.
+ * @returns Si la ruta de process.argv[1] coincide con la URL del módulo.
  */
 function isDirectCliInvocation(): boolean {
   const entry = process.argv[1];
-  if (!entry) return false;
-  try {
-    return pathToFileURL(path.resolve(entry)).href === import.meta.url;
-  } catch {
-    return false;
-  }
+  return Boolean(entry && pathToFileURL(path.resolve(entry)).href === import.meta.url);
 }
 
 if (isDirectCliInvocation()) {
+  loadEnvConfig(process.cwd());
   runMigrations()
     .then(() => {
       console.log("Database migrations applied successfully.");

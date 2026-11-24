@@ -26,10 +26,12 @@ export type AuthUser = {
   id: string;
   personId: string;
   authUserId: string;
+  firstName: string;
   name: string;
   email: string;
   status: AccountStatus;
   capabilities: CapabilityCode[];
+  avatarUpdatedAt: Date | null;
 };
 
 export type RegisterAccountInput = {
@@ -206,10 +208,12 @@ function buildAuthUser(
     id: profile.id,
     personId: profile.id,
     authUserId,
+    firstName: profile.firstName,
     name: `${profile.firstName} ${profile.lastName}`.trim(),
     email: profile.email,
     status: profile.status,
     capabilities,
+    avatarUpdatedAt: profile.avatarUpdatedAt ?? null,
   };
 }
 

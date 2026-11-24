@@ -6,6 +6,7 @@
 
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getDb } from "../db/client";
 import { getAuthProvider } from "../server/auth/neon-auth";
@@ -17,6 +18,7 @@ import {
   registerAccount,
   requestPasswordReset,
   resendAccountVerification,
+  resolveCurrentUser,
   verifyAccountEmail,
   type AuthUser,
 } from "../server/auth/service";
@@ -63,6 +65,20 @@ function accountDestination(user: AuthUser, next: string): string {
 }
 
 /**
+ * Impide ejecutar acciones de acceso, alta, verificación o recuperación cuando la petición ya
+ * tiene una sesión activa de Comunidad y redirige a `/home`.
+ */
+async function redirectIfAuthenticated(): Promise<void> {
+  const jar = await cookies();
+  if (jar.getAll().length === 0) return;
+  const db = await getDb();
+  const authProvider = await getAuthProvider(db);
+  if (await resolveCurrentUser(db, authProvider)) {
+    redirect("/home");
+  }
+}
+
+/**
  * Recibe el formulario de SignUpPage, adapta sus campos y llama a registerAccount. Redirige a la
  * verificación, al acceso o al formulario con error.
  *
@@ -70,6 +86,7 @@ function accountDestination(user: AuthUser, next: string): string {
  * envían al servicio.
  */
 export async function signUp(formData: FormData): Promise<never> {
+  await redirectIfAuthenticated();
   const db = await getDb();
   const authProvider = await getAuthProvider(db);
   const result = await registerAccount(db, authProvider, {
@@ -103,6 +120,7 @@ export async function signUp(formData: FormData): Promise<never> {
  * acceso.
  */
 export async function signIn(formData: FormData): Promise<never> {
+  await redirectIfAuthenticated();
   const db = await getDb();
   const authProvider = await getAuthProvider(db);
   const email = readFormString(formData, "email");
@@ -145,6 +163,7 @@ export async function signOut(): Promise<never> {
  * completarlo.
  */
 export async function verifyEmailAction(formData: FormData): Promise<never> {
+  await redirectIfAuthenticated();
   const db = await getDb();
   const authProvider = await getAuthProvider(db);
   const email = readFormString(formData, "email");
@@ -175,6 +194,7 @@ export async function verifyEmailAction(formData: FormData): Promise<never> {
 export async function resendVerificationAction(
   formData: FormData,
 ): Promise<never> {
+  await redirectIfAuthenticated();
   const next = readFormString(formData, "next");
   const email = normalizeUc3mEmail(readFormString(formData, "email"));
   if (!email) {
@@ -198,6 +218,7 @@ export async function resendVerificationAction(
 export async function requestPasswordResetAction(
   formData: FormData,
 ): Promise<never> {
+  await redirectIfAuthenticated();
   const db = await getDb();
   const authProvider = await getAuthProvider(db);
   const email = readFormString(formData, "email");
@@ -214,6 +235,7 @@ export async function requestPasswordResetAction(
  * @param formData - Correo, OTP de recuperación, contraseña nueva y confirmación. Los valida el servicio.
  */
 export async function resetPasswordAction(formData: FormData): Promise<never> {
+  await redirectIfAuthenticated();
   const db = await getDb();
   const authProvider = await getAuthProvider(db);
   const email = readFormString(formData, "email");

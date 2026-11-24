@@ -4,6 +4,10 @@
  */
 
 import { BackLink } from "../../../components/back-link";
+import { inputClass, primaryButtonClass, secondaryButtonClass } from "../../../components/form-styles";
+import { PageHeading, pageClassName } from "../../../components/page-layout";
+import { portalAlertClassName, portalFeedbackClassName, portalPanelClassName } from "../../../components/portal-ui";
+import TextSpanWrapper2 from "../../../institutional/components/ui/TextSpanWrapper2";
 import { listAdminActivities } from "../../../server/activities/admin";
 import {
   addActivityImageAction,
@@ -82,16 +86,8 @@ function defaultDateTimeInput(offsetHours) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:00`;
 }
 
-const panelClass =
-  "grid min-w-0 gap-3 rounded-lg border border-brand-primary/30 bg-brand-soft/10 p-5 md:p-8";
 const fieldClass = "grid min-w-0 gap-1.5 font-bold";
-const inputClass =
-  "min-h-12 w-full min-w-0 rounded-[4px] border border-brand-primary bg-brand-surface px-3 py-2.5 font-normal text-brand-ink";
-const textareaClass = `${inputClass} resize-y`;
-const primaryButtonClass =
-  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
-const secondaryButtonClass =
-  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink disabled:cursor-default disabled:border-brand-primary/30 disabled:bg-brand-soft/20 disabled:text-brand-ink";
+const textareaClass = `${inputClass} min-h-[5.5rem] resize-y`;
 
 /**
  * Next.js llama a esta página de servidor. `listAdminActivities` exige `content_editing` antes de
@@ -113,233 +109,252 @@ export default async function AdminActivitiesPage({ searchParams }) {
   const defaultEnd = defaultDateTimeInput(50);
 
   return (
-    <main className="mx-auto grid w-full max-w-[58rem] gap-5 px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
+    <main className={pageClassName}>
       <BackLink href="/admin">Volver al panel</BackLink>
-      <header className="grid min-w-0 gap-4">
-        <p className="text-[0.9rem] font-bold text-brand-primary">Edición de contenido</p>
-        <h1>Actividades y turnos</h1>
-        <p className="max-w-[48ch] text-[1.2rem] leading-[1.55]">
-          Crea actividades con turno «normal» por defecto o turnos múltiples, ajusta aforos sin afectar reservas
-          existentes y gestiona su estado de publicación.
-        </p>
-      </header>
+      <PageHeading
+        eyebrow="Edición de contenido"
+        title="Actividades y turnos"
+        description="Crea actividades con turno «normal» por defecto o turnos múltiples, ajusta aforos sin afectar reservas existentes y gestiona su estado de publicación."
+      />
 
       {statusMessage && (
-        <p className="rounded-[4px] bg-brand-soft/25 px-4 py-3.5 text-brand-ink empty:hidden" role="status">
+        <p className={portalFeedbackClassName + " empty:hidden"} role="status">
           {statusMessage}
         </p>
       )}
       {errorMessage && (
-        <p className="rounded-[4px] bg-brand-accent/35 px-4 py-3.5 text-brand-ink" role="alert">
+        <p className={portalAlertClassName} role="alert">
           {errorMessage}
         </p>
       )}
 
-      <section className={panelClass} aria-label="Crear nueva actividad">
-        <h2>Nueva actividad</h2>
-        <form action={createAdminActivityAction} className="grid min-w-0 gap-4">
-          <label className={fieldClass}>
-            Título
-            <input className={inputClass} name="title" type="text" required maxLength={160} placeholder="Ejemplo: Seminario de propulsión" />
-          </label>
-          <label className={fieldClass}>
-            Descripción
-            <textarea className={textareaClass} name="description" required rows={3} maxLength={2000} />
-          </label>
-          <label className={fieldClass}>
-            Ubicación
-            <input className={inputClass} name="location" type="text" required maxLength={160} placeholder="Campus de Leganés" />
-          </label>
-          <label className={fieldClass}>
-            Estado inicial
-            <select className={inputClass} name="status" defaultValue="published">
-              <option value="published">Publicada</option>
-              <option value="draft">Borrador</option>
-            </select>
-          </label>
-          <label className={fieldClass}>
-            Nombre del turno (opcional; si se deja vacío se crea como «normal»)
-            <input className={inputClass} name="shiftName" type="text" maxLength={80} placeholder="normal" />
-          </label>
-          <label className={fieldClass}>
-            Inicio del turno
-            <input className={inputClass} name="startsAt" type="datetime-local" required defaultValue={defaultStart} />
-          </label>
-          <label className={fieldClass}>
-            Fin del turno
-            <input className={inputClass} name="endsAt" type="datetime-local" required defaultValue={defaultEnd} />
-          </label>
-          <label className={fieldClass}>
-            Aforo del turno
-            <input className={inputClass} name="capacity" type="number" min={1} max={1000} required defaultValue={20} />
-          </label>
-          <label className={fieldClass}>
-            Imagen de portada (URL HTTPS opcional)
-            <input className={inputClass} name="imageUrl1" type="url" placeholder="https://www.adastrauc3m.es/og-image.png" />
-          </label>
-          <label className={fieldClass}>
-            Texto alternativo de la portada (obligatorio si indicas imagen)
-            <input className={inputClass} name="imageAlt1" type="text" maxLength={200} />
-          </label>
-          <label className={fieldClass}>
-            Segunda imagen (URL HTTPS opcional)
-            <input className={inputClass} name="imageUrl2" type="url" placeholder="https://www.adastrauc3m.es/logo.png" />
-          </label>
-          <label className={fieldClass}>
-            Texto alternativo de la segunda imagen
-            <input className={inputClass} name="imageAlt2" type="text" maxLength={200} />
-          </label>
-          <div>
-            <button type="submit" className={primaryButtonClass}>Crear actividad</button>
-          </div>
-        </form>
-      </section>
-
-      <section className="grid min-w-0 gap-4" aria-label="Listado administrativo de actividades">
-        <h2>Actividades existentes ({activities.length})</h2>
-        {activities.map((activity) => (
-          <article className={panelClass} key={activity.id}>
-            <header className="grid min-w-0 gap-4">
-              <p className="text-[0.9rem] font-bold text-brand-primary">{statusLabels[activity.status]} · {activity.location}</p>
-              <h3>{activity.title}</h3>
-              <p>{activity.description}</p>
-            </header>
-
-            <div className="flex flex-wrap items-center gap-3">
-              {activity.status !== "published" && (
-                <form action={setActivityStatusAction}>
-                  <input type="hidden" name="activityId" value={activity.id} />
-                  <input type="hidden" name="status" value="published" />
-                  <button type="submit" className={secondaryButtonClass}>Publicar</button>
-                </form>
-              )}
-              {activity.status !== "draft" && (
-                <form action={setActivityStatusAction}>
-                  <input type="hidden" name="activityId" value={activity.id} />
-                  <input type="hidden" name="status" value="draft" />
-                  <button type="submit" className={secondaryButtonClass}>Pasar a borrador</button>
-                </form>
-              )}
-              {activity.status !== "archived" && (
-                <form action={setActivityStatusAction}>
-                  <input type="hidden" name="activityId" value={activity.id} />
-                  <input type="hidden" name="status" value="archived" />
-                  <button type="submit" className={secondaryButtonClass}>Archivar</button>
-                </form>
-              )}
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)]">
+        <section className={portalPanelClassName} aria-label="Crear nueva actividad">
+          <TextSpanWrapper2 as="h2" className="border-b border-brand-line pb-2.5 text-xl">
+            Nueva actividad
+          </TextSpanWrapper2>
+          <form action={createAdminActivityAction} className="grid min-w-0 gap-4 sm:grid-cols-2">
+            <label className={fieldClass + " sm:col-span-2"}>
+              Título
+              <input className={inputClass} name="title" type="text" required maxLength={160} placeholder="Ejemplo: Seminario de propulsión" />
+            </label>
+            <label className={fieldClass + " sm:col-span-2"}>
+              Descripción
+              <textarea className={textareaClass} name="description" required rows={3} maxLength={2000} />
+            </label>
+            <label className={fieldClass}>
+              Ubicación
+              <input className={inputClass} name="location" type="text" required maxLength={160} placeholder="Campus de Leganés" />
+            </label>
+            <label className={fieldClass}>
+              Estado inicial
+              <select className={inputClass} name="status" defaultValue="published">
+                <option value="published">Publicada</option>
+                <option value="draft">Borrador</option>
+              </select>
+            </label>
+            <label className={fieldClass}>
+              Nombre del turno (opcional; si se deja vacío se crea como «normal»)
+              <input className={inputClass} name="shiftName" type="text" maxLength={80} placeholder="normal" />
+            </label>
+            <label className={fieldClass}>
+              Aforo del turno
+              <input className={inputClass} name="capacity" type="number" min={1} max={1000} required defaultValue={20} />
+            </label>
+            <label className={fieldClass}>
+              Inicio del turno
+              <input className={inputClass} name="startsAt" type="datetime-local" required defaultValue={defaultStart} />
+            </label>
+            <label className={fieldClass}>
+              Fin del turno
+              <input className={inputClass} name="endsAt" type="datetime-local" required defaultValue={defaultEnd} />
+            </label>
+            <label className={fieldClass}>
+              Imagen de portada (URL HTTPS opcional)
+              <input className={inputClass} name="imageUrl1" type="url" placeholder="https://www.adastrauc3m.es/og-image.png" />
+            </label>
+            <label className={fieldClass}>
+              Texto alternativo de la portada (obligatorio si indicas imagen)
+              <input className={inputClass} name="imageAlt1" type="text" maxLength={200} />
+            </label>
+            <label className={fieldClass}>
+              Segunda imagen (URL HTTPS opcional)
+              <input className={inputClass} name="imageUrl2" type="url" placeholder="https://www.adastrauc3m.es/logo.png" />
+            </label>
+            <label className={fieldClass}>
+              Texto alternativo de la segunda imagen
+              <input className={inputClass} name="imageAlt2" type="text" maxLength={200} />
+            </label>
+            <div className="sm:col-span-2">
+              <button type="submit" className={primaryButtonClass}>Crear actividad</button>
             </div>
+          </form>
+        </section>
 
-            <div className="grid min-w-0 gap-4">
-              <h4>Turnos ({activity.shifts.length})</h4>
-              {activity.shifts.length > 0 ? (
-                <ul className="m-0 grid list-none gap-4 p-0">
-                  {activity.shifts.map((shift) => (
-                    <li className={panelClass} key={shift.id}>
-                      <p>
-                        <strong>{shift.name}</strong> · {dateTimeFormat.format(new Date(shift.startsAt))} –{" "}
-                        {dateTimeFormat.format(new Date(shift.endsAt))}
-                      </p>
-                      <p>
-                        {shift.capacity === null
-                          ? `${shift.reservedCount} plazas ocupadas (aforo ilimitado)`
-                          : `${shift.reservedCount}/${shift.capacity} plazas ocupadas`}{" "}
-                        · {shift.attendedCount} asistencias
-                      </p>
-                      <div className="flex flex-wrap items-end gap-3">
-                        <form action={updateShiftCapacityAction} className="flex flex-wrap items-end gap-3">
-                          <input type="hidden" name="shiftId" value={shift.id} />
-                          <label className={fieldClass}>
-                            Nuevo aforo ({shift.name})
-                            <input
-                              className={inputClass}
-                              name="capacity"
-                              type="number"
-                              min={1}
-                              max={1000}
-                              defaultValue={shift.capacity ?? ""}
-                              placeholder="Ilimitado"
-                            />
-                          </label>
-                          <button type="submit" className={secondaryButtonClass}>Actualizar aforo</button>
-                        </form>
-                        <form action={deleteShiftAction}>
-                          <input type="hidden" name="shiftId" value={shift.id} />
-                          <button type="submit" className={secondaryButtonClass}>Eliminar turno</button>
-                        </form>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>Sin turnos configurados.</p>
-              )}
-
-              <details className="grid min-w-0 gap-3">
-                <summary className="w-fit cursor-pointer py-2.5 font-bold text-brand-primary hover:text-brand-ink">
-                  Añadir turno o imagen a «{activity.title}»
-                </summary>
-                <div className="grid min-w-0 gap-4 pt-2">
-                  <form action={addActivityShiftAction} className="grid min-w-0 gap-4">
-                    <input type="hidden" name="activityId" value={activity.id} />
-                    <label className={fieldClass}>
-                      Nombre del nuevo turno
-                      <input className={inputClass} name="name" type="text" required maxLength={80} placeholder="Turno adicional" />
-                    </label>
-                    <label className={fieldClass}>
-                      Inicio
-                      <input className={inputClass} name="startsAt" type="datetime-local" required defaultValue={defaultStart} />
-                    </label>
-                    <label className={fieldClass}>
-                      Fin
-                      <input className={inputClass} name="endsAt" type="datetime-local" required defaultValue={defaultEnd} />
-                    </label>
-                    <label className={fieldClass}>
-                      Aforo
-                      <input className={inputClass} name="capacity" type="number" min={1} max={1000} required defaultValue={10} />
-                    </label>
-                    <div>
-                      <button type="submit" className={secondaryButtonClass}>Añadir turno</button>
-                    </div>
-                  </form>
-
-                  <form action={addActivityImageAction} className="grid min-w-0 gap-4">
-                    <input type="hidden" name="activityId" value={activity.id} />
-                    <label className={fieldClass}>
-                      URL HTTPS de la imagen
-                      <input className={inputClass} name="imageUrl" type="url" required placeholder="https://www.adastrauc3m.es/og-image.png" />
-                    </label>
-                    <label className={fieldClass}>
-                      Texto alternativo
-                      <input className={inputClass} name="imageAlt" type="text" required maxLength={200} />
-                    </label>
-                    <label className={fieldClass}>
-                      Posición (1 = portada)
-                      <input
-                        className={inputClass}
-                        name="position"
-                        type="number"
-                        min={1}
-                        required
-                        defaultValue={activity.images.length + 1}
-                      />
-                    </label>
-                    <div>
-                      <button type="submit" className={secondaryButtonClass}>Añadir imagen</button>
-                    </div>
-                  </form>
+        <section className="grid min-w-0 gap-4" aria-label="Listado administrativo de actividades">
+          <TextSpanWrapper2 as="h2" className="border-b border-brand-line pb-2.5 text-xl">
+            {`Actividades existentes (${activities.length})`}
+          </TextSpanWrapper2>
+          {activities.map((activity) => (
+            <article className={portalPanelClassName} key={activity.id}>
+              <header className="grid min-w-0 gap-2 border-b border-brand-line pb-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span
+                    className={
+                      "inline-block rounded-sm border px-2.5 py-0.5 text-sm font-bold " +
+                      (activity.status === "published"
+                        ? "border-brand-line bg-brand-soft/45 text-brand-ink"
+                        : activity.status === "draft"
+                          ? "border-[#b79b30] bg-brand-accent text-brand-ink"
+                          : "border-brand-line bg-brand-panel text-brand-ink")
+                    }
+                  >
+                    {statusLabels[activity.status]}
+                  </span>
+                  <span className="text-sm font-bold text-brand-primary">{activity.location}</span>
                 </div>
-              </details>
-            </div>
+                <h3 className="text-xl text-brand-ink">{activity.title}</h3>
+                <p>{activity.description}</p>
+              </header>
 
-            {activity.images.length > 0 && (
-              <p>
-                Imágenes ({activity.images.length}):{" "}
-                {activity.images.map((img) => `#${img.position} ${img.imageAlt}`).join(" · ")}
-              </p>
-            )}
-          </article>
-        ))}
-      </section>
+              <div className="flex flex-wrap items-center gap-3">
+                {activity.status !== "published" && (
+                  <form action={setActivityStatusAction}>
+                    <input type="hidden" name="activityId" value={activity.id} />
+                    <input type="hidden" name="status" value="published" />
+                    <button type="submit" className={secondaryButtonClass}>Publicar</button>
+                  </form>
+                )}
+                {activity.status !== "draft" && (
+                  <form action={setActivityStatusAction}>
+                    <input type="hidden" name="activityId" value={activity.id} />
+                    <input type="hidden" name="status" value="draft" />
+                    <button type="submit" className={secondaryButtonClass}>Pasar a borrador</button>
+                  </form>
+                )}
+                {activity.status !== "archived" && (
+                  <form action={setActivityStatusAction}>
+                    <input type="hidden" name="activityId" value={activity.id} />
+                    <input type="hidden" name="status" value="archived" />
+                    <button type="submit" className={secondaryButtonClass}>Archivar</button>
+                  </form>
+                )}
+              </div>
+
+              <div className="grid min-w-0 gap-3 rounded-md border border-brand-line bg-brand-panel p-4">
+                <h4 className="text-base text-brand-ink">Turnos ({activity.shifts.length})</h4>
+                {activity.shifts.length > 0 ? (
+                  <ul className="m-0 grid list-none gap-3 p-0">
+                    {activity.shifts.map((shift) => (
+                      <li className="grid gap-3 rounded-md border border-brand-line bg-brand-surface p-3.5" key={shift.id}>
+                        <div className="grid gap-0.5">
+                          <p>
+                            <strong>{shift.name}</strong> · {dateTimeFormat.format(new Date(shift.startsAt))} –{" "}
+                            {dateTimeFormat.format(new Date(shift.endsAt))}
+                          </p>
+                          <p className="text-sm">
+                            {shift.capacity === null
+                              ? `${shift.reservedCount} plazas ocupadas (aforo ilimitado)`
+                              : `${shift.reservedCount}/${shift.capacity} plazas ocupadas`}{" "}
+                            · {shift.attendedCount} asistencias
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-end gap-3">
+                          <form action={updateShiftCapacityAction} className="flex flex-wrap items-end gap-3">
+                            <input type="hidden" name="shiftId" value={shift.id} />
+                            <label className={fieldClass}>
+                              <span className="text-sm">Nuevo aforo ({shift.name})</span>
+                              <input
+                                className={inputClass + " max-w-36"}
+                                name="capacity"
+                                type="number"
+                                min={1}
+                                max={1000}
+                                defaultValue={shift.capacity ?? ""}
+                                placeholder="Ilimitado"
+                              />
+                            </label>
+                            <button type="submit" className={secondaryButtonClass}>Actualizar aforo</button>
+                          </form>
+                          <form action={deleteShiftAction}>
+                            <input type="hidden" name="shiftId" value={shift.id} />
+                            <button type="submit" className={secondaryButtonClass}>Eliminar turno</button>
+                          </form>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>Sin turnos configurados.</p>
+                )}
+
+                <details className="grid min-w-0 gap-3 border-t border-brand-line pt-2">
+                  <summary className="w-fit cursor-pointer py-2 font-bold text-brand-primary hover:text-brand-ink">
+                    Añadir turno o imagen a «{activity.title}»
+                  </summary>
+                  <div className="grid min-w-0 gap-5 pt-2">
+                    <form action={addActivityShiftAction} className="grid min-w-0 gap-3 rounded-md border border-brand-line bg-brand-surface p-4 sm:grid-cols-2">
+                      <input type="hidden" name="activityId" value={activity.id} />
+                      <label className={fieldClass}>
+                        Nombre del nuevo turno
+                        <input className={inputClass} name="name" type="text" required maxLength={80} placeholder="Turno adicional" />
+                      </label>
+                      <label className={fieldClass}>
+                        Aforo
+                        <input className={inputClass} name="capacity" type="number" min={1} max={1000} required defaultValue={10} />
+                      </label>
+                      <label className={fieldClass}>
+                        Inicio
+                        <input className={inputClass} name="startsAt" type="datetime-local" required defaultValue={defaultStart} />
+                      </label>
+                      <label className={fieldClass}>
+                        Fin
+                        <input className={inputClass} name="endsAt" type="datetime-local" required defaultValue={defaultEnd} />
+                      </label>
+                      <div className="sm:col-span-2">
+                        <button type="submit" className={secondaryButtonClass}>Añadir turno</button>
+                      </div>
+                    </form>
+
+                    <form action={addActivityImageAction} className="grid min-w-0 gap-3 rounded-md border border-brand-line bg-brand-surface p-4 sm:grid-cols-2">
+                      <input type="hidden" name="activityId" value={activity.id} />
+                      <label className={fieldClass + " sm:col-span-2"}>
+                        URL HTTPS de la imagen
+                        <input className={inputClass} name="imageUrl" type="url" required placeholder="https://www.adastrauc3m.es/og-image.png" />
+                      </label>
+                      <label className={fieldClass}>
+                        Texto alternativo
+                        <input className={inputClass} name="imageAlt" type="text" required maxLength={200} />
+                      </label>
+                      <label className={fieldClass}>
+                        Posición (1 = portada)
+                        <input
+                          className={inputClass}
+                          name="position"
+                          type="number"
+                          min={1}
+                          required
+                          defaultValue={activity.images.length + 1}
+                        />
+                      </label>
+                      <div className="sm:col-span-2">
+                        <button type="submit" className={secondaryButtonClass}>Añadir imagen</button>
+                      </div>
+                    </form>
+                  </div>
+                </details>
+              </div>
+
+              {activity.images.length > 0 && (
+                <p className="text-sm">
+                  <strong>Imágenes ({activity.images.length}):</strong>{" "}
+                  {activity.images.map((img) => `#${img.position} ${img.imageAlt}`).join(" · ")}
+                </p>
+              )}
+            </article>
+          ))}
+        </section>
+      </div>
     </main>
   );
 }

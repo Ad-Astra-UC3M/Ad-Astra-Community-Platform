@@ -41,8 +41,8 @@ function parseTimestamp(raw: string): number {
 }
 
 /**
- * Las acciones de edición llaman a este helper para invalidar con `revalidatePath` el catálogo y las
- * vistas relacionadas del panel.
+ * Las acciones de edición llaman a este helper para invalidar con `revalidatePath` el catálogo,
+ * las agendas de la comunidad y las vistas relacionadas del panel.
  * @returns Sin valor. Solicita a Next.js actualizar las rutas afectadas.
  */
 function revalidateActivityPaths() {
@@ -50,6 +50,8 @@ function revalidateActivityPaths() {
   revalidatePath("/admin/attendance");
   revalidatePath("/admin");
   revalidatePath("/activities");
+  revalidatePath("/home");
+  revalidatePath("/my-activities");
 }
 
 /**

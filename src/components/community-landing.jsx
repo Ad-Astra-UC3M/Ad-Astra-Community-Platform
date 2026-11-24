@@ -1,44 +1,82 @@
+/**
+ * @file Portada pública de Comunidad Ad Astra UC3M. Combina el hero en tinta con corte diagonal amarillo
+ * de la landing y el acceso directo al registro e inicio de sesión institucional.
+ */
+
+import { Mail01Icon, Shield01Icon } from "@hugeicons/core-free-icons";
 import Image from "next/image";
 import Link from "next/link";
+import AnimatedWordmark from "../institutional/components/brand/AnimatedWordmark";
+import TextSpanWrapper2 from "../institutional/components/ui/TextSpanWrapper2";
+import { accentButtonClass, secondaryButtonClass } from "./form-styles";
+import { pageClassName } from "./page-layout";
+import { PortalIcon } from "./portal-ui";
 
-const primaryButtonClass =
-  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-primary px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-surface no-underline transition-colors hover:border-brand-ink hover:bg-brand-ink hover:text-brand-surface";
+const heroMediaClass = [
+  "relative isolate aspect-[16/10] min-w-0 md:aspect-auto md:min-h-[25rem] [--diagonal:clamp(56px,9vw,118px)]",
+  "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:z-10 before:h-7 before:bg-brand-ink before:[clip-path:polygon(0_0,100%_0,0_87%)]",
+  "after:pointer-events-none after:absolute after:inset-x-0 after:top-0 after:z-10 after:h-7 after:bg-brand-accent after:[clip-path:polygon(0_87%,100%_0,100%_14%,0_100%)]",
+  "md:before:hidden",
+  "md:after:inset-y-0 md:after:left-0 md:after:right-auto md:after:h-auto md:after:w-[calc(var(--diagonal)+6px)] md:after:[clip-path:polygon(calc(100%-6px)_0,100%_0,6px_100%,0_100%)]",
+].join(" ");
 
-const secondaryButtonClass =
-  "inline-flex min-h-12 max-w-full cursor-pointer items-center justify-center justify-self-start rounded-[4px] border border-brand-primary bg-brand-surface px-5 py-2.5 text-center font-display text-[0.79rem] leading-snug uppercase text-brand-primary no-underline transition-colors hover:border-brand-primary hover:bg-brand-soft hover:text-brand-ink";
-
+/**
+ * Renderiza la portada de bienvenida con fotografía en campus, llamada a la acción y enlace de privacidad.
+ * @returns Portada `<main>` pública para visitantes sin sesión activa.
+ */
 export function CommunityLanding() {
   return (
-    <main className="mx-auto w-full max-w-[80rem] px-6 pt-8 pb-16 md:px-8 md:pt-12 md:pb-20">
-      <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)] lg:gap-10 xl:gap-12">
-        <div className="grid content-center gap-5 [&_h1]:text-2xl sm:[&_h1]:text-[2rem] md:[&_h1]:text-[2.5rem] lg:[&_h1]:text-[2.375rem] xl:[&_h1]:text-5xl [&_h1>span]:block">
-          <h1>Comunidad <span>Ad Astra UC3M</span></h1>
-          <p className="max-w-[48ch] text-[1.2rem] leading-relaxed">
-            Explora los talleres y encuentros de Ad Astra, reserva tu turno, descubre oportunidades y lleva tu tarjeta QR al evento.
+    <main className={pageClassName}>
+      <section className="grid overflow-hidden rounded-lg bg-brand-ink text-brand-surface md:grid-cols-[minmax(0,1.06fr)_minmax(0,1fr)]">
+        <div className="grid min-w-0 content-center gap-5 p-6 sm:p-8 lg:p-12 [&_h1]:text-2xl sm:[&_h1]:text-[2rem] xl:[&_h1]:text-[2.65rem] [&_h1]:text-brand-surface [&_:focus-visible]:outline-brand-accent">
+          <h1>
+            <TextSpanWrapper2 as="span" animateOnLoad className="block">
+              Comunidad
+            </TextSpanWrapper2>{" "}
+            <span className="mt-1.5 inline-flex flex-wrap items-center gap-x-[0.28em] gap-y-1">
+              <AnimatedWordmark
+                ariaLabel="Ad Astra"
+                animateOnLoad
+                inline
+                className="h-[0.94em] text-brand-surface"
+              />{" "}
+              <TextSpanWrapper2 as="span" animateOnLoad>
+                UC3M
+              </TextSpanWrapper2>
+            </span>
+          </h1>
+          <p className="max-w-[46ch] text-[1.15rem] leading-relaxed">
+            Explora los talleres y encuentros de{" "}
+            <AnimatedWordmark inline ariaLabel="Ad Astra" className="ms-0.5 h-[0.76em] align-[-0.05em]" />, reserva tu turno, descubre oportunidades y lleva tu tarjeta QR al evento.
           </p>
           <div className="flex flex-wrap items-center gap-3">
-            <Link className={primaryButtonClass} href="/sign-up">Crear cuenta</Link>
+            <Link className={accentButtonClass} href="/sign-up">Crear cuenta</Link>
             <Link className={secondaryButtonClass} href="/sign-in">Acceder</Link>
           </div>
-          <p className="text-[0.95rem] text-brand-ink/85">
-            Exclusivo para correos institucionales de la UC3M. Consulta el{" "}
-            <Link href="/privacy">aviso de privacidad</Link>.
-          </p>
         </div>
-        <figure className="m-0">
+        <figure className={heroMediaClass + " m-0"}>
           <Image
             src="/brand/community.webp"
             alt="Estudiantes conversan con integrantes de Ad Astra en el campus"
-            width={1206}
-            height={905}
-            sizes="(min-width: 62rem) 44vw, 100vw"
-            className="block aspect-[4/3] h-auto w-full rounded-t-lg object-cover"
+            fill
+            sizes="(min-width: 48rem) 50vw, 100vw"
+            className="object-cover md:[clip-path:polygon(var(--diagonal)_0,100%_0,100%_100%,0_100%)]"
             preload
           />
-          <figcaption className="border-t-[3px] border-brand-accent pt-2 text-[0.9rem]">
-            Encuentro de Ad Astra en el campus
-          </figcaption>
         </figure>
+      </section>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-brand-line pb-4 text-[0.98rem]">
+        <span className="inline-flex items-center gap-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-md bg-brand-soft/45 text-brand-primary">
+            <PortalIcon icon={Mail01Icon} size={18} />
+          </span>
+          <span>Acceso con correo institucional UC3M.</span>
+        </span>
+        <span aria-hidden="true" className="hidden text-brand-line sm:inline">|</span>
+        <span className="inline-flex items-center gap-1.5">
+          <PortalIcon icon={Shield01Icon} size={16} className="text-brand-primary" />
+          <Link href="/privacy">aviso de privacidad</Link>
+        </span>
       </div>
     </main>
   );

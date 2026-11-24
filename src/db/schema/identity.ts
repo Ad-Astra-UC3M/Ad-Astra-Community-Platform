@@ -66,6 +66,8 @@ export const profiles = pgTable(
     registeredAt: timestamp("registered_at", { withTimezone: true }),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
     deactivatedAt: timestamp("deactivated_at", { withTimezone: true }),
+    avatarKey: text("avatar_key"),
+    avatarUpdatedAt: timestamp("avatar_updated_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -87,6 +89,14 @@ export const profiles = pgTable(
       sql`${table.privacyAccepted} = true`,
     ),
     check("profiles_qr_version_check", sql`${table.qrVersion} >= 1`),
+    check(
+      "profiles_avatar_key_check",
+      sql`${table.avatarKey} IS NULL OR ${table.avatarKey} ~ '^avatars/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.(jpg|png|webp|avif)$'`,
+    ),
+    check(
+      "profiles_avatar_consistency_check",
+      sql`(${table.avatarKey} IS NULL AND ${table.avatarUpdatedAt} IS NULL) OR (${table.avatarKey} IS NOT NULL AND ${table.avatarUpdatedAt} IS NOT NULL)`,
+    ),
   ],
 );
 
@@ -194,3 +204,14 @@ export type NewProfileRow = typeof profiles.$inferInsert;
 export type AccountCapabilityRow = typeof accountCapabilities.$inferSelect;
 export type AdminAuditLogRow = typeof adminAuditLogs.$inferSelect;
 export type DeletionRequestRow = typeof deletionRequests.$inferSelect;
+
+/**
+ * Objetos retirados pendientes de borrado físico. Se registra la clave en la misma transacción
+ * que cambia el perfil para conservar los reintentos si Neon Storage falla. Sin FK: la limpieza
+ * debe poder terminar incluso si el perfil se elimina después.
+ */
+export const avatarDeletions = pgTable("avatar_deletions", {
+  key: text("key").primaryKey(),
+  personId: uuid("person_id").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [index("avatar_deletions_person_id_idx").on(table.personId)]);

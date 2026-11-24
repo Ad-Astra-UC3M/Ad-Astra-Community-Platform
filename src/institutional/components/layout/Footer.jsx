@@ -1,3 +1,8 @@
+/**
+ * @file Pie institucional compartido por todas las páginas de Comunidad. Conserva órbita, enlaces
+ * institucionales de Ad Astra UC3M y la marca verbal animada en el titular y el crédito inferior.
+ */
+
 import Link from "next/link";
 import { Heart } from "pixelarticons/react";
 
@@ -35,6 +40,14 @@ const footerSections = [
 const footerLinkClass =
 	"text-brand-surface/85 underline-offset-6 transition duration-200 hover:text-brand-accent hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent";
 
+/**
+ * Renderiza un enlace externo con icono social o un enlace interno Next.js dentro del pie de página.
+ * @param props Propiedades del enlace.
+ * @param props.href Destino absoluto o interno.
+ * @param props.label Texto visible del enlace.
+ * @param props.platform Clave opcional de red social para anteponer su icono.
+ * @returns Elemento `<a>` o `<Link>` estilizado para contraste sobre fondo oscuro.
+ */
 function FooterLink({ href, label, platform }) {
 	const content = (
 		<>
@@ -58,6 +71,10 @@ function FooterLink({ href, label, platform }) {
 	);
 }
 
+/**
+ * Renderiza el pie institucional de Ad Astra UC3M montado por `RootLayout`.
+ * @returns Elemento `<footer>` con palabra animada, navegación en columnas y crédito del equipo de IT.
+ */
 export default function Footer() {
 	return (
 		<footer className="relative isolate overflow-hidden border-t border-brand-accent/70 bg-brand-ink text-brand-surface">
@@ -123,10 +140,21 @@ export default function Footer() {
 					<p className="lg:justify-self-start">
 						Hecho con{" "}
 						<Heart className="inline-block h-4 w-4 text-brand-accent" /> por
-						el equipo de IT de Ad Astra
+						el equipo de IT de{" "}
+						<AnimatedWordmark
+							inline
+							ariaLabel="Ad Astra"
+							className="mx-1 h-[0.82em] align-[-0.06em]"
+						/>
 					</p>
 					<p className="lg:justify-self-center lg:whitespace-nowrap">
-						&copy; 2026 Ad Astra UC3M
+						&copy; 2026{" "}
+						<AnimatedWordmark
+							inline
+							ariaLabel="Ad Astra"
+							className="mx-1 h-[0.82em] align-[-0.06em]"
+						/>{" "}
+						UC3M
 					</p>
 					<span
 						className="h-px w-20 bg-brand-accent sm:h-0.5 lg:hidden"

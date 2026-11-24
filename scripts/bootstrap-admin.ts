@@ -6,6 +6,7 @@
 
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { loadEnvConfig } from "@next/env";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb, type AppDb } from "../src/db/client";
 import {
@@ -125,10 +126,11 @@ function isDirectCliInvocation(): boolean {
 if (isDirectCliInvocation()) {
   const emailArg = process.argv[2];
   if (!emailArg) {
-    console.error("Usage: tsx scripts/bootstrap-admin.ts <uc3m-email>");
+    console.error("Usage: npm run db:bootstrap-admin -- <uc3m-email>");
     process.exit(1);
   }
 
+  loadEnvConfig(process.cwd());
   getDb()
     .then((db) => bootstrapAdmin(db, emailArg))
     .then((result) => {

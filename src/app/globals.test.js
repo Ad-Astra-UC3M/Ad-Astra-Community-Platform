@@ -12,6 +12,7 @@ test("globals.css importa Tailwind CSS v4 con tokens de Ad Astra y sin hojas CSS
   assert.match(css, /--color-brand-primary:/);
   assert.match(css, /--font-display:/);
   assert.match(css, /--font-serif:/);
+  assert.match(css, /--ease-astra:/);
 
   assert.equal(existsSync(resolve("src/components/navigation-links.css")), false);
   assert.equal(existsSync(resolve("src/components/institutional-shell.css")), false);

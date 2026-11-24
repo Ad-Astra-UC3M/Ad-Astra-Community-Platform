@@ -35,6 +35,7 @@ export interface TalentProfileSummary {
   disseminationGranted: boolean;
   linksCount: number;
   updatedAt: Date;
+  avatarUpdatedAt: Date | null;
 }
 
 export interface TalentAdminDetail extends TalentProfileSummary {
@@ -165,6 +166,7 @@ export async function searchTalentProfiles(
       degree: profiles.degree,
       course: profiles.course,
       status: profiles.status,
+      avatarUpdatedAt: profiles.avatarUpdatedAt,
       university: talentProfiles.university,
       expectedGraduationYear: talentProfiles.expectedGraduationYear,
       headline: talentProfiles.headline,
@@ -226,6 +228,7 @@ export async function searchTalentProfiles(
         disseminationGranted: dissemination?.granted ?? false,
         linksCount: row.links.length,
         updatedAt: row.updatedAt,
+        avatarUpdatedAt: row.avatarUpdatedAt ?? null,
       };
 
       const searchable = [
@@ -281,6 +284,7 @@ export async function getTalentAdminDetail(
       degree: profiles.degree,
       course: profiles.course,
       status: profiles.status,
+      avatarUpdatedAt: profiles.avatarUpdatedAt,
       university: talentProfiles.university,
       expectedGraduationYear: talentProfiles.expectedGraduationYear,
       headline: talentProfiles.headline,
@@ -334,5 +338,6 @@ export async function getTalentAdminDetail(
     disseminationValidUntil: dissemination?.validUntil ?? null,
     disseminationPolicyVersion: dissemination?.policyVersion ?? null,
     updatedAt: row.updatedAt,
+    avatarUpdatedAt: row.avatarUpdatedAt ?? null,
   };
 }

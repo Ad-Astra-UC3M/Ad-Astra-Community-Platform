@@ -39,12 +39,13 @@ Las páginas leen mediante funciones del servidor. Las acciones se ejecutan en e
 
 | Archivo y función | Entrada | Resultado y llamadas |
 | --- | --- | --- |
+| `home/page.jsx` · `HomePage` | Sin argumentos propios | Llama a `loadMyHome` para mostrar la próxima reserva que se puede abrir y los accesos de la sesión. |
 | `activities/page.jsx` · `ActivitiesPage` | Sin argumentos propios | Next renderiza el catálogo con `listMyVisibleActivities`. |
 | `activities/[id]/page.jsx` · `ActivityPage` | `params.id`, `searchParams.status` | Next renderiza detalle, turnos y aviso. Usa `getMyVisibleActivity`, llama a `notFound` si falta el detalle y vincula `reserveActivityShift` a la actividad. |
-| `activities/[id]/actions.ts` · `reserveActivityShift` | ID vinculado de actividad, formulario con `shiftId` | Llama a `reserveMyShift` y redirige al detalle con el código devuelto. |
-| `my-activities/page.jsx` · `MyActivitiesPage` | `searchParams.status` | Next renderiza `listMyReservations` y ofrece los formularios de cambio y cancelación. |
-| `my-activities/actions.ts` · `cancelActivityReservation` | Formulario con `shiftId` | Llama a `cancelMyReservation` y redirige a Mis actividades con el resultado. |
-| `my-activities/actions.ts` · `changeActivityShift` | Formulario con `fromShiftId` y `toShiftId` | Llama a `changeMyReservation` y redirige a Mis actividades con el resultado. |
+| `activities/[id]/actions.ts` · `reserveActivityShift` | ID vinculado de actividad, formulario con `shiftId` | Llama a `reserveMyShift`, revalida ambas agendas si hay reserva y redirige al detalle. |
+| `my-activities/page.jsx` · `MyActivitiesPage` | `searchParams.status` | Next agrupa `listMyReservations` en turnos en curso, futuras reservas e historial. Las tarjetas muestran los formularios que permite el servidor. |
+| `my-activities/actions.ts` · `cancelActivityReservation` | Formulario con `shiftId` | Llama a `cancelMyReservation`, revalida Inicio si cancela y redirige a Mis actividades con el resultado. |
+| `my-activities/actions.ts` · `changeActivityShift` | Formulario con `fromShiftId` y `toShiftId` | Llama a `changeMyReservation`, revalida Inicio si cambia el turno y redirige a Mis actividades. |
 | `qr-card/page.jsx` · `CardPage` | `searchParams.status` | Next renderiza la tarjeta propia. Llama a `issueMyCard` y pasa el token a `QRCode.toDataURL`. |
 | `qr-card/actions.ts` · `reissueMyCard` | Sin campos de formulario | Llama a la operación homónima del módulo y redirige a `/qr-card?status=reissued`. |
 | `admin/activities/page.jsx` · `AdminActivitiesPage` | Parámetros de búsqueda para avisos | Next renderiza actividades y turnos mediante `listAdminActivities` y conecta los formularios de edición. |
@@ -57,7 +58,7 @@ Las páginas leen mediante funciones del servidor. Las acciones se ejecutan en e
 | --- | --- | --- |
 | `readField` | Formulario, nombre de campo | Las acciones de edición reciben texto recortado o cadena vacía. |
 | `parseTimestamp` | Texto de fecha | Crear actividad y añadir turno reciben milisegundos o `NaN` para que la capa de datos valide el horario. |
-| `revalidateActivityPaths` | Sin parámetros | Las acciones de edición invalidan con `revalidatePath` las vistas del catálogo y del panel relacionadas con actividades. |
+| `revalidateActivityPaths` | Sin parámetros | Las acciones de edición revalidan el catálogo, las agendas y las vistas del panel relacionadas con actividades. |
 | `createAdminActivityAction` | Formulario con título, descripción, lugar, estado, turno e imágenes opcionales | Convierte los campos, llama a `createAdminActivity`, revalida y redirige con `created` o el error. |
 | `addActivityShiftAction` | Formulario con actividad, nombre, horario y aforo | Llama a `addActivityShift`, revalida y redirige con `shift_added` o el error. |
 | `addActivityImageAction` | Formulario con actividad, URL, texto alternativo y posición | Llama a `addActivityImage`, revalida y redirige con `image_added` o el error. |
@@ -70,7 +71,7 @@ Las páginas leen mediante funciones del servidor. Las acciones se ejecutan en e
 | Función | Entrada | Resultado y llamadas |
 | --- | --- | --- |
 | `readField` | Formulario, nombre de campo | Las acciones manuales reciben texto recortado o cadena vacía. |
-| `revalidateAttendancePaths` | ID de turno | Las acciones de asistencia invalidan el detalle, el panel y Mis actividades con `revalidatePath`. |
+| `revalidateAttendancePaths` | ID de turno | Las acciones de asistencia revalidan el detalle, el panel y las agendas de Inicio y Mis actividades. |
 | `validateCard` | ID de turno vinculado, estado previo del escáner, formulario con token | El escáner recibe un mensaje del resultado de `validateAttendanceCard`. Revalida las vistas cuando el token supera la verificación. |
 | `registerAtDoorAction` | Formulario con turno, cuenta objetivo y motivo | Llama a `registerAtDoor`, revalida y redirige con `door=registered` o el error. |
 | `confirmManualAttendanceAction` | Formulario con turno, persona y motivo | Llama a `manualConfirmAttendance`, revalida y redirige con `manual=confirmed` o el error. |
@@ -85,6 +86,7 @@ Las páginas leen mediante funciones del servidor. Las acciones se ejecutan en e
 | `portal.ts` · `listMyVisibleActivities` | Sin argumentos | El catálogo recibe las actividades publicadas de `listActivities`, con la reserva de la persona conectada en cada turno. |
 | `portal.ts` · `getMyVisibleActivity` | ID o slug | El detalle recibe la actividad publicada de `getActivity` o `undefined`. |
 | `portal.ts` · `listMyReservations` | Sin argumentos | Mis actividades recibe el resultado de `listReservations` para la persona conectada. |
+| `portal.ts` · `loadMyHome` | Sin argumentos | Devuelve la sesión y la primera reserva futura de una actividad publicada en `listReservations`. Con sesión ausente, `requireUser` conserva `/home` como retorno. |
 | `portal.ts` · `reserveMyShift` | ID de actividad, campo de turno | La acción recibe `missing` si el campo no es texto válido para el contrato. Si es texto, `reserveShift` valida el turno y devuelve el resultado. |
 | `portal.ts` · `cancelMyReservation` | Campo de turno | La acción recibe `missing` o el resultado de `cancelReservation` para la persona conectada. |
 | `portal.ts` · `changeMyReservation` | Campos de turno origen y destino | La acción recibe `missing` o el resultado de `changeReservation` para la persona conectada. |
@@ -117,7 +119,7 @@ Las operaciones de datos usan `resolveDb` para obtener la conexión. Las pruebas
 | `listActivities` | ID de persona, `db` opcional | `listMyVisibleActivities` recibe las actividades publicadas con imágenes y turnos mediante los dos auxiliares anteriores. |
 | `getActivity` | ID o slug, ID de persona, `db` opcional | `getMyVisibleActivity` recibe el detalle publicado por ID o slug, o `undefined`. Consulta los dos auxiliares anteriores. |
 | `listShifts` | `db` opcional | El enlace rápido de `/admin` recibe turnos y actividades ordenados por fecha tras comprobar la capacidad de asistencia. |
-| `listReservations` | ID de persona, `db` opcional, fecha de referencia opcional | `listMyReservations` recibe la inscripción, su estado y los cambios posibles. Usa `loadShiftsByActivityIds` para los destinos libres y futuros de actividades publicadas. |
+| `listReservations` | ID de persona, `db` opcional, fecha de referencia opcional | `listMyReservations` y `loadMyHome` reciben las reservas ordenadas por inicio. Incluye su estado editorial, el grupo de agenda según el horario y la asistencia, y las opciones de cambio y cancelación. Usa `loadShiftsByActivityIds` para los destinos de actividades publicadas. |
 
 ### Adjudicación y reservas en `booking.ts` y `participation.ts`
 

@@ -6,10 +6,20 @@
 
 import "server-only";
 
+import {
+  readProfileAvatar,
+  readTalentProfileAvatar,
+  removeProfileAvatar,
+  uploadProfileAvatar,
+} from "./avatar";
+import { AVATAR_MAX_BYTES } from "./avatar-validation";
 import { getDeletionRequest, getMyDeletionRequest, listDeletionRequests } from "./deletion-requests";
 import { getBasicProfile, getDisseminationStatus, getTalentProfile } from "./repository";
 import { getTalentAdminDetail, searchTalentProfiles, type TalentSearchFilters } from "./talent-consultation";
-import { requireCapability, requireUser } from "../auth/access";
+import { currentUser, requireCapability, requireUser } from "../auth/access";
+import { getDb } from "../../db/client";
+import { hasAvatarDeletions } from "./avatar-cleanup";
+import { getAvatarStorage } from "../storage/avatar-storage";
 import { requestAccountDeletion, resolveDeletionRequest } from "./deletion-requests";
 import {
   saveTalentProfile,
@@ -99,11 +109,16 @@ export async function reviewDeletionRequest(
 /**
  * Exige sesión y toma su identificador para localizar la cuenta que muestra ProfilePage.
  *
- * @returns Perfil básico del titular o null si falta.
+ * @returns Perfil básico y estado de limpieza del avatar, autorizados con una sola consulta de sesión, o null si falta.
  */
 export async function getMyProfile() {
   const user = await requireUser("/profile");
-  return getBasicProfile(user.personId);
+  const db = await getDb();
+  const [profile, avatarCleanupPending] = await Promise.all([
+    getBasicProfile(user.personId, db),
+    hasAvatarDeletions(user.personId, db),
+  ]);
+  return profile ? { ...profile, avatarCleanupPending } : null;
 }
 
 /**
@@ -175,4 +190,68 @@ export async function listDeletionRequestsForReview() {
 export async function getDeletionRequestForReview(id: string) {
   await requireCapability("general_admin");
   return getDeletionRequest(id);
+}
+
+/**
+ * Exige sesión activa antes de inspeccionar, validar y guardar la nueva foto de perfil en Neon Object
+ * Storage, evitando procesar archivos de peticiones no autenticadas.
+ *
+ * @param input - Archivo (`File`) del formulario o binario `Uint8Array` recibido desde `/profile`.
+ * @returns Resultado de subida con clave y marca temporal, o código de error controlado.
+ */
+export async function uploadMyProfileAvatar(input: unknown) {
+  const user = await requireUser("/profile");
+  let bytes: Uint8Array;
+  if (input instanceof Uint8Array) {
+    bytes = input;
+  } else if (input instanceof File) {
+    if (input.size === 0) return { ok: false, error: "empty_file" } as const;
+    if (input.size > AVATAR_MAX_BYTES) return { ok: false, error: "file_too_large" } as const;
+    bytes = new Uint8Array(await input.arrayBuffer());
+  } else {
+    return { ok: false, error: "empty_file" } as const;
+  }
+  return uploadProfileAvatar(user.personId, bytes, getAvatarStorage());
+}
+
+/**
+ * Exige sesión activa para retirar la foto de perfil del titular conectado.
+ *
+ * @returns Confirmación de borrado o estado de error si el perfil no existe.
+ */
+export async function removeMyProfileAvatar() {
+  const user = await requireUser("/profile");
+  return removeProfileAvatar(user.personId, getAvatarStorage());
+}
+
+/**
+ * Comprueba la sesión actual una sola vez y devuelve la foto de perfil propia del titular conectado
+ * para `/api/profile/avatar`, distinguiendo falta de sesión (`401`) de ausencia de imagen (`404`).
+ *
+ * @returns `{ authenticated: false }` o `{ authenticated: true, avatar }` con bytes o `null`.
+ */
+export async function readMyProfileAvatar() {
+  const user = await currentUser();
+  if (!user) return { authenticated: false as const };
+  const avatar = await readProfileAvatar(user.personId, getAvatarStorage());
+  return { authenticated: true as const, avatar };
+}
+
+/**
+ * Exige una cuenta activa con `talent_consultation` y devuelve la foto de perfil de una
+ * candidatura con perfil de talento registrado para `/api/admin/talent/[id]/avatar`.
+ *
+ * @param personId - UUID de la candidatura solicitada.
+ * @returns Bytes y `Content-Type` seguro, o `null` si no procede mostrarla o falta autorización.
+ */
+export async function readTalentAvatarForConsultation(personId: string) {
+  const user = await currentUser();
+  if (
+    !user ||
+    user.status !== "active" ||
+    !user.capabilities.includes("talent_consultation")
+  ) {
+    return null;
+  }
+  return readTalentProfileAvatar(personId, getAvatarStorage());
 }

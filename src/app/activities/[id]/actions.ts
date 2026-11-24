@@ -5,16 +5,22 @@
 
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { reserveMyShift } from "../../../server/activities/portal";
 
 /**
- * Procesa el envío del formulario de `ShiftCard` mediante `reserveMyShift`.
+ * Procesa el envío del formulario de `ShiftCard` mediante `reserveMyShift`. Al reservar,
+ * actualiza la agenda de Inicio y Mis actividades.
  * @param activityId ID que `ActivityPage` vincula a la acción con `bind`.
  * @param formData Datos del formulario. `shiftId` identifica el turno que el servidor vuelve a validar.
  * @returns Redirige al detalle con `status` igual al código de la reserva.
  */
 export async function reserveActivityShift(activityId: string, formData: FormData) {
   const result = await reserveMyShift(activityId, formData.get("shiftId"));
+  if (result === "reserved") {
+    revalidatePath("/home");
+    revalidatePath("/my-activities");
+  }
   redirect(`/activities/${encodeURIComponent(activityId)}?status=${result}`);
 }
