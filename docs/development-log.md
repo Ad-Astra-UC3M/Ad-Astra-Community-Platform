@@ -248,3 +248,19 @@ La revisión de Sol 6.2 con razonamiento `xhigh` señaló dos ajustes que se inc
 - Comprobaciones sobre `25212ba` en `C:\Users\jorge\Documents\Ad-Astra-Community-Platform`: `npm test` 97/97, `npm run typecheck` correcto, `npm run build` con 32 rutas y Playwright en Chrome 28/28 en escritorio y móvil (1,3 min, PGlite, proveedor OTP de prueba y cámara simulada).
 - La revisión de los commits no publicados no encontró defectos bloqueantes. `readNeonSession` desactiva la renovación de sesión en las lecturas, de modo que la sesión caduca al terminar su duración y no se prolonga con el uso; la duración queda en P-02 del SRS.
 - Siguen pendientes la prueba con cámara física, el alta con un buzón UC3M real y la concesión real del primer administrador. Producción en Vercel se publicó desde el árbol local antes de esta integración.
+
+### Despliegue de producción desde `main` · 2026-11-24
+
+- Jorge autorizó volver a desplegar producción desde `main` tras integrar las PR #3 y #5. Desde `2c396b0` con el árbol limpio, Vercel CLI generó `dpl_A3bCQxEQ2wPKqNERxfJ6mHZ6YpLq` sin dominios. Con `vercel curl` respondió 200 en `/` y `/sign-in`, 404 en `/admin`, 401 en `/api/profile/avatar` y 307 hacia el acceso en `/profile` y `/activities`.
+- Tras `vercel promote`, el dominio de Vercel y `comunidad.adastrauc3m.es` devolvieron los mismos códigos, y `vercel inspect` confirmó que el dominio institucional sirve ese despliegue. No se ejecutaron migraciones ni se probó una sesión real.
+
+## 2026-11-24 · Mejoras de navegación
+
+- Jorge pidió abrir una PR con las mejoras de navegación propuestas en la investigación de Comunidad. La rama `codex/community-navigation-improvements` sale de `main` (`2c396b0`) y aplica las cuatro prioritarias: sección activa, menú de cuenta, barra de visitante y barra inferior móvil.
+- `8c56651` amplía `getCommunityNav` con enlaces de cuenta y barra inferior y añade `findActiveHref`, que elige la entrada más específica y respeta los límites de segmento. Las cinco pruebas fallaron antes de implementar y pasaron después.
+- `a0c6fdf` añade `NavLink` (`aria-current="page"`), `MemberBottomNav` y `AccountMenu`, con tres pruebas de componente escritas antes.
+- `294647d` conecta los componentes en `Navbar` y elimina `CommunityBar`. Con sesión, el escritorio muestra Inicio, Actividades, Mis actividades, Oportunidades y Marcadores, la tarjeta QR y el menú de cuenta (perfil, privacidad, panel si hay capacidades y cierre de sesión). En móvil, el menú desplegable reúne todo y la barra inferior ofrece Inicio, Actividades, Mis actividades, Oportunidades y Perfil. Sin sesión solo quedan Acceder y Crear cuenta. La barra superior vuelve a mostrarse cuando recibe el foco.
+- La batería E2E detectó que el cierre de sesión del menú de escritorio no se enviaba, porque Headless UI desmonta el menú al elegir la opción. El formulario se montó fuera del menú y la opción lo envía con `requestSubmit`; una prueba de componente comprueba que el formulario existe con el menú cerrado.
+- `5d708f0` adapta `signOut` de las pruebas y el recorrido institucional: sección activa, menú de cuenta, panel administrativo único, barra inferior que no tapa el pie, ausencia de la franja de sesión y barra superior visible con foco.
+- La revisión visual en Chrome a 900 px mostró el logotipo comprimido. `64fa6aa` lleva la barra de escritorio a 1080 px y deja las etiquetas de la barra inferior en una línea; se comprobó a 390, 900, 1080 y 1280 px.
+- Comprobaciones sobre `64fa6aa`: `npm test` 102/102, `npm run typecheck`, `npm run build` y Playwright en Chrome 28/28 en escritorio y móvil (1,6 min). Queda pendiente la revisión independiente de la PR que pide `AGENTS.md`.
