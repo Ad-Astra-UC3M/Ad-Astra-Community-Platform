@@ -117,13 +117,49 @@ export async function signInAs(
 }
 
 /**
+ * Abre el menú que contiene la cuenta: el menú móvil en pantallas estrechas o el menú de cuenta en
+ * escritorio. Vuelve antes al inicio de la página para que la barra institucional esté visible.
+ * @param page Página con una sesión activa.
+ * @returns `"mobile"` o `"desktop"` según el menú abierto.
+ */
+export async function openAccountMenu(page: Page): Promise<"mobile" | "desktop"> {
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const banner = page.getByRole("banner");
+  const openMenu = banner.getByRole("button", { name: "Abrir menú" });
+  if (await openMenu.isVisible()) {
+    await openMenu.click();
+    return "mobile";
+  }
+  await banner.getByRole("button", { name: /^Menú de cuenta de / }).click();
+  return "desktop";
+}
+
+/**
  * Cierra la sesión por la interfaz para que un mismo recorrido pueda cambiar de usuario.
- * @param page Página con una sesión activa y el botón Cerrar sesión.
+ * @param page Página con una sesión activa; el botón Cerrar sesión está en el menú de cuenta o el menú móvil.
  * @returns Una promesa que finaliza cuando el navegador vuelve a la portada.
  */
 export async function signOut(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Cerrar sesión" }).click();
+  const menu = await openAccountMenu(page);
+  const role = menu === "desktop" ? "menuitem" : "button";
+  await page.getByRole(role, { name: "Cerrar sesión" }).click();
   await page.waitForURL(/\/$/);
+}
+
+/**
+ * Cierra el menú que abrió `openAccountMenu` y espera a que desaparezca.
+ * @param page Página con el menú abierto.
+ * @param menu Menú abierto, según devolvió `openAccountMenu`.
+ * @returns Una promesa que finaliza con el menú cerrado.
+ */
+export async function closeAccountMenu(page: Page, menu: "mobile" | "desktop"): Promise<void> {
+  if (menu === "mobile") {
+    await page.getByRole("banner").getByRole("button", { name: "Cerrar menú" }).click();
+    await page.getByRole("navigation", { name: "Navegación móvil", includeHidden: true }).waitFor({ state: "hidden" });
+    return;
+  }
+  await page.keyboard.press("Escape");
+  await page.getByRole("menu").waitFor({ state: "hidden" });
 }
 
 type Registration = {

@@ -5,7 +5,14 @@
  */
 
 import { expect, test } from "@playwright/test";
-import { E2E_ACCOUNTS, registerVerifyAndSignIn, signInAs, signOut } from "./helpers/e2e-env";
+import {
+  closeAccountMenu,
+  E2E_ACCOUNTS,
+  openAccountMenu,
+  registerVerifyAndSignIn,
+  signInAs,
+  signOut,
+} from "./helpers/e2e-env";
 
 /**
  * Comprueba la galería ordenada, el cambio al turno de destino y la reemisión
@@ -263,12 +270,16 @@ test("foto de perfil privada: subida, validación, sustitución, consulta de tal
     expect(loaded).toBe(true);
   }).toPass();
 
-  const barImg = page.locator("aside[aria-label='Sesión activa'] img");
+  const accountMenu = await openAccountMenu(page);
+  const barImg = accountMenu === "mobile"
+    ? page.getByRole("navigation", { name: "Navegación móvil" }).locator("img").first()
+    : page.getByRole("banner").getByRole("button", { name: /^Menú de cuenta de / }).locator("img");
   await expect(barImg).toHaveAttribute("src", firstSrc!);
   await expect(async () => {
     const loaded = await barImg.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0);
     expect(loaded).toBe(true);
   }).toPass();
+  await closeAccountMenu(page, accountMenu);
 
   const ownPngRes = await page.request.get("/api/profile/avatar");
   expect(ownPngRes.status()).toBe(200);
