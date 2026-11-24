@@ -1,0 +1,69 @@
+"use client";
+
+/**
+ * @file Menú de cuenta de la barra institucional en escritorio. Sustituye a la antigua franja de sesión:
+ * reúne perfil, privacidad, panel administrativo cuando procede y cierre de sesión bajo el avatar.
+ */
+
+import { ArrowDown01Icon, Logout03Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
+import { ProfileAvatar } from "../../../components/profile-avatar";
+import { NavLink } from "./NavLink";
+
+const itemClassName =
+	"flex min-h-11 w-full items-center rounded-sm px-3 py-2 text-left no-underline data-[focus]:bg-brand-panel";
+
+/**
+ * Renderiza el botón con el avatar y, al abrirse, el nombre, el correo, los enlaces de cuenta y el botón de
+ * cierre de sesión. Headless UI gestiona foco, teclado y Escape.
+ *
+ * @param props.account Nombre, correo y URL privada del avatar que resuelve RootLayout.
+ * @param props.links Enlaces de `getCommunityNav().accountLinks`.
+ * @param props.activeHref Destino activo dentro de `links`, o null.
+ * @param props.signOutAction Server Action que cierra la sesión y vuelve a la portada.
+ * @returns Menú desplegable de la cuenta.
+ */
+export function AccountMenu({ account, links, activeHref, signOutAction }) {
+	return (
+		<Menu as="div" className="relative">
+			<MenuButton
+				aria-label={`Menú de cuenta de ${account.name}`}
+				className="flex min-h-11 items-center gap-1 rounded-full py-0.5 pr-1 pl-0.5 text-brand-ink transition-colors hover:text-brand-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary data-[open]:text-brand-primary"
+			>
+				<ProfileAvatar size="sm" decorative src={account.avatarUrl} name={account.name} />
+				<HugeiconsIcon icon={ArrowDown01Icon} size={16} aria-hidden="true" focusable="false" />
+			</MenuButton>
+			<MenuItems
+				anchor="bottom end"
+				className="z-[1000] w-72 rounded-lg border border-brand-line bg-brand-surface p-2 text-brand-ink shadow-lg [--anchor-gap:0.75rem] focus:outline-none"
+			>
+				<div className="mb-1 border-b border-brand-line px-3 pt-1 pb-2">
+					<p className="font-bold">{account.name}</p>
+					<p className="text-sm [overflow-wrap:anywhere]">{account.email}</p>
+				</div>
+				{links.map(({ label, href }) => (
+					<MenuItem key={href}>
+						<NavLink
+							href={href}
+							active={href === activeHref}
+							className={itemClassName}
+							activeClassName="font-bold text-brand-primary"
+							inactiveClassName="text-brand-ink"
+						>
+							{label}
+						</NavLink>
+					</MenuItem>
+				))}
+				<form action={signOutAction} className="mt-1 border-t border-brand-line pt-1">
+					<MenuItem>
+						<button type="submit" className={`${itemClassName} cursor-pointer gap-2 border-0 bg-transparent text-brand-ink`}>
+							<HugeiconsIcon icon={Logout03Icon} size={16} aria-hidden="true" focusable="false" />
+							Cerrar sesión
+						</button>
+					</MenuItem>
+				</form>
+			</MenuItems>
+		</Menu>
+	);
+}
