@@ -248,3 +248,11 @@ La revisión de Sol 6.2 con razonamiento `xhigh` señaló dos ajustes que se inc
 - Comprobaciones sobre `25212ba` en `C:\Users\jorge\Documents\Ad-Astra-Community-Platform`: `npm test` 97/97, `npm run typecheck` correcto, `npm run build` con 32 rutas y Playwright en Chrome 28/28 en escritorio y móvil (1,3 min, PGlite, proveedor OTP de prueba y cámara simulada).
 - La revisión de los commits no publicados no encontró defectos bloqueantes. `readNeonSession` desactiva la renovación de sesión en las lecturas, de modo que la sesión caduca al terminar su duración y no se prolonga con el uso; la duración queda en P-02 del SRS.
 - Siguen pendientes la prueba con cámara física, el alta con un buzón UC3M real y la concesión real del primer administrador. Producción en Vercel se publicó desde el árbol local antes de esta integración.
+
+### Espacios de los titulares animados · 2026-11-25
+
+- Jorge observó que el saludo de Inicio («Hola, Ad Astra») dejaba un espacio visible al principio de la segunda línea, y señaló que la landing ya lo resuelve en sus `TextSpanWrapper`.
+- Causa: `TextSpanWrapper2` envolvía cada espacio en un `span` con `whitespace-pre-wrap`; al partirse el titular, ese espacio pasaba a la línea siguiente y desplazaba la palabra. La landing usa `collapseWhitespace`, que deja un espacio de texto normal que el navegador elimina al ajustar.
+- `collapseWhitespace` pasa a ser `true` por defecto en Comunidad, para los 61 titulares que usan el componente; `collapseWhitespace={false}` conserva el comportamiento anterior. La lectura accesible no cambia (`aria-label` y `sr-only` mantienen el texto íntegro).
+- Medición en la página real de Inicio con los estilos de producción, sustituyendo el titular por «Hola, Ad Astra» y variando su ancho de 120 a 700 px: antes, la segunda línea empezaba 27 px a la derecha en 179 anchos; con el cambio, en ninguno.
+- Comprobaciones: `npm test` 97/97 (prueba de `TextSpanWrapper2` actualizada: por defecto contrae; con `false` conserva) y `npm run typecheck` en esta rama. `npm run build` se comprobó aplicando el mismo cambio sobre la copia principal, porque Turbopack no sigue el `node_modules` enlazado del worktree. Sin E2E propios: el cambio no altera textos ni roles.
