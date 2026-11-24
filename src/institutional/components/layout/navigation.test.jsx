@@ -34,6 +34,8 @@ test("la barra inferior móvil ofrece los cinco accesos con icono decorativo y m
   assert.match(html, /<a aria-current="page" class="[^"]*text-brand-primary[^"]*"/);
   assert.doesNotMatch(html, /<a aria-current="page" class="[^"]*text-brand-ink/);
   assert.equal(html.match(/<svg [^>]*aria-hidden="true"/g)?.length, 5);
+  // AnimateIcon usa `asChild`: el propio enlace dispara la animación, sin un envoltorio adicional en la lista.
+  assert.equal(html.match(/<li class="min-w-0"><a /g)?.length, 5);
 });
 
 test("el botón del menú de cuenta nombra a la persona y no expone el correo hasta abrirse", () => {
