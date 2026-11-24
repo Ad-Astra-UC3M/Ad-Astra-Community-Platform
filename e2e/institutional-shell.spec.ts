@@ -320,6 +320,10 @@ test("a 320 px las etiquetas de la barra inferior siguen en una línea y a 12 px
   await page.setViewportSize({ width: 320, height: 640 });
   await signInAs(page, E2E_ACCOUNTS.student);
   await expect(page).toHaveURL(/\/home$/);
-  await expectLegibleBottomLabels(page);
+  // Cada acceso activo cambia el estilo de su etiqueta: se recorren todos.
+  for (const link of bottomLinks) {
+    await page.goto(link.href);
+    await expectLegibleBottomLabels(page);
+  }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
 });

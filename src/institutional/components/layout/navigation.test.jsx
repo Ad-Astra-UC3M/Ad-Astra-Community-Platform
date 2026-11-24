@@ -32,6 +32,8 @@ test("la barra inferior móvil ofrece los cinco accesos con icono decorativo y m
   assert.equal(html.match(/aria-current="page"/g)?.length, 1);
   assert.match(html, /<a aria-current="page"[^>]*href="\/qr-card"/);
   assert.match(html, /<a aria-current="page" class="[^"]*text-brand-primary[^"]*"/);
+  // Sin negrita en el activo: cambiaría el ancho de la etiqueta y la desbordaría a 320 px.
+  assert.doesNotMatch(html, /<a aria-current="page" class="[^"]*font-bold/);
   assert.doesNotMatch(html, /<a aria-current="page" class="[^"]*text-brand-ink/);
   assert.equal(html.match(/<svg [^>]*aria-hidden="true"/g)?.length, 5);
   // AnimateIcon usa `asChild`: el propio enlace dispara la animación, sin un envoltorio adicional en la lista.

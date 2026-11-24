@@ -26,7 +26,8 @@ const memberAccountLinks = [
 
 // La tarjeta QR ocupa el centro de la barra inferior porque es el acceso que se necesita en la puerta de una
 // actividad (RF-12/RF-13). «Mis actividades» sigue en la barra superior y en el menú móvil. «Ofertas» abrevia
-// «Oportunidades» solo aquí: con 12 px, la palabra completa no cabe en un hueco de 320 px de ancho.
+// «Oportunidades» solo aquí: con 12 px, la palabra completa no cabe en el hueco de unos 60 px que deja una
+// pantalla de 320 px.
 const memberBottomLinks = [
 	{ label: "Inicio", href: "/home", icon: "home" },
 	{ label: "Actividades", href: "/activities", icon: "activities" },

@@ -107,10 +107,10 @@ export default function Navbar({ authenticated = false, hasAdmin = false, accoun
 						/>
 					</Link>
 				</div>
-				<div className="hidden flex-none justify-center px-4 min-[1080px]:flex xl:flex-1">
+				<div className="hidden flex-none justify-center px-4 min-[1080px]:flex">
 					<DesktopNavbar links={links} activeHref={activeLink} />
 				</div>
-				<div className="flex flex-1 items-center justify-end gap-3 min-[1080px]:flex-none xl:flex-1">
+				<div className="flex flex-1 items-center justify-end gap-3">
 					<div className="hidden items-center gap-3 min-[1080px]:flex">
 						<JoinButton cta={cta} active={pathname === cta.href} />
 						{signedIn && (

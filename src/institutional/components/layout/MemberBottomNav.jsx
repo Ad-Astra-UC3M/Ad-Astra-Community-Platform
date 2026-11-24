@@ -25,7 +25,9 @@ const icons = {
 const linkClassName =
 	"relative flex min-h-14 flex-col items-center justify-center gap-1 px-0.5 py-1.5 text-center transition-colors hover:text-brand-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary";
 
-const activeLinkClassName = "font-bold text-brand-primary";
+// El activo no cambia de grosor: la negrita desbordaría «Actividades» en un hueco de 60 px. Lo distinguen el
+// color, el trazo del icono y la barra superior.
+const activeLinkClassName = "text-brand-primary";
 
 /**
  * Renderiza la barra fija inferior. Se oculta desde 1080 px, donde la barra superior muestra los enlaces, y al
@@ -70,7 +72,7 @@ export function MemberBottomNav({ links, activeHref }) {
 											className="absolute inset-x-3 top-0 h-[3px] rounded-b-full bg-brand-primary"
 										/>
 									)}
-									<span className="max-w-full whitespace-nowrap font-sans text-xs leading-tight">{label}</span>
+									<span className="whitespace-nowrap font-sans text-xs leading-tight">{label}</span>
 								</NavLink>
 							</AnimateIcon>
 						</li>
