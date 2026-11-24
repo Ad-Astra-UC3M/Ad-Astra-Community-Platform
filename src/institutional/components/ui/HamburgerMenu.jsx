@@ -13,7 +13,7 @@ import SocialIcon from "./SocialIcon";
 
 const navLinkClassName = "flex items-center gap-2 rounded-sm px-3 py-2 font-normal underline-offset-6 transition-colors duration-200 hover:text-brand-accent hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent";
 
-function MobileNavLink({ item, onNavigate, nested = false }) {
+function MobileNavLink({ item, onNavigate, nested = false, active = false }) {
 	if (item.external || item.platform) {
 		return (
 			<a
@@ -31,9 +31,12 @@ function MobileNavLink({ item, onNavigate, nested = false }) {
 		<Link
 			href={item.href}
 			onClick={onNavigate}
+			aria-current={active ? "page" : undefined}
 			className={[
 				navLinkClassName,
+				"min-h-11",
 				nested ? "pl-6" : "",
+				active ? "font-bold text-brand-primary underline decoration-2" : "",
 			].join(" ")}
 		>
 			{item.label}
@@ -81,7 +84,11 @@ function NavAccordion({ item, onNavigate }) {
 	);
 }
 
-export default function HamburgerMenu({ links }) {
+/**
+ * Menú móvil desplegable. Comunidad le pasa la ruta activa y, con sesión, la identidad (`header`) y el
+ * cierre de sesión (`footer`); la landing original lo usa solo con `links`.
+ */
+export default function HamburgerMenu({ links, activeHref = null, header = null, footer = null }) {
 	return (
 		<Popover as="div">
 			{({ close }) => (
@@ -117,6 +124,7 @@ export default function HamburgerMenu({ links }) {
 						transition
 						className="absolute -inset-x-px top-full z-50 mt-2 max-h-[calc(100vh-6rem)] w-auto origin-top-right overflow-y-auto rounded-lg border border-brand-soft bg-brand-surface p-2 text-brand-ink shadow-lg focus:outline-none transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] data-closed:translate-y-1 data-closed:scale-95 data-closed:opacity-0 data-leave:duration-150 motion-reduce:transform-none motion-reduce:transition-opacity"
 					>
+						{header}
 						<ul>
 							{links.map((item) =>
 								item.children ? (
@@ -130,11 +138,13 @@ export default function HamburgerMenu({ links }) {
 										<MobileNavLink
 											item={item}
 											onNavigate={close}
+											active={item.href === activeHref}
 										/>
 									</li>
 								),
 							)}
 						</ul>
+						{footer}
 					</PopoverPanel>
 				</>
 			)}

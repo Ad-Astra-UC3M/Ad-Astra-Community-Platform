@@ -8,6 +8,7 @@
 import { ArrowDown01Icon, Logout03Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
+import { useRef } from "react";
 import { ProfileAvatar } from "../../../components/profile-avatar";
 import { NavLink } from "./NavLink";
 
@@ -25,6 +26,7 @@ const itemClassName =
  * @returns Menú desplegable de la cuenta.
  */
 export function AccountMenu({ account, links, activeHref, signOutAction }) {
+	const signOutForm = useRef(null);
 	return (
 		<Menu as="div" className="relative">
 			<MenuButton
@@ -55,15 +57,22 @@ export function AccountMenu({ account, links, activeHref, signOutAction }) {
 						</NavLink>
 					</MenuItem>
 				))}
-				<form action={signOutAction} className="mt-1 border-t border-brand-line pt-1">
+				<div className="mt-1 border-t border-brand-line pt-1">
 					<MenuItem>
-						<button type="submit" className={`${itemClassName} cursor-pointer gap-2 border-0 bg-transparent text-brand-ink`}>
+						<button
+							type="button"
+							onClick={() => signOutForm.current?.requestSubmit()}
+							className={`${itemClassName} cursor-pointer gap-2 border-0 bg-transparent text-brand-ink`}
+						>
 							<HugeiconsIcon icon={Logout03Icon} size={16} aria-hidden="true" focusable="false" />
 							Cerrar sesión
 						</button>
 					</MenuItem>
-				</form>
+				</div>
 			</MenuItems>
+			{/* El formulario vive fuera de MenuItems: Headless UI desmonta el menú al elegir una opción y
+			    un formulario desmontado no llega a enviarse. */}
+			<form ref={signOutForm} action={signOutAction} hidden />
 		</Menu>
 	);
 }

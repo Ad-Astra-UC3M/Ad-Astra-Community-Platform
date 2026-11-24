@@ -51,4 +51,6 @@ test("el botón del menú de cuenta nombra a la persona y no expone el correo ha
   assert.match(html, /LM/);
   assert.doesNotMatch(html, /lucia@alumnos\.uc3m\.es/);
   assert.doesNotMatch(html, /Cerrar sesión/);
+  // El formulario de cierre se monta fuera del menú para sobrevivir a su cierre al elegir la opción.
+  assert.match(html, /<form[^>]*hidden/);
 });

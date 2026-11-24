@@ -31,7 +31,7 @@ Las acciones de Next.js leen `FormData` y deciden qué pantalla mostrar después
 | `textField(formData, key)` | Lee el campo de texto. Devuelve una cadena vacía si el valor falta o es un archivo. |
 | `optionalTextField(formData, key)` | Devuelve `undefined` si falta texto, de modo que el repositorio puede distinguir un campo omitido de uno vacío. |
 | `saveBasicProfileAction(formData)` | Lee los campos editables y los posibles campos de identidad que envíe la petición. Llama a `updateMyProfile` y redirige a `/profile` con `saved` o el código de error. |
-| `uploadProfileAvatarAction(formData)` | Pasa el campo `avatar` a `uploadMyProfileAvatar`, revalida `CommunityBar`, `/profile` y `/admin/talent` tras guardar en Neon Object Storage y redirige con `avatar_saved` o el código de error. |
+| `uploadProfileAvatarAction(formData)` | Pasa el campo `avatar` a `uploadMyProfileAvatar`, revalida el menú de cuenta de `Navbar`, `/profile` y `/admin/talent` tras guardar en Neon Object Storage y redirige con `avatar_saved` o el código de error. |
 | `removeProfileAvatarAction()` | Llama a `removeMyProfileAvatar` y redirige a `/profile` con `avatar_removed` o el código de error. Revalida las vistas compartidas tanto si termina la retirada como si queda pendiente el borrado físico. En ese caso, la página ofrece «Completar retirada». |
 | `saveTalentProfileAction(formData)` | Construye enlaces con sus tipos y etiquetas, admite `graduationYear` como campo anterior, interpreta etiquetas e idiomas y llama a `saveMyTalentProfile`. La vista de talento muestra el resultado tras la redirección. |
 | `updateDisseminationAction(formData)` | Pasa el valor de `granted` a `updateMyDissemination`; redirige a privacidad con la decisión aplicada o el error. |
