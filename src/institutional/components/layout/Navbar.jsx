@@ -6,7 +6,6 @@ import navItems, { findActiveHref, getCommunityNav } from "../../data/navItems";
 import LogoMark from "../../assets/navbar-logo.svg";
 import NavDropdown from "./NavDropdown";
 import { AccountMenu } from "./AccountMenu";
-import { MemberBottomNav } from "./MemberBottomNav";
 import { NavLink } from "./NavLink";
 import { ProfileAvatar } from "../../../components/profile-avatar";
 import { signOut } from "../../../app/auth-actions";
@@ -19,20 +18,19 @@ const activeNavLinkClassName = "font-bold text-brand-primary underline decoratio
 
 /**
  * Barra institucional de Comunidad. Muestra la navegación según la sesión, marca la sección actual y, con
- * sesión, añade el menú de cuenta en escritorio y la barra inferior de accesos rápidos en móvil.
+ * sesión, añade el menú de cuenta en escritorio y la identidad y el cierre de sesión en el menú móvil.
  *
  * @param props.authenticated Indica si RootLayout resolvió una sesión activa y verificada.
  * @param props.hasAdmin Indica si la cuenta tiene alguna capacidad interna.
  * @param props.account Nombre, correo y URL privada del avatar de la sesión, o null sin sesión.
- * @returns Encabezado fijo y, con sesión, la barra inferior móvil.
+ * @returns Encabezado fijo. La barra inferior móvil la monta RootLayout después del pie (`CommunityBottomNav`).
  */
 export default function Navbar({ authenticated = false, hasAdmin = false, account = null }) {
-	const { homeHref, links, cta, accountLinks, bottomLinks } = getCommunityNav({ authenticated, hasAdmin });
+	const { homeHref, links, cta, accountLinks } = getCommunityNav({ authenticated, hasAdmin });
 	const pathname = usePathname();
 	const activeLink = findActiveHref(pathname, links);
 	const activeAccountLink = findActiveHref(pathname, accountLinks);
 	const activeMobileLink = findActiveHref(pathname, [...links, ...accountLinks]);
-	const activeBottomLink = findActiveHref(pathname, bottomLinks);
 	const signedIn = authenticated && account;
 	const [hidden, setHidden] = useState(false);
 	const headerRef = useRef(null);
@@ -58,7 +56,7 @@ export default function Navbar({ authenticated = false, hasAdmin = false, accoun
 			const currentY = window.scrollY;
 			const delta = currentY - lastScrollY.current;
 
-			if (preventHide.current || headerRef.current?.contains(document.activeElement)) {
+			if (preventHide.current || hasKeyboardFocusInside(headerRef.current)) {
 				lastScrollY.current = currentY;
 				setHidden(false);
 				return;
@@ -87,7 +85,9 @@ export default function Navbar({ authenticated = false, hasAdmin = false, accoun
 			<header
 				ref={headerRef}
 				onClickCapture={handleNavigationClick}
-				onFocusCapture={() => setHidden(false)}
+				onFocusCapture={(event) => {
+					if (event.target.matches?.(":focus-visible")) setHidden(false);
+				}}
 				className={`fixed top-0 left-0 right-0 z-999 flex h-16 w-[90%] items-center gap-2 m-auto bg-astra-cream text-brand-ink px-4 md:px-8 min-[1080px]:gap-0 rounded-lg border my-4
 				transition-transform duration-300 ${hidden ? "-translate-y-2/1" : "translate-y-0"}`}
 			>
@@ -141,9 +141,20 @@ export default function Navbar({ authenticated = false, hasAdmin = false, accoun
 					</div>
 				</div>
 			</header>
-			{signedIn && <MemberBottomNav links={bottomLinks} activeHref={activeBottomLink} />}
 		</>
 	);
+}
+
+/**
+ * Indica si el foco de teclado está dentro de la barra. El foco que deja un clic o un toque (por ejemplo,
+ * en el botón del menú tras cerrarlo) no cuenta, para que la barra siga ocultándose al desplazarse.
+ *
+ * @param header Nodo del encabezado, o null antes de montarlo.
+ * @returns `true` si el elemento activo está dentro y coincide con `:focus-visible`.
+ */
+function hasKeyboardFocusInside(header) {
+	const active = document.activeElement;
+	return Boolean(header && active && header.contains(active) && active.matches?.(":focus-visible"));
 }
 
 export function DesktopNavbar({ links = navItems, activeHref = null }) {
@@ -249,7 +260,7 @@ function JoinButton({ cta, active = false }) {
 			className={[
 				navLinkClassName,
 				"min-h-11 shrink-0 whitespace-nowrap rounded-lg bg-brand-ink px-3 py-2 text-sm text-brand-surface sm:px-4 sm:text-base min-[1080px]:min-h-0",
-				active ? "ring-2 ring-brand-accent ring-offset-2 ring-offset-astra-cream" : "",
+				active ? "underline decoration-brand-accent decoration-2 underline-offset-6" : "",
 			].join(" ")}
 		>
 			{cta.label}

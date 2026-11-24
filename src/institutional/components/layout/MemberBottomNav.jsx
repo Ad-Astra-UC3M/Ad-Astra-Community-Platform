@@ -22,7 +22,7 @@ const icons = {
 };
 
 const linkClassName =
-	"flex min-h-14 flex-col items-center justify-center gap-1 px-1 py-1.5 text-center text-[0.66rem] leading-tight tracking-tight transition-colors hover:text-brand-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary";
+	"flex min-h-14 flex-col items-center justify-center gap-1 px-0.5 py-1.5 text-center text-[clamp(0.62rem,3.1vw,0.72rem)] leading-tight tracking-tight transition-colors hover:text-brand-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary";
 
 const activeLinkClassName = "font-bold text-brand-primary";
 
@@ -59,7 +59,7 @@ export function MemberBottomNav({ links, activeHref }) {
 									aria-hidden="true"
 									focusable="false"
 								/>
-								<span className="max-w-full">{label}</span>
+								<span className="max-w-full break-words hyphens-auto">{label}</span>
 							</NavLink>
 						</li>
 					);
