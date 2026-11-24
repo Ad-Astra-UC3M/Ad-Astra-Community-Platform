@@ -13,9 +13,9 @@ const memberLinks = [
 const bottomLinks = [
   { label: "Inicio", href: "/home", icon: "home" },
   { label: "Actividades", href: "/activities", icon: "activities" },
-  { label: "Mis actividades", href: "/my-activities", icon: "reservations" },
-  { label: "Oportunidades", href: "/opportunities", icon: "opportunities" },
-  { label: "Perfil", href: "/profile", icon: "profile" },
+  { label: "Tarjeta QR", href: "/qr-card", icon: "qr" },
+  { label: "Ofertas", href: "/opportunities", icon: "opportunities" },
+  { label: "Mi perfil", href: "/profile", icon: "profile" },
 ];
 
 test("la navegación de visitante deja el logotipo, el acceso y el registro sin listados privados", () => {

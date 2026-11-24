@@ -24,12 +24,15 @@ const memberAccountLinks = [
 	{ label: "Difusión y privacidad", href: "/profile/privacy" },
 ];
 
+// La tarjeta QR ocupa el centro de la barra inferior porque es el acceso que se necesita en la puerta de una
+// actividad (RF-12/RF-13). «Mis actividades» sigue en la barra superior y en el menú móvil. «Ofertas» abrevia
+// «Oportunidades» solo aquí: con 12 px, la palabra completa no cabe en un hueco de 320 px de ancho.
 const memberBottomLinks = [
 	{ label: "Inicio", href: "/home", icon: "home" },
 	{ label: "Actividades", href: "/activities", icon: "activities" },
-	{ label: "Mis actividades", href: "/my-activities", icon: "reservations" },
-	{ label: "Oportunidades", href: "/opportunities", icon: "opportunities" },
-	{ label: "Perfil", href: "/profile", icon: "profile" },
+	{ label: "Tarjeta QR", href: "/qr-card", icon: "qr" },
+	{ label: "Ofertas", href: "/opportunities", icon: "opportunities" },
+	{ label: "Mi perfil", href: "/profile", icon: "profile" },
 ];
 
 const adminLink = { label: "Panel administrativo", href: "/admin" };

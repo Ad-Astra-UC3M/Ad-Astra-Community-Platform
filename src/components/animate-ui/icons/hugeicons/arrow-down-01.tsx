@@ -3,7 +3,7 @@
 // Icono animado de Animate UI (https://animate-ui.com/docs/icons/hugeicons), copiado de su registro
 // shadcn (`@animate-ui/icons-hugeicons-arrow-down-01`). Dibujo del conjunto gratuito de Hugeicons.
 // Licencia MIT + Commons Clause de Animate UI (© 2025 Elliot Sutton): uso permitido dentro de la
-// aplicación; no se redistribuye el componente por separado.
+// aplicación; no se redistribuye el componente por separado. Texto íntegro en ../../LICENSE.md.
 
 
 import * as React from 'react';

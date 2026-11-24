@@ -85,17 +85,26 @@ function NavAccordion({ item, onNavigate }) {
 }
 
 /**
- * Menú móvil desplegable. Comunidad le pasa la ruta activa y, con sesión, la identidad (`header`) y el
- * cierre de sesión (`footer`); la landing original lo usa solo con `links`.
+ * Menú móvil desplegable. Comunidad le pasa la ruta activa y, con sesión, la identidad (`header`), los enlaces
+ * de cuenta (`accountLinks`, agrupados aparte bajo `accountLabel`) y el cierre de sesión (`footer`); la landing
+ * original lo usa solo con `links`.
  */
-export default function HamburgerMenu({ links, activeHref = null, header = null, footer = null }) {
+export default function HamburgerMenu({
+	links,
+	activeHref = null,
+	header = null,
+	footer = null,
+	accountLinks = [],
+	accountLabel = "Cuenta",
+}) {
+	const hasAccountGroup = accountLinks.length > 0 || footer;
 	return (
 		<Popover as="div">
 			{({ close }) => (
 				<>
 					<PopoverButton
 						type="button"
-						className="group relative block size-10 text-brand-ink transition-[color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:text-brand-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent data-open:text-brand-accent active:scale-[0.97] motion-reduce:transition-none"
+						className="group relative block size-11 text-brand-ink transition-[color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:text-brand-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent data-open:text-brand-accent active:scale-[0.97] motion-reduce:transition-none"
 					>
 						{/* Nota de accesibilidad: estos textos ocultos dan nombre al botón
 						    según su estado; Headless UI ya gestiona aria-expanded y aria-controls. */}
@@ -122,7 +131,7 @@ export default function HamburgerMenu({ links, activeHref = null, header = null,
 						as="nav"
 						aria-label="Navegación móvil"
 						transition
-						className="absolute -inset-x-px top-full z-50 mt-2 max-h-[calc(100vh-6rem)] w-auto origin-top-right overflow-y-auto rounded-lg border border-brand-soft bg-brand-surface p-2 text-brand-ink shadow-lg focus:outline-none transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] data-closed:translate-y-1 data-closed:scale-95 data-closed:opacity-0 data-leave:duration-150 motion-reduce:transform-none motion-reduce:transition-opacity"
+						className="absolute -inset-x-px top-full z-50 mt-2 max-h-[calc(100vh-6rem)] w-auto origin-top-right overflow-y-auto rounded-lg border border-brand-line bg-brand-surface p-2 text-brand-ink shadow-lg focus:outline-none transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] data-closed:translate-y-1 data-closed:scale-95 data-closed:opacity-0 data-leave:duration-150 motion-reduce:transform-none motion-reduce:transition-opacity"
 					>
 						{header}
 						<ul>
@@ -144,7 +153,23 @@ export default function HamburgerMenu({ links, activeHref = null, header = null,
 								),
 							)}
 						</ul>
-						{footer}
+						{/* Como en el menú de cuenta de escritorio, la cuenta forma un grupo propio y separado. */}
+						{hasAccountGroup && (
+							<div role="group" aria-label={accountLabel} className="mt-1 border-t border-brand-line pt-1">
+								<ul>
+									{accountLinks.map((item) => (
+										<li key={item.href}>
+											<MobileNavLink
+												item={item}
+												onNavigate={close}
+												active={item.href === activeHref}
+											/>
+										</li>
+									))}
+								</ul>
+								{footer}
+							</div>
+						)}
 					</PopoverPanel>
 				</>
 			)}

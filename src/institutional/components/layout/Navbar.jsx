@@ -1,3 +1,4 @@
+import { AnimateIcon } from "@animate-ui/react/icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -7,6 +8,7 @@ import LogoMark from "../../assets/navbar-logo.svg";
 import NavDropdown from "./NavDropdown";
 import { AccountMenu } from "./AccountMenu";
 import { NavLink } from "./NavLink";
+import { Logout01 } from "../../../components/animate-ui/icons/hugeicons/logout-01";
 import { ProfileAvatar } from "../../../components/profile-avatar";
 import { signOut } from "../../../app/auth-actions";
 import { useEffect, useState, useRef } from "react";
@@ -105,10 +107,10 @@ export default function Navbar({ authenticated = false, hasAdmin = false, accoun
 						/>
 					</Link>
 				</div>
-				<div className="hidden flex-1 justify-center min-[1080px]:flex">
+				<div className="hidden flex-none justify-center px-4 min-[1080px]:flex xl:flex-1">
 					<DesktopNavbar links={links} activeHref={activeLink} />
 				</div>
-				<div className="flex flex-1 items-center justify-end gap-3">
+				<div className="flex flex-1 items-center justify-end gap-3 min-[1080px]:flex-none xl:flex-1">
 					<div className="hidden items-center gap-3 min-[1080px]:flex">
 						<JoinButton cta={cta} active={pathname === cta.href} />
 						{signedIn && (
@@ -123,7 +125,9 @@ export default function Navbar({ authenticated = false, hasAdmin = false, accoun
 					<div className="min-[1080px]:hidden">
 						{signedIn ? (
 							<MobileNavbar
-								links={[...links, ...accountLinks]}
+								links={links}
+								accountLinks={accountLinks}
+								accountLabel={`Cuenta de ${account.name}`}
 								cta={cta}
 								activeHref={activeMobileLink}
 								ctaActive={pathname === cta.href}
@@ -186,6 +190,8 @@ export function DesktopNavbar({ links = navItems, activeHref = null }) {
 
 export function MobileNavbar({
 	links = navItems,
+	accountLinks = [],
+	accountLabel,
 	cta = getCommunityNav().cta,
 	activeHref = null,
 	ctaActive = false,
@@ -195,7 +201,14 @@ export function MobileNavbar({
 	return (
 		<div className="flex items-center gap-1.5 sm:gap-4">
 			<JoinButton cta={cta} active={ctaActive} />
-			<HamburgerMenu links={links} activeHref={activeHref} header={header} footer={footer} />
+			<HamburgerMenu
+				links={links}
+				accountLinks={accountLinks}
+				accountLabel={accountLabel}
+				activeHref={activeHref}
+				header={header}
+				footer={footer}
+			/>
 		</div>
 	);
 }
@@ -229,7 +242,7 @@ function VisitorMobileActions({ links, cta, activeHref, ctaActive }) {
  */
 function MobileAccountSummary({ account }) {
 	return (
-		<div className="mb-1 flex items-center gap-3 border-b border-brand-soft px-3 pt-1 pb-3">
+		<div className="mb-1 flex items-center gap-3 border-b border-brand-line px-3 pt-1 pb-3">
 			<ProfileAvatar size="sm" decorative src={account.avatarUrl} name={account.name} />
 			<div className="min-w-0">
 				<p className="font-bold">{account.name}</p>
@@ -239,15 +252,21 @@ function MobileAccountSummary({ account }) {
 	);
 }
 
+/**
+ * Cierre de sesión del menú móvil, con el mismo icono animado que el menú de cuenta de escritorio.
+ */
 function SignOutButton() {
 	return (
-		<form action={signOut} className="mt-1 border-t border-brand-soft pt-1">
-			<button
-				type="submit"
-				className="flex min-h-11 w-full cursor-pointer items-center rounded-sm border-0 bg-transparent px-3 py-2 text-left text-brand-ink underline-offset-6 transition-colors duration-200 hover:text-brand-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
-			>
-				Cerrar sesión
-			</button>
+		<form action={signOut}>
+			<AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+				<button
+					type="submit"
+					className="flex min-h-11 w-full cursor-pointer items-center gap-2 rounded-sm border-0 bg-transparent px-3 py-2 text-left text-brand-ink underline-offset-6 transition-colors duration-200 hover:text-brand-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
+				>
+					<Logout01 size={16} aria-hidden="true" focusable="false" />
+					Cerrar sesión
+				</button>
+			</AnimateIcon>
 		</form>
 	);
 }

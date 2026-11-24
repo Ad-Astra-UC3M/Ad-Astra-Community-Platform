@@ -39,9 +39,9 @@ const memberAccountLinks: Destination[] = [
 const bottomLinks: Destination[] = [
   { label: "Inicio", href: "/home" },
   { label: "Actividades", href: "/activities" },
-  { label: "Mis actividades", href: "/my-activities" },
-  { label: "Oportunidades", href: "/opportunities" },
-  { label: "Perfil", href: "/profile" },
+  { label: "Tarjeta QR", href: "/qr-card" },
+  { label: "Ofertas", href: "/opportunities" },
+  { label: "Mi perfil", href: "/profile" },
 ];
 
 /**
@@ -77,6 +77,12 @@ async function expectHeaderNav(page: Page, expected: HeaderExpectation) {
     }
     await expect(nav.getByRole("link")).toHaveCount(all.length);
     await expect(nav.getByRole("button", { name: "Cerrar sesión" })).toBeVisible();
+    if (expected.accountName) {
+      // La cuenta forma un grupo propio, separado de la navegación, con sus enlaces y el cierre de sesión.
+      const accountGroup = nav.getByRole("group", { name: `Cuenta de ${expected.accountName}` });
+      await expect(accountGroup.getByRole("link")).toHaveCount(expected.accountLinks.length);
+      await expect(accountGroup.getByRole("button", { name: "Cerrar sesión" })).toBeVisible();
+    }
     const mobileActive = expected.activeLabel ?? expected.accountActiveLabel;
     await expect(nav.locator('[aria-current="page"]')).toHaveCount(mobileActive ? 1 : 0);
     if (mobileActive) {
@@ -151,6 +157,8 @@ async function expectBottomNav(page: Page, activeLabel?: string) {
     await expect(bottom.getByRole("link", { name: activeLabel, exact: true })).toHaveAttribute("aria-current", "page");
   }
 
+  await expectLegibleBottomLabels(page);
+
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   const lastFooterLink = page.getByRole("contentinfo").getByRole("link").last();
   await expect(async () => {
@@ -159,6 +167,34 @@ async function expectBottomNav(page: Page, activeLabel?: string) {
     expect(footerBox && barBox && footerBox.y + footerBox.height <= barBox.y).toBeTruthy();
   }).toPass();
   await page.evaluate(() => window.scrollTo(0, 0));
+}
+
+/**
+ * Comprueba que las etiquetas de la barra inferior se leen: al menos 12 px y una sola línea cada una, sin
+ * desbordar su hueco.
+ * @param page Página con la barra inferior visible.
+ * @returns Una promesa que finaliza tras las aserciones.
+ */
+async function expectLegibleBottomLabels(page: Page) {
+  const labels = await page
+    .getByRole("navigation", { name: "Accesos rápidos" })
+    .getByRole("link")
+    .evaluateAll((links) =>
+      links.map((link) => {
+        const label = link.querySelector("span:last-child") as HTMLElement;
+        const style = getComputedStyle(label);
+        return {
+          text: label.textContent,
+          fontSize: parseFloat(style.fontSize),
+          lines: Math.round(label.getBoundingClientRect().height / parseFloat(style.lineHeight)),
+          overflows: label.scrollWidth > link.clientWidth,
+        };
+      }),
+    );
+  for (const label of labels) {
+    expect(label, label.text ?? "").toMatchObject({ lines: 1, overflows: false });
+    expect(label.fontSize, label.text ?? "").toBeGreaterThanOrEqual(12);
+  }
 }
 
 test("la navegación y el pie institucional acompañan al visitante, miembro y administrador", async ({ page }) => {
@@ -220,11 +256,11 @@ test("la navegación y el pie institucional acompañan al visitante, miembro y a
     accountName: E2E_ACCOUNTS.student.name,
     accountActiveLabel: "Difusión y privacidad",
   });
-  await expectBottomNav(page, "Perfil");
+  await expectBottomNav(page, "Mi perfil");
 
   await page.goto("/qr-card");
   await expect(header.getByRole("link", { name: "Mi tarjeta QR", exact: true })).toHaveAttribute("aria-current", "page");
-  await expectBottomNav(page);
+  await expectBottomNav(page, "Tarjeta QR");
 
   await page.goto("/home");
   await signOut(page);
@@ -277,4 +313,13 @@ test("la navegación y el pie institucional acompañan al visitante, miembro y a
   await expect(header).toBeHidden();
   await expect(footer).toBeHidden();
   await expect(page.getByRole("navigation", { name: "Accesos rápidos", includeHidden: true })).toBeHidden();
+});
+
+test("a 320 px las etiquetas de la barra inferior siguen en una línea y a 12 px", async ({ page }) => {
+  test.skip(!isNarrow(page), "La barra inferior solo existe por debajo de 1080 px.");
+  await page.setViewportSize({ width: 320, height: 640 });
+  await signInAs(page, E2E_ACCOUNTS.student);
+  await expect(page).toHaveURL(/\/home$/);
+  await expectLegibleBottomLabels(page);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
 });

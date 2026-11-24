@@ -23,19 +23,23 @@ test("el enlace activo anuncia la página actual y aplica su estilo; el inactivo
 
 test("la barra inferior móvil ofrece los cinco accesos con icono decorativo y marca el activo", () => {
   const { bottomLinks } = getCommunityNav({ authenticated: true });
-  const html = renderToStaticMarkup(<MemberBottomNav links={bottomLinks} activeHref="/my-activities" />);
+  const html = renderToStaticMarkup(<MemberBottomNav links={bottomLinks} activeHref="/qr-card" />);
 
   assert.match(html, /^<nav [^>]*aria-label="Accesos rápidos"/);
   for (const { label, href } of bottomLinks) {
     assert.match(html, new RegExp(`href="${href}"[^>]*>.*?${label}</span>`));
   }
   assert.equal(html.match(/aria-current="page"/g)?.length, 1);
-  assert.match(html, /<a aria-current="page"[^>]*href="\/my-activities"/);
+  assert.match(html, /<a aria-current="page"[^>]*href="\/qr-card"/);
   assert.match(html, /<a aria-current="page" class="[^"]*text-brand-primary[^"]*"/);
   assert.doesNotMatch(html, /<a aria-current="page" class="[^"]*text-brand-ink/);
   assert.equal(html.match(/<svg [^>]*aria-hidden="true"/g)?.length, 5);
   // AnimateIcon usa `asChild`: el propio enlace dispara la animación, sin un envoltorio adicional en la lista.
   assert.equal(html.match(/<li class="min-w-0"><a /g)?.length, 5);
+  // Legibilidad: etiquetas de al menos 12 px en una sola línea y una marca no cromática en el activo.
+  assert.equal(html.match(/<span class="[^"]*whitespace-nowrap[^"]*text-xs/g)?.length, 5);
+  assert.doesNotMatch(html, /clamp\(|hyphens-auto|break-words/);
+  assert.equal(html.match(/data-active-indicator/g)?.length, 1);
 });
 
 test("el botón del menú de cuenta nombra a la persona y no expone el correo hasta abrirse", () => {
