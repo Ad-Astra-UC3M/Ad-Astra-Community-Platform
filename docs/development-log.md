@@ -240,3 +240,11 @@ La revisión de Sol 6.2 con razonamiento `xhigh` señaló dos ajustes que se inc
 - Coordinación observó que la prueba de píxeles fallaba con la versión anterior a 836 px. Con el ajuste, los dos casos E2E pasaron. El de escritorio comprobó la continuidad del fondo a 836 y 1280 px. El de móvil comprobó la carga de la imagen y la ausencia de desbordamiento a 390 px.
 - Coordinación comunicó 97 de 97 pruebas en `npm test`, chequeo de tipos y compilación de 32 rutas. La revisión independiente de Sol 6.2 (`xhigh`) cerró sin hallazgos.
 - Vercel terminó `READY` para `dpl_F3vSamxxWJjyt8E631FEHCK9Wb6r`; coordinación verificó HTTP 200 y el recorte en el HTML remoto, y promovió la versión a producción. En el navegador integrado observó la fotografía cargada, la máscara de escritorio desactivada y el fondo continuo hasta la diagonal en el dominio público de Vercel. Sin commits ni push nuevos.
+
+### Integración de las PR #3 y #5 en `main` · 2026-11-24
+
+- Jorge pidió resolver las PR abiertas. La PR #3 (`codex/email-otp`) apuntaba a `codex/neon-migration`, que nunca se integró en `main`; la PR #5 (`codex/community-redesign`) apuntaba a la #3. Se decide llevar ambas a `main` con commit de fusión, como en las PR #1, #2 y #4.
+- Los cambios locales sin commit (fotos con Sharp y cola de borrados, lectura de sesión sin escribir cookies, arranque del primer administrador, diálogo de foto con el banner de Avatar Studio, junta de la portada, configuración de Vercel y documentación) quedan en siete commits de `e121ed9` a `25212ba` sobre `7c052e6`.
+- Comprobaciones sobre `25212ba` en `C:\Users\jorge\Documents\Ad-Astra-Community-Platform`: `npm test` 97/97, `npm run typecheck` correcto, `npm run build` con 32 rutas y Playwright en Chrome 28/28 en escritorio y móvil (1,3 min, PGlite, proveedor OTP de prueba y cámara simulada).
+- La revisión de los commits no publicados no encontró defectos bloqueantes. `readNeonSession` desactiva la renovación de sesión en las lecturas, de modo que la sesión caduca al terminar su duración y no se prolonga con el uso; la duración queda en P-02 del SRS.
+- Siguen pendientes la prueba con cámara física, el alta con un buzón UC3M real y la concesión real del primer administrador. Producción en Vercel se publicó desde el árbol local antes de esta integración.
