@@ -65,15 +65,17 @@ export function encodeS3PathSegment(segment: string): string {
 }
 
 /**
- * Deduce la región AWS/Neon a partir del host estándar de Neon Object Storage cuando no se especifica
- * `AWS_REGION` explícitamente.
- *
- * @param endpoint - URL base del endpoint S3 (por ejemplo `https://<branch>.storage.eu-central-1.aws.neon.tech`).
- * @returns Identificador de región en minúsculas o `"eu-central-1"` por defecto.
+ * Deduce la región de firma cuando no se especifica AWS_REGION.
+ * @param endpoint URL S3 de Neon, con o sin el identificador de clúster.
+ * @returns Identificador de región AWS. Para hosts personalizados se necesita AWS_REGION.
  */
 export function inferRegionFromEndpoint(endpoint: string): string {
-  const match = /\.storage\.([a-z0-9-]+)\.aws\.neon\.tech/i.exec(endpoint);
-  return match ? match[1].toLowerCase() : "eu-central-1";
+  const { hostname } = new URL(endpoint);
+  const match = /^[a-z0-9-]+\.storage\.(?:c-\d+\.)?([a-z]{2}(?:-[a-z]+)+-\d+)\.aws\.neon\.tech$/.exec(hostname);
+  if (!match) {
+    throw new Error("Set AWS_REGION for S3 endpoints outside Neon Object Storage.");
+  }
+  return match[1];
 }
 
 /**

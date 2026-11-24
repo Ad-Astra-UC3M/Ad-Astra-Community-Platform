@@ -5,16 +5,17 @@
 
 import { eq } from "drizzle-orm";
 import { getDb, type AppDb, type AppDbOrTx } from "../../db/client";
-import { profiles, talentProfiles } from "../../db/schema";
+import { avatarDeletions, profiles, talentProfiles } from "../../db/schema";
 import type { AvatarStorage } from "../storage/neon-object-storage";
 import {
   buildAvatarObjectKey,
   contentTypeFromAvatarKey,
   isValidAvatarKey,
-  validateAvatarBytes,
   type AvatarMimeType,
   type AvatarValidationError,
 } from "./avatar-validation";
+import { prepareAvatarImage } from "./avatar-image";
+import { flushAvatarDeletions } from "./avatar-cleanup";
 import { isUuid, profileExists } from "./identity";
 
 export type UploadProfileAvatarError =
@@ -29,7 +30,7 @@ export type UploadProfileAvatarResult =
 
 export type RemoveProfileAvatarResult =
   | { ok: true; removed: boolean }
-  | { ok: false; error: "missing" };
+  | { ok: false; error: "missing" | "cleanup_pending" };
 
 export interface LoadedProfileAvatar {
   body: Uint8Array;
@@ -86,8 +87,8 @@ async function loadAvatarFromStorage(
 }
 
 /**
- * Comprueba la imagen subida por su cabecera mágica, la guarda bajo una nueva clave en el bucket
- * privado, actualiza `public.profiles` en transacción y borra la foto previa al confirmar. Si falla la
+ * Decodifica, redimensiona y comprime la imagen subida, la guarda bajo una nueva clave en el bucket
+ * privado, actualiza `public.profiles` en transacción y encola la foto previa para borrado reintentable. Si falla la
  * escritura en PostgreSQL, intenta limpiar el nuevo objeto para no dejar huérfanos en Neon Storage.
  *
  * @param personId - UUID del titular de la sesión.
@@ -108,7 +109,7 @@ export async function uploadProfileAvatar(
     return { ok: false, error: "missing" };
   }
 
-  const validated = validateAvatarBytes(bytes);
+  const validated = await prepareAvatarImage(bytes);
   if (!validated.ok) {
     return { ok: false, error: validated.error };
   }
@@ -125,50 +126,41 @@ export async function uploadProfileAvatar(
   const timestamp = resolveTimestamp(now);
   const newKey = buildAvatarObjectKey(personId, validated.extension);
 
-  try {
-    await storage.putObject(newKey, bytes, validated.mimeType);
-  } catch {
-    return { ok: false, error: "storage_error" };
-  }
-
-  let outcome: { kind: "missing" } | { kind: "updated"; previousKey: string | null };
-
+  // La tarea se confirma antes de subir bytes. Si PostgreSQL cae tras PUT, queda una
+  // referencia durable para el siguiente reintento de limpieza.
+  await database.insert(avatarDeletions).values({ key: newKey, personId });
+  let outcome: { kind: "missing" | "storage_error" } | { kind: "updated" };
   try {
     outcome = await database.transaction(async (tx: AppDbOrTx) => {
-      const [existing] = await tx
-        .select({ id: profiles.id, avatarKey: profiles.avatarKey })
-        .from(profiles)
-        .where(eq(profiles.id, personId))
-        .for("update");
-
-      if (!existing) {
-        return { kind: "missing" as const };
+      // La limpieza bloquea la misma tarea: no puede borrar una subida en curso.
+      // Si la consumió antes de llegar aquí, abortamos sin subir ningún archivo.
+      const [reservation] = await tx.select({ key: avatarDeletions.key }).from(avatarDeletions)
+        .where(eq(avatarDeletions.key, newKey)).for("update");
+      if (!reservation) return { kind: "storage_error" as const };
+      const [existing] = await tx.select({ id: profiles.id, avatarKey: profiles.avatarKey })
+        .from(profiles).where(eq(profiles.id, personId)).for("update");
+      if (!existing) return { kind: "missing" as const };
+      try {
+        await storage.putObject(newKey, validated.body, validated.mimeType);
+      } catch {
+        return { kind: "storage_error" as const };
       }
-
-      await tx
-        .update(profiles)
-        .set({
-          avatarKey: newKey,
-          avatarUpdatedAt: timestamp,
-          updatedAt: timestamp,
-        })
+      if (existing.avatarKey) {
+        await tx.insert(avatarDeletions).values({ key: existing.avatarKey, personId }).onConflictDoNothing();
+      }
+      await tx.update(profiles).set({ avatarKey: newKey, avatarUpdatedAt: timestamp, updatedAt: timestamp })
         .where(eq(profiles.id, personId));
-
-      return { kind: "updated" as const, previousKey: existing.avatarKey };
+      await tx.delete(avatarDeletions).where(eq(avatarDeletions.key, newKey));
+      return { kind: "updated" as const };
     });
   } catch (error) {
-    await storage.deleteObject(newKey).catch(() => undefined);
+    // Si COMMIT se confirmó, la tarea ya no existe; si hizo rollback, permanece.
+    // Un fallo de base de datos aquí conserva la reserva para mantenimiento posterior.
+    await flushAvatarDeletions(database, storage, personId).catch(() => false);
     throw error;
   }
-
-  if (outcome.kind === "missing") {
-    await storage.deleteObject(newKey).catch(() => undefined);
-    return { ok: false, error: "missing" };
-  }
-
-  if (outcome.previousKey && outcome.previousKey !== newKey) {
-    await storage.deleteObject(outcome.previousKey).catch(() => undefined);
-  }
+  await flushAvatarDeletions(database, storage, personId);
+  if (outcome.kind !== "updated") return { ok: false, error: outcome.kind };
 
   return {
     ok: true,
@@ -178,14 +170,14 @@ export async function uploadProfileAvatar(
 }
 
 /**
- * Retira la foto de perfil actual en PostgreSQL dentro de una transacción y elimina el objeto previo
+ * Retira la foto de perfil actual y encola el borrado en una misma transacción; elimina el objeto previo
  * en Neon Object Storage tras el commit. Repetirla sobre un perfil sin foto resulta idempotente.
  *
  * @param personId - UUID del titular autenticado.
  * @param storage - Adaptador `AvatarStorage` o `null`.
  * @param db - Conexión opcional para pruebas.
  * @param now - Marca temporal opcional para actualizar `updatedAt`.
- * @returns `{ ok: true, removed }` o `{ ok: false, error: "missing" }` si no existe el perfil.
+ * @returns Confirmación o error: perfil ausente o borrado físico pendiente de completar.
  */
 export async function removeProfileAvatar(
   personId: string,
@@ -201,42 +193,24 @@ export async function removeProfileAvatar(
   const timestamp = resolveTimestamp(now);
 
   const outcome = await database.transaction(async (tx: AppDbOrTx) => {
-    const [existing] = await tx
-      .select({ id: profiles.id, avatarKey: profiles.avatarKey })
-      .from(profiles)
-      .where(eq(profiles.id, personId))
-      .for("update");
-
-    if (!existing) {
-      return { kind: "missing" as const };
-    }
+    const [existing] = await tx.select({ id: profiles.id, avatarKey: profiles.avatarKey })
+      .from(profiles).where(eq(profiles.id, personId)).for("update");
+    if (!existing) return { kind: "missing" as const };
     if (!existing.avatarKey) {
-      return { kind: "empty" as const };
+      const [pending] = await tx.select({ key: avatarDeletions.key }).from(avatarDeletions)
+        .where(eq(avatarDeletions.personId, personId)).limit(1);
+      return { kind: pending ? "pending" as const : "empty" as const };
     }
-
-    await tx
-      .update(profiles)
-      .set({
-        avatarKey: null,
-        avatarUpdatedAt: null,
-        updatedAt: timestamp,
-      })
+    await tx.insert(avatarDeletions).values({ key: existing.avatarKey, personId }).onConflictDoNothing();
+    await tx.update(profiles).set({ avatarKey: null, avatarUpdatedAt: null, updatedAt: timestamp })
       .where(eq(profiles.id, personId));
-
-    return { kind: "removed" as const, previousKey: existing.avatarKey };
+    return { kind: "removed" as const };
   });
+  if (outcome.kind === "missing") return { ok: false, error: "missing" };
+  const complete = await flushAvatarDeletions(database, storage, personId);
+  if (!complete) return { ok: false, error: "cleanup_pending" };
+  return { ok: true, removed: outcome.kind !== "empty" };
 
-  if (outcome.kind === "missing") {
-    return { ok: false, error: "missing" };
-  }
-  if (outcome.kind === "empty") {
-    return { ok: true, removed: false };
-  }
-
-  if (storage) {
-    await storage.deleteObject(outcome.previousKey).catch(() => undefined);
-  }
-  return { ok: true, removed: true };
 }
 
 /**

@@ -12,8 +12,8 @@ export const AVATAR_ALLOWED_MIME_TYPES = [
   "image/webp",
 ] as const;
 
-export type AvatarMimeType = (typeof AVATAR_ALLOWED_MIME_TYPES)[number];
-export type AvatarExtension = "jpg" | "png" | "webp";
+export type AvatarMimeType = (typeof AVATAR_ALLOWED_MIME_TYPES)[number] | "image/avif";
+export type AvatarExtension = "jpg" | "png" | "webp" | "avif";
 
 export type AvatarValidationError =
   | "empty_file"
@@ -25,7 +25,7 @@ export type AvatarValidationResult =
   | { ok: false; error: AvatarValidationError };
 
 export const AVATAR_KEY_PATTERN =
-  /^avatars\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)$/;
+  /^avatars\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp|avif)$/;
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -36,6 +36,7 @@ const CONTENT_TYPE_BY_EXT: Record<AvatarExtension, AvatarMimeType> = {
   jpg: "image/jpeg",
   png: "image/png",
   webp: "image/webp",
+  avif: "image/avif",
 };
 
 /**

@@ -123,6 +123,7 @@ export async function uploadProfileAvatarAction(formData: FormData) {
  */
 export async function removeProfileAvatarAction() {
   const result = await removeMyProfileAvatar();
+  if (!result.ok && result.error === "cleanup_pending") revalidateAvatarViews();
   if (!result.ok) {
     redirect(`/profile?error=${result.error}`);
   }

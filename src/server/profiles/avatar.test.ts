@@ -6,11 +6,13 @@
 
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { describe, it } from "node:test";
+import sharp from "sharp";
+import { before, describe, it } from "node:test";
 import { eq } from "drizzle-orm";
 
 import { createTestDb, type AppDb } from "../../db/client";
-import { profiles, talentProfiles } from "../../db/schema";
+import { avatarDeletions, profiles, talentProfiles } from "../../db/schema";
+import { flushAvatarDeletions } from "./avatar-cleanup";
 import { createMemoryAvatarStorage } from "../storage/avatar-storage";
 import type { AvatarStorage } from "../storage/neon-object-storage";
 import {
@@ -30,15 +32,13 @@ import {
   validateAvatarBytes,
 } from "./avatar-validation";
 
-const SAMPLE_PNG = new Uint8Array([
-  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
-]);
-
-const SAMPLE_JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
-
-const SAMPLE_WEBP = new Uint8Array([
-  0x52, 0x49, 0x46, 0x46, 0x18, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50,
-]);
+const SAMPLE_PNG = new Uint8Array(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64"));
+let SAMPLE_JPEG: Uint8Array;
+let SAMPLE_WEBP: Uint8Array;
+before(async () => {
+  SAMPLE_JPEG = new Uint8Array(await sharp(SAMPLE_PNG).jpeg().toBuffer());
+  SAMPLE_WEBP = new Uint8Array(await sharp(SAMPLE_PNG).webp().toBuffer());
+});
 
 /**
  * Inserta un perfil mínimo válido en PGlite para ejercitar operaciones de avatar.
@@ -140,12 +140,12 @@ describe("profile avatar validation & repository (PostgreSQL + AvatarStorage)", 
       const firstUpload = await uploadProfileAvatar(student.id, SAMPLE_PNG, storage, db, t1);
       assert.equal(firstUpload.ok, true);
       if (!firstUpload.ok) return;
-      assert.match(firstUpload.avatarKey, new RegExp(`^avatars/${student.id}/.+\\.png$`));
+      assert.match(firstUpload.avatarKey, new RegExp(`^avatars/${student.id}/.+\\.(webp|avif)$`));
 
       const read1 = await readProfileAvatar(student.id, storage, db);
       assert.ok(read1);
-      assert.equal(read1.contentType, "image/png");
-      assert.deepEqual(read1.body, SAMPLE_PNG);
+      assert.match(read1.contentType, /^image\/(webp|avif)$/);
+      assert.ok((await sharp(read1.body).metadata()).width);
       assert.equal(read1.avatarUpdatedAt.toISOString(), t1.toISOString());
 
       // Admin talent avatar read is blocked until the profile actually has a talent_profiles row
@@ -157,7 +157,7 @@ describe("profile avatar validation & repository (PostgreSQL + AvatarStorage)", 
       });
       const talentRead = await readTalentProfileAvatar(student.id, storage, db);
       assert.ok(talentRead);
-      assert.equal(talentRead.contentType, "image/png");
+      assert.match(talentRead.contentType, /^image\/(webp|avif)$/);
 
       // Replace avatar with WebP -> old PNG object is removed from storage
       const t2 = new Date("2026-11-24T10:05:00Z");
@@ -169,8 +169,8 @@ describe("profile avatar validation & repository (PostgreSQL + AvatarStorage)", 
 
       const read2 = await readProfileAvatar(student.id, storage, db);
       assert.ok(read2);
-      assert.equal(read2.contentType, "image/webp");
-      assert.deepEqual(read2.body, SAMPLE_WEBP);
+      assert.match(read2.contentType, /^image\/(webp|avif)$/);
+      assert.ok((await sharp(read2.body).metadata()).width);
 
       // Remove avatar clears DB metadata and deletes object from storage; second call is idempotent
       const t3 = new Date("2026-11-24T10:10:00Z");
@@ -257,8 +257,13 @@ describe("profile avatar validation & repository (PostgreSQL + AvatarStorage)", 
       };
 
       const failingTxDb = Object.create(db) as AppDb;
-      failingTxDb.transaction = async () => {
-        throw new Error("Simulated PostgreSQL failure");
+      let transactionCalls = 0;
+      failingTxDb.transaction = async (fn, config) => {
+        if (transactionCalls++ > 0) throw new Error("Simulated PostgreSQL failure");
+        return db.transaction(async (tx) => {
+          await fn(tx);
+          throw new Error("Simulated PostgreSQL failure");
+        }, config);
       };
 
       await assert.rejects(
@@ -266,16 +271,87 @@ describe("profile avatar validation & repository (PostgreSQL + AvatarStorage)", 
         /Simulated PostgreSQL failure/,
       );
       assert.equal(uploadedKeys.length, 1);
+      // Si PostgreSQL falla también al limpiar, la tarea queda persistida para el siguiente intento.
+      const unavailableDb = Object.create(db) as AppDb;
+      unavailableDb.select = () => { throw new Error("Database still unavailable"); };
+      assert.equal(await flushAvatarDeletions(unavailableDb, trackedStorage, student.id), false);
+      assert.equal((await db.select().from(avatarDeletions)).length, 1);
+      assert.equal(await flushAvatarDeletions(db, trackedStorage, student.id), true);
       assert.deepEqual(deletedKeys, uploadedKeys);
       assert.equal(await storage.getObject(uploadedKeys[0]), null);
 
       const intact = await readProfileAvatar(student.id, storage, db);
       assert.ok(intact);
-      assert.equal(intact.contentType, "image/png");
-      assert.deepEqual(intact.body, SAMPLE_PNG);
+      assert.match(intact.contentType, /^image\/(webp|avif)$/);
+      assert.ok((await sharp(intact.body).metadata()).width);
     } finally {
       await db.close();
     }
+  });
+
+  it("keeps failed deletions retryable and reports unavailable storage", async () => {
+    const db = await createTestDb();
+    try {
+      const storage = createMemoryAvatarStorage();
+      const student = await createProfile(db);
+      const uploaded = await uploadProfileAvatar(student.id, SAMPLE_PNG, storage, db);
+      assert.ok(uploaded.ok);
+      if (!uploaded.ok) return;
+      const failingStorage = { ...storage, async deleteObject() { throw new Error("offline"); } };
+      assert.deepEqual(await removeProfileAvatar(student.id, failingStorage, db), { ok: false, error: "cleanup_pending" });
+      assert.ok(await storage.getObject(uploaded.avatarKey));
+      assert.deepEqual(await removeProfileAvatar(student.id, null, db), { ok: false, error: "cleanup_pending" });
+      assert.deepEqual(await removeProfileAvatar(student.id, storage, db), { ok: true, removed: true });
+      assert.equal(await storage.getObject(uploaded.avatarKey), null);
+    } finally {
+      await db.close();
+    }
+  });
+
+  it("hides the current photo while storage is unconfigured and completes its deletion later", async () => {
+    const db = await createTestDb();
+    try {
+      const storage = createMemoryAvatarStorage();
+      const student = await createProfile(db);
+      const uploaded = await uploadProfileAvatar(student.id, SAMPLE_PNG, storage, db);
+      assert.ok(uploaded.ok);
+      if (!uploaded.ok) return;
+      assert.deepEqual(await removeProfileAvatar(student.id, null, db), { ok: false, error: "cleanup_pending" });
+      assert.equal(await readProfileAvatar(student.id, storage, db), null);
+      assert.ok(await storage.getObject(uploaded.avatarKey));
+      assert.equal((await db.select().from(avatarDeletions)).length, 1);
+      assert.deepEqual(await removeProfileAvatar(student.id, storage, db), { ok: true, removed: true });
+      assert.equal(await storage.getObject(uploaded.avatarKey), null);
+    } finally { await db.close(); }
+  });
+
+  it("preserves failed replacement cleanups and the committed image after a lost commit response", async () => {
+    const db = await createTestDb();
+    try {
+      const storage = createMemoryAvatarStorage();
+      const student = await createProfile(db);
+      const first = await uploadProfileAvatar(student.id, SAMPLE_PNG, storage, db);
+      assert.ok(first.ok);
+      if (!first.ok) return;
+      const offlineDelete = { ...storage, async deleteObject() { throw new Error("offline"); } };
+      const second = await uploadProfileAvatar(student.id, SAMPLE_WEBP, offlineDelete, db);
+      assert.ok(second.ok);
+      assert.equal((await db.select().from(avatarDeletions)).length, 1);
+      assert.ok(await storage.getObject(first.avatarKey));
+      await removeProfileAvatar(student.id, storage, db);
+      assert.equal((await db.select().from(avatarDeletions)).length, 0);
+      assert.equal(await storage.getObject(first.avatarKey), null);
+
+      const uncertainDb = Object.create(db) as AppDb;
+      uncertainDb.transaction = async (fn, config) => {
+        await db.transaction(fn, config);
+        throw new Error("Lost commit response");
+      };
+      await assert.rejects(uploadProfileAvatar(student.id, SAMPLE_PNG, storage, uncertainDb), /Lost commit response/);
+      const current = await readProfileAvatar(student.id, storage, db);
+      assert.ok(current, "never compensate by deleting an image still referenced by the committed profile");
+      await removeProfileAvatar(student.id, storage, db);
+    } finally { await db.close(); }
   });
 
   it("builds private HTTP avatar responses with nosniff and no-store error headers", async () => {
@@ -294,7 +370,7 @@ describe("profile avatar validation & repository (PostgreSQL + AvatarStorage)", 
     });
     assert.equal(ok.status, 200);
     assert.equal(ok.headers.get("content-type"), "image/png");
-    assert.equal(ok.headers.get("cache-control"), "private, max-age=3600");
+    assert.equal(ok.headers.get("cache-control"), "no-store");
     assert.equal(ok.headers.get("x-content-type-options"), "nosniff");
     assert.equal(ok.headers.get("content-disposition"), "inline");
     assert.equal(ok.headers.get("vary"), "Cookie");

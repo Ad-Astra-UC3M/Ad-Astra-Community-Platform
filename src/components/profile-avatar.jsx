@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+
 /**
  * @file Componente visual reutilizable para mostrar la foto de perfil privada o, en su ausencia, un
  * monograma circular con las iniciales del titular. Sin dependencias de servidor para funcionar en
@@ -76,6 +80,7 @@ export function ProfileAvatar({
   decorative = false,
   className = "",
 }) {
+  const [failedSrc, setFailedSrc] = useState(null);
   const dims = sizeClasses[size] ?? sizeClasses.md;
   const displayName = resolveDisplayName({ name, firstName, lastName });
   const initials =
@@ -83,10 +88,11 @@ export function ProfileAvatar({
       ? buildInitials(firstName, lastName)
       : buildInitials(firstName || displayName);
 
-  if (src) {
+  if (src && src !== failedSrc) {
     return (
       <img
         src={src}
+        onError={() => setFailedSrc(src)}
         alt={decorative ? "" : `Foto de perfil de ${displayName}`}
         aria-hidden={decorative ? "true" : undefined}
         className={`${dims} shrink-0 rounded-full border border-brand-line bg-brand-surface object-cover ${className}`}

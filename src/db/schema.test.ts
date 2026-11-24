@@ -34,6 +34,7 @@ const EXPECTED_MVP_TABLES = [
   "activities",
   "activity_images",
   "admin_audit_logs",
+  "avatar_deletions",
   "bookmarks",
   "deletion_requests",
   "opportunities",
@@ -77,8 +78,8 @@ async function insertValidProfile(
   return created;
 }
 
-describe("PostgreSQL MVP schema (13 tables) on PGlite", () => {
-  it("applies drizzle/*.sql migrations idempotently and preserves the exact 13 MVP tables in public", async () => {
+describe("PostgreSQL MVP schema (14 tables) on PGlite", () => {
+  it("applies drizzle/*.sql migrations idempotently and preserves the exact 14 MVP tables in public", async () => {
     const db = await createTestDb();
     try {
       const result = await db.execute<{ table_name: string }>(sql`
@@ -191,7 +192,7 @@ describe("PostgreSQL MVP schema (13 tables) on PGlite", () => {
       assert.equal(profile.avatarUpdatedAt, null);
 
       const now = new Date("2026-11-24T10:00:00Z");
-      const validKey = `avatars/${profile.id}/${randomUUID()}.webp`;
+      const validKey = `avatars/${profile.id}/${randomUUID()}.avif`;
       const [withAvatar] = await db
         .update(profiles)
         .set({ avatarKey: validKey, avatarUpdatedAt: now })

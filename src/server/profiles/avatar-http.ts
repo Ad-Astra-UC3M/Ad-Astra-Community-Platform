@@ -20,7 +20,7 @@ export function buildEmptyNoStoreResponse(status: 401 | 404): NextResponse {
 }
 
 /**
- * Envuelve los bytes binarios del avatar con cabeceras privadas (`private, max-age=3600`,
+ * Envuelve los bytes binarios del avatar con cabeceras privadas (`no-store`,
  * `X-Content-Type-Options: nosniff`, `Content-Disposition: inline`, `Vary: Cookie`).
  *
  * @param avatar - Carga binaria y tipo MIME seguro recuperados de almacenamiento.
@@ -33,7 +33,7 @@ export function buildPrivateAvatarResponse(
     status: 200,
     headers: {
       "Content-Type": avatar.contentType,
-      "Cache-Control": "private, max-age=3600",
+      "Cache-Control": "no-store",
       "X-Content-Type-Options": "nosniff",
       "Content-Disposition": "inline",
       Vary: "Cookie",

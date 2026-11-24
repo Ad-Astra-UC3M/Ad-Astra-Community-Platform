@@ -34,7 +34,7 @@ function hmac(key: string | Buffer, message: string): Buffer {
 }
 
 describe("Neon Object Storage S3 client & avatar storage adapters", () => {
-  it("infers region from Neon Storage S3 endpoint and falls back to eu-central-1", () => {
+  it("infers the region from Neon Storage hostnames with or without a cluster label", () => {
     assert.equal(
       inferRegionFromEndpoint("https://br-cool-star-1234.storage.eu-central-1.aws.neon.tech"),
       "eu-central-1",
@@ -43,7 +43,18 @@ describe("Neon Object Storage S3 client & avatar storage adapters", () => {
       inferRegionFromEndpoint("https://br-test.storage.us-east-2.aws.neon.tech/"),
       "us-east-2",
     );
-    assert.equal(inferRegionFromEndpoint("https://custom-s3.example.org"), "eu-central-1");
+    assert.equal(
+      inferRegionFromEndpoint("https://br-europe.storage.c-8.eu-central-1.aws.neon.tech"),
+      "eu-central-1",
+    );
+    assert.equal(
+      inferRegionFromEndpoint("https://br-ohio.storage.c-2.us-east-2.aws.neon.tech/"),
+      "us-east-2",
+    );
+    assert.throws(
+      () => inferRegionFromEndpoint("https://example.org/br-test.storage.us-east-2.aws.neon.tech"),
+      /AWS_REGION/,
+    );
   });
 
   it("encodes S3 path segments according to RFC 3986 and builds deterministic AWS SigV4 signatures", () => {
@@ -253,17 +264,25 @@ describe("Neon Object Storage S3 client & avatar storage adapters", () => {
     );
 
     const cfg = resolveNeonStorageConfigFromEnv({
-      AWS_ENDPOINT_URL_S3: " https://br-1.storage.us-east-1.aws.neon.tech ",
+      AWS_ENDPOINT_URL_S3: " https://br-1.storage.c-2.us-east-2.aws.neon.tech ",
       AWS_ACCESS_KEY_ID: " nak_live ",
       AWS_SECRET_ACCESS_KEY: " nsk_live ",
       NEON_STORAGE_BUCKET: " ad-astra-avatars ",
     });
     assert.deepEqual(cfg, {
-      endpoint: "https://br-1.storage.us-east-1.aws.neon.tech",
+      endpoint: "https://br-1.storage.c-2.us-east-2.aws.neon.tech",
       accessKeyId: "nak_live",
       secretAccessKey: "nsk_live",
       bucket: "ad-astra-avatars",
-      region: "us-east-1",
+      region: "us-east-2",
     });
+
+    assert.equal(resolveNeonStorageConfigFromEnv({
+      AWS_ENDPOINT_URL_S3: "https://custom-s3.example.org",
+      AWS_ACCESS_KEY_ID: "nak",
+      AWS_SECRET_ACCESS_KEY: "nsk",
+      AWS_REGION: "ap-southeast-1",
+      NEON_STORAGE_BUCKET: "ad-astra-avatars",
+    })?.region, "ap-southeast-1");
   });
 });

@@ -17,6 +17,8 @@ import { getDeletionRequest, getMyDeletionRequest, listDeletionRequests } from "
 import { getBasicProfile, getDisseminationStatus, getTalentProfile } from "./repository";
 import { getTalentAdminDetail, searchTalentProfiles, type TalentSearchFilters } from "./talent-consultation";
 import { currentUser, requireCapability, requireUser } from "../auth/access";
+import { getDb } from "../../db/client";
+import { hasAvatarDeletions } from "./avatar-cleanup";
 import { getAvatarStorage } from "../storage/avatar-storage";
 import { requestAccountDeletion, resolveDeletionRequest } from "./deletion-requests";
 import {
@@ -107,11 +109,16 @@ export async function reviewDeletionRequest(
 /**
  * Exige sesión y toma su identificador para localizar la cuenta que muestra ProfilePage.
  *
- * @returns Perfil básico del titular o null si falta.
+ * @returns Perfil básico y estado de limpieza del avatar, autorizados con una sola consulta de sesión, o null si falta.
  */
 export async function getMyProfile() {
   const user = await requireUser("/profile");
-  return getBasicProfile(user.personId);
+  const db = await getDb();
+  const [profile, avatarCleanupPending] = await Promise.all([
+    getBasicProfile(user.personId, db),
+    hasAvatarDeletions(user.personId, db),
+  ]);
+  return profile ? { ...profile, avatarCleanupPending } : null;
 }
 
 /**
