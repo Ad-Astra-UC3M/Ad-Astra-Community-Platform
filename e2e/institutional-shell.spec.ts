@@ -19,6 +19,8 @@ type HeaderExpectation = {
   activeLabel?: string;
   /** Entrada activa del menú de cuenta. */
   accountActiveLabel?: string;
+  /** Nombre de la cuenta que encabeza el menú de cuenta. */
+  accountName?: string;
 };
 
 const memberLinks: Destination[] = [
@@ -111,7 +113,9 @@ async function expectHeaderNav(page: Page, expected: HeaderExpectation) {
   if (expected.accountActiveLabel) {
     await expect(menu.getByRole("menuitem", { name: expected.accountActiveLabel, exact: true })).toHaveAttribute("aria-current", "page");
   }
-  await expect(menu.getByRole("group", { name: /admin|alumnos|uc3m/i })).toHaveCount(1);
+  if (expected.accountName) {
+    await expect(menu.getByRole("group", { name: expected.accountName })).toHaveCount(1);
+  }
 
   // La opción activa por teclado debe distinguirse a simple vista, no solo por un fondo casi igual al menú.
   await page.keyboard.press("ArrowDown");
@@ -191,6 +195,7 @@ test("la navegación y el pie institucional acompañan al visitante, miembro y a
     cta: { label: "Mi tarjeta QR", href: "/qr-card" },
     links: memberLinks,
     accountLinks: memberAccountLinks,
+    accountName: E2E_ACCOUNTS.student.name,
     activeLabel: "Inicio",
   });
   await expectBottomNav(page, "Inicio");
@@ -201,6 +206,7 @@ test("la navegación y el pie institucional acompañan al visitante, miembro y a
     cta: { label: "Mi tarjeta QR", href: "/qr-card" },
     links: memberLinks,
     accountLinks: memberAccountLinks,
+    accountName: E2E_ACCOUNTS.student.name,
     activeLabel: "Actividades",
   });
   await expectBottomNav(page, "Actividades");
@@ -211,6 +217,7 @@ test("la navegación y el pie institucional acompañan al visitante, miembro y a
     cta: { label: "Mi tarjeta QR", href: "/qr-card" },
     links: memberLinks,
     accountLinks: memberAccountLinks,
+    accountName: E2E_ACCOUNTS.student.name,
     accountActiveLabel: "Difusión y privacidad",
   });
   await expectBottomNav(page, "Perfil");
@@ -228,6 +235,7 @@ test("la navegación y el pie institucional acompañan al visitante, miembro y a
     cta: { label: "Mi tarjeta QR", href: "/qr-card" },
     links: memberLinks,
     accountLinks: [...memberAccountLinks, { label: "Panel administrativo", href: "/admin" }],
+    accountName: E2E_ACCOUNTS.admin.name,
     accountActiveLabel: "Panel administrativo",
   });
   await expect(header.getByRole("link", { name: "Gestión" })).toHaveCount(0);
