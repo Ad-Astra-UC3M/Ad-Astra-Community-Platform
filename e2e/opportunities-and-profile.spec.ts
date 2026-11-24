@@ -191,6 +191,42 @@ test("foto de perfil privada: subida, validación, sustitución, consulta de tal
   const summarySection = page.locator("section[aria-label='Resumen de identidad universitaria']");
   await expect(summarySection).toContainText("LO");
 
+  const photoDialog = page.getByRole("dialog", { name: "Tu foto de perfil" });
+  const addPhotoButton = page.getByRole("button", { name: "Añadir foto", exact: true });
+  await expect(page.getByLabel("Foto de perfil (JPEG, PNG o WebP, máx. 2 MB)", { exact: true })).toBeHidden();
+  await addPhotoButton.click();
+  await expect(photoDialog).toBeVisible();
+  await expect(photoDialog.getByRole("link", { name: /Crear mi avatar/ })).toHaveAttribute("href", "https://avatar.adastrauc3m.es/");
+  await expect(photoDialog).toContainText("Tu cara. Tu universo.");
+  const bannerWords = photoDialog.locator('aside[aria-label="Crea tu avatar Ad Astra"] h2 > span[aria-hidden="true"] > span');
+  const wordPositions = await bannerWords.evaluateAll((words) => words.map((word) => {
+    const rect = word.getBoundingClientRect();
+    return { x: rect.x, y: rect.y };
+  }));
+  const firstWordsByLine = wordPositions.filter((word, index) => index === 0 || Math.abs(word.y - wordPositions[index - 1].y) > 2);
+  expect(firstWordsByLine.length).toBeGreaterThan(1);
+  for (const word of firstWordsByLine) expect(Math.abs(word.x - firstWordsByLine[0].x)).toBeLessThan(1);
+
+  const pauseFaces = photoDialog.getByRole("button", { name: "Pausar animación de caras" });
+  await pauseFaces.click();
+  await expect(pauseFaces).toHaveAttribute("aria-pressed", "true");
+  await expect(async () => {
+    expect(await photoDialog.locator('img[src$="face-1.png"]').first().evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
+  }).toPass();
+  expect(await photoDialog.getByTestId("profile-photo-panel").evaluate((panel) => panel.scrollWidth <= panel.clientWidth)).toBe(true);
+  await photoDialog.getByRole("button", { name: "Cerrar ventana de foto" }).scrollIntoViewIfNeeded();
+  await photoDialog.screenshot({ path: `test-results/avatar-dialog-${info.project.name}.png` });
+  await pauseFaces.click();
+  await expect(pauseFaces).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByText(/Reducimos la imagen a un máximo/)).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(photoDialog).toBeHidden();
+  await expect(addPhotoButton).toBeFocused();
+  await addPhotoButton.click();
+  await photoDialog.getByRole("button", { name: "Cerrar ventana de foto" }).click();
+  await expect(photoDialog).toBeHidden();
+  await expect(addPhotoButton).toBeFocused();
+  await addPhotoButton.click();
   const fileInput = page.getByLabel("Foto de perfil (JPEG, PNG o WebP, máx. 2 MB)", { exact: true });
 
   // Rechaza SVG antes de persistir nada
@@ -201,7 +237,7 @@ test("foto de perfil privada: subida, validación, sustitución, consulta de tal
   });
   await page.getByRole("button", { name: "Guardar foto" }).click();
   await expect(page).toHaveURL(/\/profile\?error=invalid_image$/);
-  await expect(page.getByRole("main").getByRole("alert")).toContainText("JPEG, PNG o WebP");
+  await expect(photoDialog.getByRole("alert")).toContainText("JPEG, PNG o WebP");
   expect((await page.request.get("/api/profile/avatar")).status()).toBe(404);
 
   // Subida válida de PNG 1x1
@@ -236,11 +272,13 @@ test("foto de perfil privada: subida, validación, sustitución, consulta de tal
 
   const ownPngRes = await page.request.get("/api/profile/avatar");
   expect(ownPngRes.status()).toBe(200);
-  expect(ownPngRes.headers()["content-type"]).toBe("image/png");
-  expect(ownPngRes.headers()["cache-control"]).toBe("private, max-age=3600");
+  expect(ownPngRes.headers()["content-type"]).toMatch(/^image\/(webp|avif)$/);
+  expect(ownPngRes.headers()["cache-control"]).toBe("no-store");
   expect(ownPngRes.headers()["x-content-type-options"]).toBe("nosniff");
   expect(ownPngRes.headers()["content-disposition"]).toBe("inline");
   expect(ownPngRes.headers()["vary"]).toContain("Cookie");
+
+  await page.getByRole("button", { name: "Editar foto", exact: true }).click();
 
   // Sustitución por WebP 1x1 válido
   const webp1x1 = Buffer.from(
@@ -266,7 +304,7 @@ test("foto de perfil privada: subida, validación, sustitución, consulta de tal
 
   const ownWebpRes = await page.request.get("/api/profile/avatar");
   expect(ownWebpRes.status()).toBe(200);
-  expect(ownWebpRes.headers()["content-type"]).toBe("image/webp");
+  expect(ownWebpRes.headers()["content-type"]).toMatch(/^image\/(webp|avif)$/);
 
   // Completa perfil de talento y comprueba acceso autorizado vs denegado en /admin/talent
   await page.goto("/profile/talent");
@@ -290,7 +328,7 @@ test("foto de perfil privada: subida, validación, sustitución, consulta de tal
   }).toPass();
   const talentAvatarRes = await page.request.get(talentAvatarPath);
   expect(talentAvatarRes.status()).toBe(200);
-  expect(talentAvatarRes.headers()["cache-control"]).toBe("private, max-age=3600");
+  expect(talentAvatarRes.headers()["cache-control"]).toBe("no-store");
   expect(talentAvatarRes.headers()["x-content-type-options"]).toBe("nosniff");
 
   await signOut(page);
@@ -305,7 +343,8 @@ test("foto de perfil privada: subida, validación, sustitución, consulta de tal
   await signInAs(page, { email, password });
   await expect(page).toHaveURL(/\/home$/);
   await page.goto("/profile");
-  await page.getByRole("button", { name: "Quitar foto" }).click();
+  await page.getByRole("button", { name: "Editar foto", exact: true }).click();
+  await photoDialog.getByRole("button", { name: "Quitar foto" }).click();
   await expect(page).toHaveURL(/\/profile\?status=avatar_removed$/);
   await expect(page.getByRole("status")).toContainText("Has eliminado tu foto de perfil.");
   expect((await page.request.get("/api/profile/avatar")).status()).toBe(404);

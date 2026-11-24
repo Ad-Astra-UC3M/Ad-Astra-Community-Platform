@@ -41,6 +41,7 @@ const errorMessages = new Map([
   ["invalid_image", "Formato no admitido. Usa una imagen real en formato JPEG, PNG o WebP."],
   ["storage_unavailable", "El almacenamiento de fotos de perfil no está configurado todavía en este entorno."],
   ["storage_error", "No se pudo guardar la foto en este momento. Inténtalo de nuevo."],
+  ["cleanup_pending", "Tu foto ya no se muestra. Falta completar su borrado del almacenamiento: pulsa Completar retirada para reintentarlo."],
 ]);
 
 const profileLinks = [
@@ -253,11 +254,13 @@ export default async function ProfilePage({ searchParams }) {
               </TextSpanWrapper2>
             </h2>
             <AvatarForm
-              key={avatarUrl ?? "none"}
+              key={`${avatarUrl ?? "none"}:${status ?? ""}:${error ?? ""}:${profile.avatarCleanupPending}`}
               currentAvatarUrl={avatarUrl}
               firstName={profile.firstName}
               lastName={profile.lastName}
               hasAvatar={hasAvatar}
+              cleanupPending={profile.avatarCleanupPending}
+              errorMessage={["empty_file", "file_too_large", "invalid_image", "storage_unavailable", "storage_error", "cleanup_pending"].includes(error) ? errorMessage : undefined}
               uploadAction={uploadProfileAvatarAction}
               removeAction={removeProfileAvatarAction}
             />

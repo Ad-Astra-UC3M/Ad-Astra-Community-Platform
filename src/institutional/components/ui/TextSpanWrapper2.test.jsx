@@ -33,3 +33,16 @@ test("TextSpanWrapper2 soporta hijos numéricos y etiqueta span manteniendo la a
   assert.match(html, /motion-safe:translate-y-full/);
   assert.match(html, /print:hidden/);
 });
+
+test("TextSpanWrapper2 permite contraer los espacios visibles entre palabras", () => {
+  const text = "Tu cara.  Tu universo.";
+  const preserved = renderToStaticMarkup(<TextSpanWrapper2>{text}</TextSpanWrapper2>);
+  const collapsed = renderToStaticMarkup(
+    <TextSpanWrapper2 collapseWhitespace>{text}</TextSpanWrapper2>,
+  );
+
+  assert.match(preserved, /class="whitespace-pre-wrap">  <\/span>/);
+  assert.match(collapsed, /<\/span> <span class="inline-block whitespace-nowrap">/);
+  assert.doesNotMatch(collapsed, /whitespace-pre-wrap/);
+  assert.match(collapsed, /aria-label="Tu cara\.  Tu universo\."/);
+});
