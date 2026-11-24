@@ -16,7 +16,7 @@ const heroMediaClass = [
   "relative isolate aspect-[16/10] min-w-0 md:aspect-auto md:min-h-[25rem] [--diagonal:clamp(56px,9vw,118px)]",
   "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:z-10 before:h-7 before:bg-brand-ink before:[clip-path:polygon(0_0,100%_0,0_87%)]",
   "after:pointer-events-none after:absolute after:inset-x-0 after:top-0 after:z-10 after:h-7 after:bg-brand-accent after:[clip-path:polygon(0_87%,100%_0,100%_14%,0_100%)]",
-  "md:before:inset-y-0 md:before:left-0 md:before:right-auto md:before:h-auto md:before:w-[var(--diagonal)] md:before:[clip-path:polygon(0_0,100%_0,0_100%)]",
+  "md:before:hidden",
   "md:after:inset-y-0 md:after:left-0 md:after:right-auto md:after:h-auto md:after:w-[calc(var(--diagonal)+6px)] md:after:[clip-path:polygon(calc(100%-6px)_0,100%_0,6px_100%,0_100%)]",
 ].join(" ");
 
@@ -60,7 +60,7 @@ export function CommunityLanding() {
             alt="Estudiantes conversan con integrantes de Ad Astra en el campus"
             fill
             sizes="(min-width: 48rem) 50vw, 100vw"
-            className="object-cover"
+            className="object-cover md:[clip-path:polygon(var(--diagonal)_0,100%_0,100%_100%,0_100%)]"
             preload
           />
         </figure>
