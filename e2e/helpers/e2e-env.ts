@@ -5,7 +5,7 @@
  */
 
 import { existsSync, readFileSync } from "node:fs";
-import type { Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 /**
  * Credenciales y nombres de las cuentas sintéticas recreadas por el seed.
@@ -117,6 +117,16 @@ export async function signInAs(
 }
 
 /**
+ * Espera a que terminen las transiciones CSS de un elemento (la barra al reaparecer o el menú al abrirse) para
+ * no interactuar con un control en movimiento.
+ * @param locator Elemento cuyas animaciones se esperan.
+ * @returns Una promesa que finaliza cuando no quedan animaciones en curso.
+ */
+async function finishAnimations(locator: Locator): Promise<void> {
+  await locator.evaluate((element) => Promise.all(element.getAnimations().map((animation) => animation.finished)));
+}
+
+/**
  * Abre el menú que contiene la cuenta: el menú móvil en pantallas estrechas o el menú de cuenta en
  * escritorio. Vuelve antes al inicio de la página para que la barra institucional esté visible.
  * @param page Página con una sesión activa.
@@ -125,9 +135,12 @@ export async function signInAs(
 export async function openAccountMenu(page: Page): Promise<"mobile" | "desktop"> {
   await page.evaluate(() => window.scrollTo(0, 0));
   const banner = page.getByRole("banner");
+  await expect(banner).toBeInViewport();
+  await finishAnimations(banner);
   const openMenu = banner.getByRole("button", { name: "Abrir menú" });
   if (await openMenu.isVisible()) {
     await openMenu.click();
+    await finishAnimations(page.getByRole("navigation", { name: "Navegación móvil" }));
     return "mobile";
   }
   await banner.getByRole("button", { name: /^Menú de cuenta de / }).click();

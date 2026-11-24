@@ -15,7 +15,10 @@ type HeaderExpectation = {
   cta: Destination;
   links: Destination[];
   accountLinks: Destination[];
+  /** Entrada activa de la navegación principal. */
   activeLabel?: string;
+  /** Entrada activa del menú de cuenta. */
+  accountActiveLabel?: string;
 };
 
 const memberLinks: Destination[] = [
@@ -72,8 +75,10 @@ async function expectHeaderNav(page: Page, expected: HeaderExpectation) {
     }
     await expect(nav.getByRole("link")).toHaveCount(all.length);
     await expect(nav.getByRole("button", { name: "Cerrar sesión" })).toBeVisible();
-    if (expected.activeLabel) {
-      await expect(nav.getByRole("link", { name: expected.activeLabel, exact: true })).toHaveAttribute("aria-current", "page");
+    const mobileActive = expected.activeLabel ?? expected.accountActiveLabel;
+    await expect(nav.locator('[aria-current="page"]')).toHaveCount(mobileActive ? 1 : 0);
+    if (mobileActive) {
+      await expect(nav.getByRole("link", { name: mobileActive, exact: true })).toHaveAttribute("aria-current", "page");
     }
     await header.getByRole("button", { name: "Cerrar menú" }).click();
     await expect(header.getByRole("navigation", { name: "Navegación móvil", includeHidden: true })).toBeHidden();
@@ -102,6 +107,17 @@ async function expectHeaderNav(page: Page, expected: HeaderExpectation) {
   }
   await expect(menu.getByRole("menuitem", { name: "Cerrar sesión" })).toBeVisible();
   await expect(menu.getByRole("menuitem")).toHaveCount(expected.accountLinks.length + 1);
+  await expect(menu.locator('[aria-current="page"]')).toHaveCount(expected.accountActiveLabel ? 1 : 0);
+  if (expected.accountActiveLabel) {
+    await expect(menu.getByRole("menuitem", { name: expected.accountActiveLabel, exact: true })).toHaveAttribute("aria-current", "page");
+  }
+  await expect(menu.getByRole("group", { name: /admin|alumnos|uc3m/i })).toHaveCount(1);
+
+  // La opción activa por teclado debe distinguirse a simple vista, no solo por un fondo casi igual al menú.
+  await page.keyboard.press("ArrowDown");
+  const focusedItem = menu.locator("[data-focus]");
+  await expect(focusedItem).toHaveCount(1);
+  expect(await focusedItem.evaluate((item) => getComputedStyle(item).textDecorationLine)).toContain("underline");
   await page.keyboard.press("Escape");
   await expect(menu).toBeHidden();
   await expect(accountButton).toBeFocused();
@@ -189,6 +205,16 @@ test("la navegación y el pie institucional acompañan al visitante, miembro y a
   });
   await expectBottomNav(page, "Actividades");
 
+  await page.goto("/profile/privacy");
+  await expectHeaderNav(page, {
+    homeHref: "/home",
+    cta: { label: "Mi tarjeta QR", href: "/qr-card" },
+    links: memberLinks,
+    accountLinks: memberAccountLinks,
+    accountActiveLabel: "Difusión y privacidad",
+  });
+  await expectBottomNav(page, "Perfil");
+
   await page.goto("/qr-card");
   await expect(header.getByRole("link", { name: "Mi tarjeta QR", exact: true })).toHaveAttribute("aria-current", "page");
   await expectBottomNav(page);
@@ -202,7 +228,7 @@ test("la navegación y el pie institucional acompañan al visitante, miembro y a
     cta: { label: "Mi tarjeta QR", href: "/qr-card" },
     links: memberLinks,
     accountLinks: [...memberAccountLinks, { label: "Panel administrativo", href: "/admin" }],
-    activeLabel: isNarrow(page) ? "Panel administrativo" : undefined,
+    accountActiveLabel: "Panel administrativo",
   });
   await expect(header.getByRole("link", { name: "Gestión" })).toHaveCount(0);
 
@@ -229,9 +255,12 @@ test("la navegación y el pie institucional acompañan al visitante, miembro y a
     return link.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2));
   })).toBeTruthy();
 
+  // Con el foco de teclado fuera de la barra, desplazarse hacia abajo la oculta; al volver a ella con
+  // Mayús+Tab (último control del encabezado) debe reaparecer.
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-  await page.waitForTimeout(400);
-  await page.getByRole("link", { name: "Ad Astra UC3M" }).focus();
+  await expect(header).not.toBeInViewport();
+  await page.keyboard.press("Shift+Tab");
+  expect(await header.evaluate((node) => node.contains(document.activeElement))).toBeTruthy();
   await expect(header).toBeInViewport();
 
   await page.goto("/qr-card");
