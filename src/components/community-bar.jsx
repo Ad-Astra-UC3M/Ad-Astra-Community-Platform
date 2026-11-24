@@ -1,20 +1,42 @@
-import { demoOrganizer, demoStudent, signOut } from "../demo/session";
+/**
+ * @file Barra de usuario autenticado que incluye RootLayout. Usa el usuario resuelto para mostrar la sesión
+ * y enlaza el formulario al cierre de sesión del servidor.
+ */
 
-export function CommunityBar({ role }) {
-  const organizer = role === "organizer";
+import Link from "next/link";
+import { signOut } from "../app/auth-actions";
+
+const linkClass =
+  "inline-flex min-h-[44px] items-center py-2 text-brand-primary underline underline-offset-4 transition-colors hover:text-brand-ink";
+
+const textButtonClass =
+  "min-h-[44px] cursor-pointer border-0 bg-transparent py-2 text-left text-brand-primary underline underline-offset-4 transition-colors hover:text-brand-ink";
+
+/**
+ * Muestra nombre, correo y acceso al panel si corresponde. El formulario invoca signOut.
+ *
+ * @param props.user - Usuario que entrega RootLayout después de resolver su sesión y capacidades.
+ */
+export function CommunityBar({ user }) {
+  const hasAdmin = Array.isArray(user?.capabilities) && user.capabilities.length > 0;
 
   return (
-    <aside className="community-bar session-bar" aria-label="Sesión de demostración">
-      <div className="frame session-row">
-        <p><strong>Modo demo</strong> · {organizer ? "Organizador" : "Estudiante"}</p>
-        <div className="session-actions">
-          <form action={organizer ? demoStudent : demoOrganizer}>
-            <button type="submit" className="text-button">
-              {organizer ? "Volver a estudiante" : "Probar como organizador"}
-            </button>
-          </form>
+    <aside
+      className="border-t border-brand-primary/30 bg-brand-soft/20 print:hidden"
+      aria-label="Sesión activa"
+    >
+      <div className="mx-auto flex w-full max-w-[80rem] flex-wrap items-center justify-between gap-x-6 px-6 py-1.5 text-[0.94rem] md:px-8">
+        <p>
+          <strong>{user.name}</strong> · <span>{user.email}</span>
+        </p>
+        <div className="flex flex-wrap items-center gap-x-6">
+          {hasAdmin && (
+            <Link href="/admin" className={linkClass}>
+              Panel administrativo
+            </Link>
+          )}
           <form action={signOut}>
-            <button type="submit" className="text-button">Cerrar sesión</button>
+            <button type="submit" className={textButtonClass}>Cerrar sesión</button>
           </form>
         </div>
       </div>

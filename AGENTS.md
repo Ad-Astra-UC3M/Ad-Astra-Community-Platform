@@ -2,7 +2,7 @@
 
 ## Retomar el trabajo
 
-Lee el [README](README.md) y la última entrada de la [bitácora](docs/development-log.md). Comprueba `git status --short --branch`, el historial reciente, el remoto y las PR abiertas. Identifica qué está integrado, qué cambio tiene revisión pendiente y en qué punto retomar las pruebas. El prototipo usa datos sintéticos. La arquitectura de producto prevé Neon y Neon Auth para la fase de integración.
+Lee el [README](README.md) y la última entrada de la [bitácora](docs/development-log.md). Comprueba `git status --short --branch`, el historial reciente, el remoto y las PR abiertas. Identifica qué está integrado, qué cambio tiene revisión pendiente y en qué punto retomar las pruebas. La aplicación usa PostgreSQL (Neon en despliegue y PGlite en pruebas) con Drizzle ORM y Neon Auth (variables en `.env.example`, comandos `db:generate`, `db:migrate` y `db:bootstrap-admin`).
 
 ## Repartir una funcionalidad
 
@@ -14,10 +14,13 @@ Lee el [README](README.md) y la última entrada de la [bitácora](docs/developme
 ## Criterios de implementación
 
 - Escribe los componentes React propios en JavaScript con extensión `.jsx`, incluidas páginas, layouts, adaptadores y pruebas que rendericen JSX. Los componentes de terceros pueden conservar `.tsx`.
+- Estiliza los componentes y páginas con **Tailwind CSS** y los tokens de tema definidos en `src/app/globals.css`, evitando hojas de CSS tradicional separadas.
 
 - Prioriza calidad, legibilidad y sencillez (no peso). Usa modelos y contratos explícitos. Valida datos externos y permisos en las fronteras y conserva los invariantes en la operación que escribe, evitando ruido defensivo innecesario cuando las interfaces y modelos de datos estén bien definidos.
 - Mantén rutas, subrutas, componentes y modelos en inglés, y la interfaz en español. Cuida una estructura de carpetas legible y accesible, organiza el código por recorrido y acerca sus pruebas. Extrae componentes cuando varias pantallas compartan un comportamiento concreto.
 - Para el diseño, consulta el manual de identidad y las guías de diseño, producto y componentes del repositorio `Ad-Astra-Landing-page`. Reutiliza activos institucionales apropiados y verifica los estados de interacción en móvil y escritorio.
+
+- Documenta cada fichero del backend y cada función nombrada en su código. La cabecera explica su responsabilidad. El JSDoc junto a la firma explica propósito, parámetros y su uso, resultado o efecto y relación con los llamadores. Cuando use una convención de Next.js, explica qué hace en ese flujo. Mantén el [mapa del backend](docs/backend/README.md) al día al mover archivos o cambiar decisiones.
 
 ## Integrar, revisar y entregar
 

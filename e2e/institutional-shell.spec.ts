@@ -1,5 +1,19 @@
-import { expect, test, type Locator } from "@playwright/test";
+/**
+ * Prueba Playwright del layout institucional compartido por visitantes, miembros
+ * y administradores. Cambia de sesión con las cuentas sembradas en PGlite y
+ * verifica enlaces, foco de teclado, anchura e impresión.
+ */
 
+import { expect, test, type Locator } from "@playwright/test";
+import { E2E_ACCOUNTS, signInAs, signOut } from "./helpers/e2e-env";
+
+/**
+ * Comprueba los destinos visibles del encabezado para el rol bajo prueba.
+ * Abre el menú móvil para evaluar los enlaces y espera a que desaparezca al cerrarlo.
+ * @param header Localizador del encabezado institucional.
+ * @param expected Destino del logotipo, CTA y lista exacta de enlaces del rol por comprobar.
+ * @returns Una promesa que finaliza al completar las aserciones y cerrar el menú si se abrió.
+ */
 async function expectHeaderNav(
   header: Locator,
   expected: { homeHref: string; cta: { label: string; href: string }; links: { label: string; href: string }[] },
@@ -17,16 +31,19 @@ async function expectHeaderNav(
   }
   await expect(nav.getByRole("link")).toHaveCount(expected.links.length);
 
-  if (isMobile) await header.getByRole("button", { name: "Cerrar menú" }).click();
+  if (isMobile) {
+    await header.getByRole("button", { name: "Cerrar menú" }).click();
+    await expect(header.getByRole("navigation", { name: "Navegación móvil", includeHidden: true })).toBeHidden();
+  }
 }
 
-test("la navegación y el pie institucional acompañan al visitante, estudiante y organizador", async ({ page }) => {
+test("la navegación y el pie institucional acompañan al visitante, miembro y administrador", async ({ page }) => {
   await page.goto("/");
   const header = page.getByRole("banner");
   const footer = page.getByRole("contentinfo");
   const logo = header.getByRole("img", { name: /Ad Astra/i }).first();
   await expect(logo).toBeVisible();
-  await expect.poll(() => logo.evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  await expect.poll(() => logo.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
 
   await expectHeaderNav(header, {
     homeHref: "/",
@@ -43,9 +60,10 @@ test("la navegación y el pie institucional acompañan al visitante, estudiante 
   await expect(footer.getByRole("link", { name: "Equipo", exact: true })).toHaveAttribute("href", /^https:\/\/www\.adastrauc3m\.es\//);
 
   const skip = page.getByRole("link", { name: "Saltar al contenido" });
-  await page.getByRole("button", { name: "Entrar como estudiante" }).click();
+  await signInAs(page, E2E_ACCOUNTS.student);
   await expect(page).toHaveURL(/\/home$/);
   await expect(footer).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
 
   await expectHeaderNav(header, {
     homeHref: "/home",
@@ -54,31 +72,37 @@ test("la navegación y el pie institucional acompañan al visitante, estudiante 
       { label: "Inicio", href: "/home" },
       { label: "Actividades", href: "/activities" },
       { label: "Mis actividades", href: "/my-activities" },
-      { label: "Tarjeta QR", href: "/qr-card" },
+      { label: "Oportunidades", href: "/opportunities" },
+      { label: "Marcadores", href: "/bookmarks" },
+      { label: "Mi perfil", href: "/profile" },
     ],
   });
-  await expect(page.getByRole("navigation", { name: "Navegación de la comunidad" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Abrir menú de Comunidad" })).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Probar como organizador" }).click();
+  await signOut(page);
+  await signInAs(page, E2E_ACCOUNTS.admin);
   await expect(page).toHaveURL(/\/admin$/);
   await expectHeaderNav(header, {
     homeHref: "/home",
-    cta: { label: "Gestión", href: "/admin" },
+    cta: { label: "Mi tarjeta QR", href: "/qr-card" },
     links: [
       { label: "Inicio", href: "/home" },
       { label: "Actividades", href: "/activities" },
+      { label: "Mis actividades", href: "/my-activities" },
+      { label: "Oportunidades", href: "/opportunities" },
+      { label: "Marcadores", href: "/bookmarks" },
+      { label: "Mi perfil", href: "/profile" },
       { label: "Gestión", href: "/admin" },
     ],
   });
 
-  await page.getByRole("button", { name: "Volver a estudiante" }).click();
+  await signOut(page);
+  await signInAs(page, E2E_ACCOUNTS.student);
   await expect(page).toHaveURL(/\/home$/);
 
   await skip.focus();
   await page.keyboard.press("Enter");
   await expect(page.locator("#main-content")).toBeFocused();
-  expect(await page.getByRole("heading", { level: 1 }).evaluate(heading => {
+  expect(await page.getByRole("heading", { level: 1 }).evaluate((heading) => {
     const box = heading.getBoundingClientRect();
     return heading.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2));
   })).toBeTruthy();
@@ -89,7 +113,7 @@ test("la navegación y el pie institucional acompañan al visitante, estudiante 
   await page.keyboard.press("Tab");
   const back = page.getByRole("link", { name: "Volver a actividades" });
   await expect(back).toBeFocused();
-  expect(await back.evaluate(link => {
+  expect(await back.evaluate((link) => {
     const box = link.getBoundingClientRect();
     return link.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2));
   })).toBeTruthy();

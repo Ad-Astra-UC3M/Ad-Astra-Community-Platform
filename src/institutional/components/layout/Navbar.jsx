@@ -7,10 +7,10 @@ import NavDropdown from "./NavDropdown";
 import { useEffect, useState, useRef } from "react";
 
 const navLinkClassName =
-	"inline-flex items-center whitespace-nowrap px-3 py-2 font-normal underline-offset-6 transition duration-200 hover:text-brand-accent hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent";
+	"inline-flex items-center whitespace-nowrap px-2.5 py-2 font-normal underline-offset-6 transition duration-200 hover:text-brand-accent hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent";
 
-export default function Navbar({ role }) {
-	const { homeHref, links, cta } = getCommunityNav(role);
+export default function Navbar({ authenticated = false, hasAdmin = false }) {
+	const { homeHref, links, cta } = getCommunityNav({ authenticated, hasAdmin });
 	const [hidden, setHidden] = useState(false);
 	const preventHide = useRef(false);
 	const unlockTimer = useRef(null);
@@ -95,7 +95,7 @@ export default function Navbar({ role }) {
 export function DesktopNavbar({ links = navItems }) {
 	return (
 		<nav aria-label="Navegación principal">
-			<ul className="flex flex-row items-center gap-4">
+			<ul className="flex flex-row items-center gap-1.5 xl:gap-3">
 				{links.map((item) => {
 					if (item.children) {
 						return <NavDropdown key={item.label} item={item} />;
