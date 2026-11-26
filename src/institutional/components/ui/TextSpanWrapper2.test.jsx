@@ -34,11 +34,13 @@ test("TextSpanWrapper2 soporta hijos numéricos y etiqueta span manteniendo la a
   assert.match(html, /print:hidden/);
 });
 
-test("TextSpanWrapper2 permite contraer los espacios visibles entre palabras", () => {
+test("TextSpanWrapper2 contrae por defecto los espacios entre palabras para que no queden al inicio de línea", () => {
+  // Un espacio con `whitespace-pre-wrap` sobrevive al salto de línea y desplaza la palabra siguiente
+  // («Hola, Ad / ␠Astra»); un espacio de texto normal desaparece al ajustar, como en la landing.
   const text = "Tu cara.  Tu universo.";
-  const preserved = renderToStaticMarkup(<TextSpanWrapper2>{text}</TextSpanWrapper2>);
-  const collapsed = renderToStaticMarkup(
-    <TextSpanWrapper2 collapseWhitespace>{text}</TextSpanWrapper2>,
+  const collapsed = renderToStaticMarkup(<TextSpanWrapper2>{text}</TextSpanWrapper2>);
+  const preserved = renderToStaticMarkup(
+    <TextSpanWrapper2 collapseWhitespace={false}>{text}</TextSpanWrapper2>,
   );
 
   assert.match(preserved, /class="whitespace-pre-wrap">  <\/span>/);

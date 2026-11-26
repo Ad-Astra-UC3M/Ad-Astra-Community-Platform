@@ -34,7 +34,8 @@ export function flattenText(node) {
  * @param props.children Contenido textual o interpolado que se anima letra a letra.
  * @param props.as Etiqueta raíz a renderizar (`h1`, `h2`, `span`, etc.).
  * @param props.animateOnLoad Anima la entrada hacia arriba al montarse en el navegador.
- * @param props.collapseWhitespace Usa espacios que el navegador contrae al ajustar las líneas del texto visible.
+ * @param props.collapseWhitespace Usa espacios que el navegador contrae al ajustar las líneas (por defecto), para
+ *   que ninguna línea empiece por un espacio; `false` conserva los espacios tal cual.
  * @param props.className Clases Tailwind de tamaño, color o trazado que sobreescriben la base.
  * @param props.classname Alias retrocompatible de `className`.
  * @param props.headingProps Resto de atributos HTML (`id`, etc.) reenviados al elemento raíz.
@@ -44,7 +45,7 @@ export default function TextSpanWrapper2({
   children,
   as: Heading = "h1",
   animateOnLoad = false,
-  collapseWhitespace = false,
+  collapseWhitespace = true,
   className = "",
   classname = "",
   ...headingProps
