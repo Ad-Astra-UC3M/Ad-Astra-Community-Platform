@@ -295,3 +295,10 @@ La revisión de Sol 6.2 con razonamiento `xhigh` señaló dos ajustes que se inc
 - Hallazgo menor corregido: a 320 px, «Actividades» en negrita (unos 65 px) desbordaba su hueco y quedaba a 1,7 px de «Tarjeta QR». El activo ya no cambia de grosor (lo marcan el color, el trazo del icono y la barra superior) y la etiqueta deja de limitarse a `max-w-full`, para que un exceso se reparta a ambos lados. La prueba de 320 px recorre ahora cada acceso activo.
 - Detalles corregidos: entre 1080 y 1279 px la navegación quedaba descentrada y saltaba al llegar a 1280; la columna central es `flex-none` con `px-4` en todo el tramo y las laterales `flex-1`, sin salto. Comentario de `navItems.js` precisado (hueco de unos 60 px). `LICENSE.md` reproduce también el aviso MIT de Hugeicons.
 - Comprobaciones tras las correcciones: `npm test` 102/102, `npm run typecheck`, `npm run build` y Playwright con 2 workers 29 pasadas y 1 omitida; cabecera revisada a 1080, 1200 y 1280 px.
+
+### Revisión final antes de fusionar · 2026-11-26
+
+- Revisor independiente (Opus 5.5, razonamiento alto, solo lectura) sobre `46a7654`: APTA para fusionar, sin bloqueos ni mayores. Ejecutó `npm test` 102/102, typecheck, build y Playwright con 2 workers (29 pasadas y 1 omitida); confirmó licencias, `overrides`, objetivos táctiles y coherencia de la documentación.
+- Detalles corregidos: el comentario de la marca del activo en `MemberBottomNav.jsx` ya no menciona la negrita, y `Navbar` devuelve el `<header>` sin un fragmento sobrante.
+- Menor sin cambiar, pendiente de decisión: por debajo de 1080 px, con sesión, la tarjeta QR aparece dos veces, como «Mi tarjeta QR» en la cabecera y «Tarjeta QR» en la barra inferior.
+- Comprobaciones tras los detalles: `npm test` 102/102, `npm run typecheck`, `npm run build` y `institutional-shell.spec.ts` con 2 workers (3 pasadas y 1 omitida).

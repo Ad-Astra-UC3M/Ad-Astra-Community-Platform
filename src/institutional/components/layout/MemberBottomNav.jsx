@@ -64,7 +64,7 @@ export function MemberBottomNav({ links, activeHref }) {
 										aria-hidden="true"
 										focusable="false"
 									/>
-									{/* Marca no cromática del activo: una barra sobre el icono, además del color y la negrita. */}
+									{/* Marca no cromática del activo: una barra sobre el icono, además del color y el trazo del icono. */}
 									{active && (
 										<span
 											data-active-indicator

@@ -83,69 +83,67 @@ export default function Navbar({ authenticated = false, hasAdmin = false, accoun
 	}, []);
 
 	return (
-		<>
-			<header
-				ref={headerRef}
-				onClickCapture={handleNavigationClick}
-				onFocusCapture={(event) => {
-					if (event.target.matches?.(":focus-visible")) setHidden(false);
-				}}
-				className={`fixed top-0 left-0 right-0 z-999 flex h-16 w-[90%] items-center gap-2 m-auto bg-astra-cream text-brand-ink px-4 md:px-8 min-[1080px]:gap-0 rounded-lg border my-4
-				transition-transform duration-300 ${hidden ? "-translate-y-2/1" : "translate-y-0"}`}
-			>
-				<div className="flex h-full min-w-0 flex-1 items-center justify-start">
-					<Link
-						href={homeHref}
-						className="flex h-full min-w-0 flex-1 items-center justify-start"
-					>
-						<img
-							src={LogoMark}
-							alt="Ad Astra UC3M"
-							width="180"
-							height="50"
-							className="h-10 w-auto object-contain object-left"
+		<header
+			ref={headerRef}
+			onClickCapture={handleNavigationClick}
+			onFocusCapture={(event) => {
+				if (event.target.matches?.(":focus-visible")) setHidden(false);
+			}}
+			className={`fixed top-0 left-0 right-0 z-999 flex h-16 w-[90%] items-center gap-2 m-auto bg-astra-cream text-brand-ink px-4 md:px-8 min-[1080px]:gap-0 rounded-lg border my-4
+			transition-transform duration-300 ${hidden ? "-translate-y-2/1" : "translate-y-0"}`}
+		>
+			<div className="flex h-full min-w-0 flex-1 items-center justify-start">
+				<Link
+					href={homeHref}
+					className="flex h-full min-w-0 flex-1 items-center justify-start"
+				>
+					<img
+						src={LogoMark}
+						alt="Ad Astra UC3M"
+						width="180"
+						height="50"
+						className="h-10 w-auto object-contain object-left"
+					/>
+				</Link>
+			</div>
+			<div className="hidden flex-none justify-center px-4 min-[1080px]:flex">
+				<DesktopNavbar links={links} activeHref={activeLink} />
+			</div>
+			<div className="flex flex-1 items-center justify-end gap-3">
+				<div className="hidden items-center gap-3 min-[1080px]:flex">
+					<JoinButton cta={cta} active={pathname === cta.href} />
+					{signedIn && (
+						<AccountMenu
+							account={account}
+							links={accountLinks}
+							activeHref={activeAccountLink}
+							signOutAction={signOut}
 						/>
-					</Link>
+					)}
 				</div>
-				<div className="hidden flex-none justify-center px-4 min-[1080px]:flex">
-					<DesktopNavbar links={links} activeHref={activeLink} />
+				<div className="min-[1080px]:hidden">
+					{signedIn ? (
+						<MobileNavbar
+							links={links}
+							accountLinks={accountLinks}
+							accountLabel={`Cuenta de ${account.name}`}
+							cta={cta}
+							activeHref={activeMobileLink}
+							ctaActive={pathname === cta.href}
+							header={<MobileAccountSummary account={account} />}
+							footer={<SignOutButton />}
+						/>
+					) : (
+						<VisitorMobileActions
+							links={links}
+							cta={cta}
+							activeHref={activeLink}
+							ctaActive={pathname === cta.href}
+						/>
+					)}
 				</div>
-				<div className="flex flex-1 items-center justify-end gap-3">
-					<div className="hidden items-center gap-3 min-[1080px]:flex">
-						<JoinButton cta={cta} active={pathname === cta.href} />
-						{signedIn && (
-							<AccountMenu
-								account={account}
-								links={accountLinks}
-								activeHref={activeAccountLink}
-								signOutAction={signOut}
-							/>
-						)}
-					</div>
-					<div className="min-[1080px]:hidden">
-						{signedIn ? (
-							<MobileNavbar
-								links={links}
-								accountLinks={accountLinks}
-								accountLabel={`Cuenta de ${account.name}`}
-								cta={cta}
-								activeHref={activeMobileLink}
-								ctaActive={pathname === cta.href}
-								header={<MobileAccountSummary account={account} />}
-								footer={<SignOutButton />}
-							/>
-						) : (
-							<VisitorMobileActions
-								links={links}
-								cta={cta}
-								activeHref={activeLink}
-								ctaActive={pathname === cta.href}
-							/>
-						)}
-					</div>
-				</div>
-			</header>
-		</>
+			</div>
+		</header>
 	);
 }
 
