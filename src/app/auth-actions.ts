@@ -145,7 +145,7 @@ export async function signIn(formData: FormData): Promise<never> {
 }
 
 /**
- * Acción del formulario de CommunityBar. Pide al proveedor cerrar la sesión asociada a la petición y
+ * Acción del botón «Cerrar sesión» del menú de cuenta y del menú móvil de Navbar. Pide al proveedor cerrar la sesión asociada a la petición y
  * redirige a la portada.
  */
 export async function signOut(): Promise<never> {
