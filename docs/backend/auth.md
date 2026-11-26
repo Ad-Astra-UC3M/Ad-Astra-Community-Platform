@@ -166,10 +166,10 @@ Estas funciones devuelven JSX para que App Router lo renderice. Pasar una Server
 
 | Función | Parámetros | Qué hace y a quién llama |
 | --- | --- | --- |
-| `RootLayout` | `children`, la ruta renderizada por Next | Obtiene `currentUser` y construye sus elementos de navegación y sesión alrededor de la página. |
+| `RootLayout` | `children`, la ruta renderizada por Next | Obtiene `currentUser` y construye sus elementos de navegación y sesión alrededor de la página. Con sesión, monta `CommunityBottomNav` después del pie, que muestra los accesos rápidos de `MemberBottomNav` por debajo de 1080 px, y reserva el espacio que ocupa la barra. |
 | `CommunityPage` | Sin parámetros | La portada obtiene `currentUser`. Envía a `/home` cuando hay sesión. En otro caso muestra la portada pública. |
 | `HomePage` | Sin parámetros | `loadMyHome` exige sesión con retorno a `/home`. La página usa sus reservas y capacidades para mostrar la agenda y el acceso al panel. |
-| `CommunityBar` | Propiedad `user`, usuario de Comunidad ya resuelto | Muestra su miniatura de perfil privada cuando existe (`avatarUpdatedAt`), su nombre y correo. Muestra Gestión según las capacidades y envía el formulario de cierre a `signOut`. |
+| `Navbar` | `authenticated`, `hasAdmin` y `account` (nombre, correo y URL privada del avatar) que prepara `RootLayout` | Toma su navegación de `getCommunityNav` y marca la ruta con `findActiveHref`. Con sesión, `AccountMenu` (escritorio) y el menú móvil muestran la miniatura, el nombre y el correo, el panel administrativo según las capacidades y el formulario de cierre que llama a `signOut`. La barra superior se oculta al desplazarse hacia abajo, salvo mientras tiene el foco de teclado; un clic o un toque no la retiene. En el menú móvil, los enlaces de cuenta y el cierre de sesión forman un grupo aparte. La barra inferior móvil (`CommunityBottomNav`) ofrece Inicio, Actividades, Tarjeta QR, Ofertas (abreviatura de Oportunidades) y Mi perfil. |
 | `SignUpPage` | `searchParams`, con un error de alta opcional | Muestra el registro y asigna `signUp` al formulario. |
 | `SignInPage` | `searchParams` con error, destino y avisos de cuenta | Sanea el destino con `readOptionalNextPath` y presenta el formulario que llama a `signIn`. |
 | `VerifyEmailPage` | `searchParams` de la verificación | Obtiene el correo de la cookie con `readAccountCodeEmail` y pasa ambos valores a `VerifyEmailView`. |

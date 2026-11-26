@@ -8,6 +8,7 @@ Plataforma web en español de la asociación Ad Astra UC3M para gestionar cuenta
 - **PostgreSQL en Neon** con **Drizzle ORM** (`src/db/schema/*`, `drizzle/*.sql`, 14 tablas MVP en `public`) y **PGlite** para pruebas automáticas locales y E2E.
 - **Neon Auth** (`@neondatabase/auth/next/server`, `src/server/auth/`) con Better Auth gestionado por Neon. El acceso usa correo UC3M y contraseña. La verificación del alta y la recuperación usan códigos de seis dígitos por correo, específicos para cada operación. La asistencia usa tarjetas QR firmadas con `jose` (`HS256`, `ATTENDANCE_QR_SECRET`).
 - **Neon Object Storage** (`src/server/storage/`, API compatible con S3 en modo path-style y firma AWS SigV4) en bucket privado para la foto de perfil opcional, servida con `Cache-Control: no-store` mediante los endpoints autenticados `/api/profile/avatar` y `/api/admin/talent/[id]/avatar`.
+- **Iconos animados de Animate UI** (`src/components/animate-ui/`, licencia en su `LICENSE.md`). Se usa solo `@animate-ui/react/icons`: `overrides` en `package.json` fija su dependencia opcional `@floating-ui/react` a la 0.26.28 de Headless UI, fuera del rango `^0.27` que pide. Antes de importar otras primitivas de Animate UI que usen Floating UI, revisa ese ajuste.
 
 En cada rama de Neon Auth, activa la verificación al registrarse mediante código por correo, el inicio automático de sesión tras verificar y la revocación de sesiones al restablecer la contraseña. El MVP utiliza el proveedor de correo compartido de Neon.
 
